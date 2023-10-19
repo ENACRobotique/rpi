@@ -1,0 +1,8 @@
+
+# Lidar usb <-> serial adapter
+SUBSYSTEM=="tty", ATTRS{product}=="CP2102 USB to UART Bridge Controller", ATTRS{serial}=="Doug", SYMLINK+="lidar", GROUP="dialout"
+
+
+# STM32 virtual serial port
+SUBSYSTEM=="tty", ATTRS{manufacturer}=="STMicroelectronics", ATTRS{product}=="STM32 STLink", SYMLINK+="bas_niveau", GROUP="dialout"
+
