@@ -292,7 +292,7 @@ class Radio:
         print(f"\t\t\t\t\t  x = {round(x,3)} y = {round(y,3)} yaw = {round(theta*180/pi,3)}, ")
 
     def handle_speed_report(self,vx,vy,vtheta):
-        print(f"\t\t\t\t\t  vx = {round(vx,3)} vy = {round(vy,3)} vyaw = {round(vtheta*180/pi,3)}, ")
+        pass
 
     
     def handle_match_report(self):

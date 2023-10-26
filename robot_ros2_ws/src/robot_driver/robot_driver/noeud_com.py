@@ -2,8 +2,8 @@ import rclpy
 from rclpy.node import Node
 from .comm_bas_niveau import Radio
 from nav_msgs.msg import Odometry 
-from math import pi
-buffer = 10 
+from math import pi, atan2
+buffer = 10 #Arbitrary
 
 class RosRadio(Node):
 
@@ -13,13 +13,19 @@ class RosRadio(Node):
         self.radio = Radio()
         self.radio.startListening()
         self.odom_sub = self.create_subscription(Odometry, "/odom_rf2o",self.odom,buffer)
-        self.setTargetPos(0.25,0.25,0)
+        self.setTargetPos(0.10,0.10,0)
     
     def odom(self,msg:Odometry):
-        
-        x = msg.pose.pose.position.x
-        y = msg.pose.pose.position.y
-        yaw = msg.pose.pose.orientation.z
+        # THIS IS QATERNIONS NOT EULER ANGLES
+        x = -msg.pose.pose.position.x
+        y = -msg.pose.pose.position.y
+
+        qx= msg.pose.pose.orientation.x
+        qy= msg.pose.pose.orientation.y
+        qz= msg.pose.pose.orientation.z
+        qw= msg.pose.pose.orientation.w
+
+        yaw = atan2(2 * (qw * qz + qx * qy),1 - 2 * (qy * qy + qz * qz))
 
         self.get_logger().info(
             " x = " + str(round(x,3)) + 
