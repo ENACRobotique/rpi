@@ -1,5 +1,7 @@
 Rpi conf and ros workspace for Eurobot main robot
 
+## How to use
+
 To clone with submodules do ```git clone --recurse-submodules -j8 [URL] ```
 Or if you already cloned the repo you can still add the submodules after by doing : ```git clone --recurse-submodules [URL]```
 
@@ -17,5 +19,7 @@ Move to robot_ros2_ws and do colcon build to build ros packages.
 If rf2o pkg doesn't build and you get a "BOOST_DIR" error,try adding libboost (it did work for me): sudo apt-get install libboost-all-dev
 rf2o pkg can take a long time to build ( on the pi4 at least) so don't worry if it's stuck for more thant 2 mins while building
 
+if you get the SetuptoolsDeprecationWarning error , verify your version of setuptool ```pip3 list | grep setuptools```
+Then change setup tools version to 58.2.0 if it's not: ```pip3 install setuptools==58.2.0```.
 
 Don't forget to source the install/setup.bash file

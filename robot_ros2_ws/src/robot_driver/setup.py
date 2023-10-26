@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "comm_BN = robot_driver.noeud_com:main"
         ],
     },
 )
