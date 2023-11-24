@@ -1,3 +1,6 @@
-[submodule "robot_ros2_ws/src/rf2o_laser_odometry_custom"]
-	path = robot_ros2_ws/src/rf2o_laser_odometry_custom
-	url = git@github.com:ENACRobotique/rf2o_laser_odometry_custom.git
+[submodule "robot_ros2_ws/src/ldlidar_stl_ros2"]
+	path = robot_ros2_ws/src/ldlidar_stl_ros2
+	url = git@github.com:ENACRobotique/ldlidar_stl_ros2.git
+[submodule "robot_ros2_ws/src/rf2o_laser_odometry"]
+	path = robot_ros2_ws/src/rf2o_laser_odometry
+	url = git@github.com:ENACRobotique/rf2o_laser_odometry.git
