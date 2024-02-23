@@ -1,0 +1,25 @@
+[Unit]
+Description= ecal_loca_lidar
+After=network.target network-online.target robot_lidar_driver.service
+Requires=robot_lidar_driver.service
+
+[Service]
+Type=simple
+ 
+User=pi
+Group=pi
+
+SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
+ 
+ExecStart=python3 /home/pi/robot_rpi_2024/src/lidar/ecal_loca_lidar.py
+
+Restart=on-failure
+RestartSec=2 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+StandardOutput=null
+StandardError=null
+ 
+[Install]
+
+

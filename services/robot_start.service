@@ -1,0 +1,26 @@
+[Unit]
+Description= start all systems for the robot
+After=network.target network-online.target
+Wants=robot_bridge.service
+Wants=robot_lidar_driver.service
+
+
+[Service]
+Type=simple
+ 
+User=pi
+Group=pi
+
+SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
+ 
+ExecStart=/home/pi/robot_rpi_2024/services/heartbeat.py
+ 
+Restart=on-failure
+RestartSec=2 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+ 
+[Install]
+WantedBy=multi-user.target
+
+
