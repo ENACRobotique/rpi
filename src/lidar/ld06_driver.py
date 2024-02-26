@@ -11,15 +11,10 @@ class Cloud:
         self.min_angle = float('inf')
     
     def add(self, distance, angle):
-        if self.filter(distance):
-            self.count += 1
-            self.points.append((distance, angle))
-            self.max_angle = max(self.max_angle, angle)
-            self.min_angle = min(self.min_angle, angle)
-
-    def filter(self, distance):
-        # Return True if the point should be kept, False otherwise
-        return True
+        self.count += 1
+        self.points.append((distance, angle))
+        self.max_angle = max(self.max_angle, angle)
+        self.min_angle = min(self.min_angle, angle)
 
     def span(self):
         return self.max_angle - self.min_angle
@@ -28,7 +23,7 @@ class Cloud:
         return [360-p[1] for p in self.points]
     
     def get_distances(self):
-        return [p[0]/1000 for p in self.points]
+        return [p[0] for p in self.points]
 
 
 # This enum contains the part of the lidar message that is expected by the driver
@@ -51,7 +46,6 @@ class Driver:
         # Current message information
         self.count = 0 # Number of point samples in the message
         # Point cloud
-        self.total_angle = 0
         self.cloud = Cloud()
         self.cb = cb
 
@@ -90,7 +84,6 @@ class Driver:
                 else:
                     step = (end_angle - start_angle) / self.count
 
-                self.total_angle += self.count * step
 
                 for i in range(self.count):
                     distance = struct.unpack('<H', message_data[3*i:3*i+2])[0]
@@ -100,16 +93,11 @@ class Driver:
                     if angle >= 360:
                         angle -= 360
 
+                    if self.cloud.count > 0 and angle < self.cloud.max_angle:
+                        self.cb(self.cloud.get_angles(), self.cloud.get_distances())
+                        self.cloud = Cloud()
+
                     self.cloud.add(distance, angle)
-
-                if self.total_angle >= 360:
-                    # The points are back to the beginning
-                    #print('count:', self.cloud.count, ', span:', self.cloud.span())
-                    self.cb(self.cloud.get_angles(), self.cloud.get_distances())
-
-                    # We can start a new point cloud
-                    self.total_angle = 0
-                    self.cloud = Cloud()
 
                 self.expected_type = Part.START
                 self.expected_length = 1

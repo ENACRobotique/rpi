@@ -16,9 +16,12 @@ message Speed {
     float vx = 1;
     float vy = 2;
     float vtheta = 3;
- }
+}
 
- 
+message Ins {
+    float vtheta = 1;
+    float theta = 2;
+}
  
 
 // message SetState {

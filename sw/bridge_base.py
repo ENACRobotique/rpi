@@ -1,6 +1,6 @@
 #!/bin/env python3
 import sys
-sys.path.append('generated')
+sys.path.append('../generated')
 from serial import Serial
 from serial.threaded import Protocol, ReaderThread
 import time
@@ -16,7 +16,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
-plotjuggler_udp = ("127.0.0.1", 9870)
+plotjuggler_udp = ("192.168.42.126", 9870)
 
 
 class RxState(Enum):
@@ -37,8 +37,11 @@ class Duckoder(Protocol):
             self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ecal_core.initialize(sys.argv, "Bridge low level")
         self.odom_pos_pub = ProtoPublisher("odom_pos", hgpb.Position)
+        self.odom_speed_pub = ProtoPublisher("odom_speed", hgpb.Speed)
         self.carrot_pos_pub = ProtoPublisher("carrot_pos", hgpb.Position)
+        self.ins_pub = ProtoPublisher("ins", hgpb.Ins)
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
+        
         self.target_pos_sub.set_callback(self.set_target)
         
 
@@ -51,6 +54,7 @@ class Duckoder(Protocol):
                 m = llpb.Message.FromString(self._msg_rcv)
                 if self.send_plotjuggler:
                     jj = self.msg_to_json(m)
+                    #print(jj)
                     self.so.sendto(jj.encode(), plotjuggler_udp)
                 topic = m.WhichOneof('inner')
                 if topic == "pos" and m.msg_type == llpb.Message.MsgType.STATUS:
@@ -59,6 +63,12 @@ class Duckoder(Protocol):
                         self.odom_pos_pub.send(hgm)
                     elif m.pos.obj == llpb.Pos.PosObject.POS_CARROT_W:
                         self.carrot_pos_pub.send(hgm)
+                if topic == "speed" and m.msg_type == llpb.Message.MsgType.STATUS:
+                    hgm = hgpb.Speed(vx=m.speed.vx,vy=m.speed.vy,vtheta=m.speed.vtheta)
+                    self.odom_speed_pub.send(hgm)
+                if topic == "ins" and m.msg_type == llpb.Message.MsgType.STATUS:
+                    hgm = hgpb.Ins(vtheta=m.ins.vtheta,theta=m.ins.theta)
+                    self.ins_pub.send(hgm)
                 
 
     def _decode(self, c):
@@ -125,9 +135,6 @@ class Duckoder(Protocol):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("missing port")
-        exit(1)
     port = sys.argv[1] if len(sys.argv) > 1 else "/dev/bas_niveau"
 
     ser=Serial(port, 115200)

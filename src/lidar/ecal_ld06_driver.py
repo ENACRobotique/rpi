@@ -15,6 +15,7 @@ if __name__ == '__main__':
     def publish_reading(angles, distances):
         #once the program finished to read a full circle reading from lidar, publlish it to eCAL with protobuf format
         lidar_msg = lidar_data.Lidar()
+        lidar_msg.nb_pts = len(distances)
         lidar_msg.angles.extend(angles)
         lidar_msg.distances.extend(distances)
         pub.send(lidar_msg, ecal_core.getmicroseconds()[1])
