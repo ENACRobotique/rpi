@@ -167,10 +167,16 @@ class Robot:
             pos += self.pos
         elif frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
-        print(pos)
+        pos.theta = Robot.normalize(pos.theta)
         pb_pos = pos.to_proto()
+        print(f"go to: {pos}")
         self.set_target_pos_pub.send(pb_pos)
         self.last_target = pos
+    
+    def move(self, distance, direction):
+        frame_pince = Pos(0, 0, direction)
+        target = Pos(distance, 0, -direction).from_frame(frame_pince)
+        self.setTargetPos(target, Frame.ROBOT)
     
 
     def resetPos(self, pos: Pos):
