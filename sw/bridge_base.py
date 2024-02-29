@@ -42,9 +42,11 @@ class Duckoder(Protocol):
         self.ins_pub = ProtoPublisher("ins", hgpb.Ins)
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
         self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
+        self.pid_sub = ProtoSubscriber("pid_gains",llpb.MotorPid)
         
         self.target_pos_sub.set_callback(self.set_target)
         self.reset_pos_sub.set_callback(self.reset_position)
+        self.pid_sub.set_callback(self.set_pid)
         
 
     def connection_made(self, transport):
@@ -124,26 +126,32 @@ class Duckoder(Protocol):
         self.transport.write(buffer)
     
     def set_target(self, topic_name, hlm, time):
-        print(hlm)
         llmsg = llpb.Message()
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
         llmsg.pos.x = hlm.x
         llmsg.pos.y = hlm.y
         llmsg.pos.theta = hlm.theta
         llmsg.pos.obj = llpb.Pos.PosObject.POS_ROBOT_W
-        print(llmsg)
         self.send_message(llmsg)
 
     def reset_position(self, topic_name, hlm, time):
-        print(hlm)
         llmsg = llpb.Message()
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
         llmsg.pos.x = hlm.x
         llmsg.pos.y = hlm.y
         llmsg.pos.theta = hlm.theta
         llmsg.pos.obj = llpb.Pos.PosObject.RECALAGE
-        print(llmsg)
         self.send_message(llmsg)
+
+    def set_pid(self, topic_name, hlm, time):
+        llmsg = llpb.Message()
+        llmsg.msg_type = llpb.Message.MsgType.COMMAND
+        llmsg.motor_pid.motor_no = hlm.motor_no
+        llmsg.motor_pid.kp = hlm.kp
+        llmsg.motor_pid.ki = hlm.ki
+        llmsg.motor_pid.kd = hlm.kd
+        self.send_message(llmsg)
+        
 
 
 if __name__ == "__main__":
