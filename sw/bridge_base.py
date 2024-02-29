@@ -16,7 +16,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
-plotjuggler_udp = ("192.168.42.126", 9870)
+plotjuggler_udp = ("10.42.0.101", 9870)
 
 
 class RxState(Enum):
@@ -41,8 +41,10 @@ class Duckoder(Protocol):
         self.carrot_pos_pub = ProtoPublisher("carrot_pos", hgpb.Position)
         self.ins_pub = ProtoPublisher("ins", hgpb.Ins)
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
+        self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
         
         self.target_pos_sub.set_callback(self.set_target)
+        self.reset_pos_sub.set_callback(self.reset_position)
         
 
     def connection_made(self, transport):
@@ -132,6 +134,16 @@ class Duckoder(Protocol):
         print(llmsg)
         self.send_message(llmsg)
 
+    def reset_position(self, topic_name, hlm, time):
+        print(hlm)
+        llmsg = llpb.Message()
+        llmsg.msg_type = llpb.Message.MsgType.COMMAND
+        llmsg.pos.x = hlm.x
+        llmsg.pos.y = hlm.y
+        llmsg.pos.theta = hlm.theta
+        llmsg.pos.obj = llpb.Pos.PosObject.RECALAGE
+        print(llmsg)
+        self.send_message(llmsg)
 
 
 if __name__ == "__main__":
