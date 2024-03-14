@@ -4,3 +4,6 @@
 [submodule "robot_ros2_ws/src/rf2o_laser_odometry"]
 	path = robot_ros2_ws/src/rf2o_laser_odometry
 	url = git@github.com:ENACRobotique/rf2o_laser_odometry.git
+[submodule "proto"]
+	path = proto
+	url = git@github.com:ENACRobotique/proto.git
