@@ -10,9 +10,9 @@ class Cloud:
         self.max_angle = float('-inf')
         self.min_angle = float('inf')
     
-    def add(self, distance, angle):
+    def add(self, distance, angle, quality):
         self.count += 1
-        self.points.append((distance, angle))
+        self.points.append((distance, angle, quality))
         self.max_angle = max(self.max_angle, angle)
         self.min_angle = min(self.min_angle, angle)
 
@@ -24,6 +24,9 @@ class Cloud:
     
     def get_distances(self):
         return [p[0] for p in self.points]
+
+    def get_qualities(self):
+        return [p[2] for p in self.points]
 
 
 # This enum contains the part of the lidar message that is expected by the driver
@@ -94,10 +97,10 @@ class Driver:
                         angle -= 360
 
                     if self.cloud.count > 0 and angle < self.cloud.max_angle:
-                        self.cb(self.cloud.get_angles(), self.cloud.get_distances())
+                        self.cb(self.cloud.get_angles(), self.cloud.get_distances(), self.cloud.get_qualities())
                         self.cloud = Cloud()
 
-                    self.cloud.add(distance, angle)
+                    self.cloud.add(distance, angle, quality)
 
                 self.expected_type = Part.START
                 self.expected_length = 1

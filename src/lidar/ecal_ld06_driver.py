@@ -12,12 +12,13 @@ if __name__ == '__main__':
 
     pub = ProtoPublisher("lidar_data", lidar_data.Lidar)
 
-    def publish_reading(angles, distances):
+    def publish_reading(angles, distances, quality):
         #once the program finished to read a full circle reading from lidar, publlish it to eCAL with protobuf format
         lidar_msg = lidar_data.Lidar()
         lidar_msg.nb_pts = len(distances)
         lidar_msg.angles.extend(angles)
         lidar_msg.distances.extend(distances)
+        lidar_msg.quality.extend(quality)
         pub.send(lidar_msg, ecal_core.getmicroseconds()[1])
 
     driver = lidar.Driver(publish_reading, '/dev/lidar')
