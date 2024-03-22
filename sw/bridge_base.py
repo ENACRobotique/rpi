@@ -37,6 +37,7 @@ class Duckoder(Protocol):
             self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ecal_core.initialize(sys.argv, "Bridge low level")
         self.odom_pos_pub = ProtoPublisher("odom_pos", hgpb.Position)
+        self.odom_move_pub = ProtoPublisher("odom_move", hgpb.Position)
         self.odom_speed_pub = ProtoPublisher("odom_speed", hgpb.Speed)
         self.carrot_pos_pub = ProtoPublisher("carrot_pos", hgpb.Position)
         self.ins_pub = ProtoPublisher("ins", hgpb.Ins)
@@ -67,6 +68,8 @@ class Duckoder(Protocol):
                         self.odom_pos_pub.send(hgm)
                     elif m.pos.obj == llpb.Pos.PosObject.POS_CARROT_W:
                         self.carrot_pos_pub.send(hgm)
+                    elif m.pos.obj == llpb.Pos.PosObject.MOVE_ROBOT_R:
+                        self.odom_move_pub.send(hgm)
                 if topic == "speed" and m.msg_type == llpb.Message.MsgType.STATUS:
                     hgm = hgpb.Speed(vx=m.speed.vx,vy=m.speed.vy,vtheta=m.speed.vtheta)
                     self.odom_speed_pub.send(hgm)
