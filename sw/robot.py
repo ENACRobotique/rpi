@@ -11,7 +11,7 @@ import lidar_data_pb2 as lidar_pb
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
-
+import navigation.nav as nav
 
 XY_ACCURACY = 20  # mm
 THETA_ACCURACY = 0.05 # radians
@@ -98,6 +98,9 @@ class Robot:
         self.pos = Pos(0, 0, 0)
         self.speed = Speed(0, 0, 0)
         self.last_target = Pos(0, 0, 0)
+        self.nav = nav.Nav()
+        self.nav.initialisation()
+
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -201,6 +204,28 @@ class Robot:
     def onReceiveMatchStarted (self, topic_name, msg, timestamp):
         self.tempsDebutMatch = time.time()
         ecal_core.log_message("Match started at " + str(self.tempsDebutMatch))
+
+
+    def pathFinder(self,start,end):
+        self.nav.entree = start
+        self.nav.sortie = end
+        self.nav.findPath()
+        self.current_point = 0
+        self.nav.current = self.nav.chemin[self.current_point]
+    
+    def followPath(self):
+        self.n_points = len(self.nav.chemin)
+        x,y = self.nav.current
+
+        if not (self.hasReachedTarget(x,y,self.pos.theta)): # si le robot n'est pas arrivé
+            self.setTargetPos(x,y,self.pos.theta)           # continue d'aller au point en cour
+        else:                                               # sinon si le point est atteint
+            self.current_point += 1                     # on passe au suivant 
+            if self.current_point == self.n_points :        # et si on est arrivé au dernier
+                print(" Je t'avais dis je sais conduire ")  # on s'arrette là
+                return
+            else :                                          # et sinon si on est arrivé au précédent mais pas le dernier
+                self.nav.current = self.nav.chemin[self.current_point] 
 
 
 if __name__ == "__main__":

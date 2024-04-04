@@ -10,10 +10,11 @@ class Nav(object):
         self.entree : str
         self.sortie : str
         self.graph : map.Graph
-        self.file = "sw/graph.txt"
+        self.file = "sw/navigation/graph.txt"
         self.path : list
         self.statut : bool # arrivé : True ; en chemin : False. # sert pour savoir si on peut envoyer la nouvelle consigne
         self.consigne : tuple # (x,y)
+        self.current : tuple # point actuellement occupé
 
 
     def initialisation(self):
