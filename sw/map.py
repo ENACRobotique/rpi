@@ -89,10 +89,10 @@ def print_chemin(g,chemin):
         
 
 
-file = 'graph.txt'
+file = "sw/graph.txt"
 graph = read_graph(file) #map de la table
-
-chemin,distance_totale = dijkstra.dijkstra_classic(graph,"plate_B_1", "interet_SE") #a liste des points parcourus,nd distance parcourue
+graph.weight()
+chemin,distance_totale = dijkstra.dijkstra_classic(graph,"p4", "jardiSecureJ") #a liste des points parcourus,nd distance parcourue
 
 plt.figure()
 print_map(graph)

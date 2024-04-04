@@ -1,4 +1,4 @@
-secureB 225 1775 jardiPotBHaut,planteNW,
+secureB 225 1775 jardiPotBHaut,planteNW
 jardiSecureB 750 1810 secureB,planteNW
 jardiPotBHaut 350 1387.5 secureB,planteNW,navMidW,midJ
 planteNW 729.890 1462.066 secureB,jardiSecureB,jardiPotBHaut,navMidW,mid
@@ -31,4 +31,4 @@ midB 2775 1000 jardiPotBBas,navMidE,jardiPotJHaut
 jardiPotJHaut 2650 1387.50 midB,navMidE,planteNE,secureJ
 secureJ 2775 1775 jardiPotJHaut,planteNE,jardiSecureJ
 jardiSecureJ 2250 1810 secureJ,planteNE
-planteNE 2270.110 1462.066  
+planteNE 2270.110 1462.066  jardiSecureJ,secureJ,jardiPotJHaut,navMidE,mid

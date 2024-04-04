@@ -25,7 +25,7 @@ class PrioQueue(object):
         for i, (_, _, e) in enumerate(self.queue):
             if e == elt:
                 self.queue[i][0] = new_prio
-                heapq._siftdown(self.queue, 0, i)
+                heapq._siftdown(self.queue, 0, i) #type: ignore
         return self.queue
         raise KeyError("decrease_prio")
 
@@ -57,15 +57,17 @@ def initialisation(G,start):
     
     return d
 
+
 def find_min(Q : PrioQueue):
     a=Q
     b = a.pop()
     return b[1]
 
+
 def maj_dist(s1, s2, predecesseur : dict, d :dict , G):
     a = G.weights[(s1,s2)]
-    if d[s2] > d[s1] + a :
-        d[s2] = d[s1] + a
+    if d[s2] > d[s1] + a[0] :
+        d[s2] = d[s1] + a[0]
         predecesseur[s2] = s1
 
     return d,predecesseur
@@ -97,4 +99,4 @@ def dijkstra_classic(G,start,end):  #G un graphe
         s = predecesseur[s]
     chemin += [start]
 
-    return chemin.reverse(),d[end]
+    return list(reversed(chemin)), d[end]
