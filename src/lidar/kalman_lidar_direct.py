@@ -47,6 +47,7 @@ filter = kalman_class.Kalman(
     theta0=theta0, X0=X0, P0=P0, Q=Q, R=R, alpha=alpha, beta=beta, kappa=kappa
 )
 
+# cf. kalman_class.py pour les détails de la boucle de calcul
 def callback_lidar(angles: list[float], distances: list[float], _: list[float]):
     global start, end, u, filter
 
