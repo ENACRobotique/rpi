@@ -11,7 +11,7 @@ import lidar_data_pb2 as lidar_pb
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
-import navigation.nav as nav
+import nav as nav
 
 XY_ACCURACY = 20  # mm
 THETA_ACCURACY = 0.05 # radians
@@ -217,7 +217,7 @@ class Robot:
         self.n_points = len(self.nav.chemin)
         x,y = self.nav.current
 
-        if not (self.hasReachedTarget(x,y,self.pos.theta)): # si le robot n'est pas arrivé
+        if not (self.hasReachedTarget()): # si le robot n'est pas arrivé
             self.setTargetPos(x,y,self.pos.theta)           # continue d'aller au point en cour
         else:                                               # sinon si le point est atteint
             self.current_point += 1                     # on passe au suivant 
