@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x10lidar_data.proto\x12\x04\x65nac\"S\n\x05Lidar\x12\x0e\n\x06nb_pts\x18\x01 \x01(\x05\x12\x17\n\x0f\x61ngle_increment\x18\x02 \x01(\x02\x12\x0e\n\x06\x61ngles\x18\x03 \x03(\x02\x12\x11\n\tdistances\x18\x04 \x03(\x02\"L\n\tProximity\x12\x18\n\x10\x63losest_distance\x18\x01 \x01(\x02\x12%\n\x06status\x18\x02 \x01(\x0e\x32\x15.enac.ProximityStatus\"!\n\tObstacles\x12\t\n\x01x\x18\x01 \x03(\x02\x12\t\n\x01y\x18\x02 \x03(\x02*0\n\x0fProximityStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07WARNING\x10\x01\x12\x08\n\x04STOP\x10\x02\x62\x06proto3'
+  serialized_pb=b'\n\x10lidar_data.proto\x12\x04\x65nac\"d\n\x05Lidar\x12\x0e\n\x06nb_pts\x18\x01 \x01(\x05\x12\x17\n\x0f\x61ngle_increment\x18\x02 \x01(\x02\x12\x0e\n\x06\x61ngles\x18\x03 \x03(\x02\x12\x11\n\tdistances\x18\x04 \x03(\x02\x12\x0f\n\x07quality\x18\x05 \x03(\x02\"L\n\tProximity\x12\x18\n\x10\x63losest_distance\x18\x01 \x01(\x02\x12%\n\x06status\x18\x02 \x01(\x0e\x32\x15.enac.ProximityStatus\"!\n\tObstacles\x12\t\n\x01x\x18\x01 \x03(\x02\x12\t\n\x01y\x18\x02 \x03(\x02*0\n\x0fProximityStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07WARNING\x10\x01\x12\x08\n\x04STOP\x10\x02\x62\x06proto3'
 )
 
 _PROXIMITYSTATUS = _descriptor.EnumDescriptor(
@@ -48,8 +48,8 @@ _PROXIMITYSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=224,
-  serialized_end=272,
+  serialized_start=241,
+  serialized_end=289,
 )
 _sym_db.RegisterEnumDescriptor(_PROXIMITYSTATUS)
 
@@ -96,6 +96,13 @@ _LIDAR = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='quality', full_name='enac.Lidar.quality', index=4,
+      number=5, type=2, cpp_type=6, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -109,7 +116,7 @@ _LIDAR = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=26,
-  serialized_end=109,
+  serialized_end=126,
 )
 
 
@@ -147,8 +154,8 @@ _PROXIMITY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=111,
-  serialized_end=187,
+  serialized_start=128,
+  serialized_end=204,
 )
 
 
@@ -186,8 +193,8 @@ _OBSTACLES = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=189,
-  serialized_end=222,
+  serialized_start=206,
+  serialized_end=239,
 )
 
 _PROXIMITY.fields_by_name['status'].enum_type = _PROXIMITYSTATUS

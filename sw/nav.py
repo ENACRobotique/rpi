@@ -32,8 +32,6 @@ class Nav(object):
     def findPath(self):
         """Renvoi le chemin le plus cours entre l'entrée et la sortie"""
         self.chemin,distance_totale = dijkstra.dijkstra_classic(self.graph,self.entree, self.sortie) #a liste des points parcourus,nd distance parcourue
-        map.print_map(self.graph)
-        map.print_chemin(self.graph,self.chemin)
         # print(graph.coords[chemin[1]][0]) #coordonnes x du point 
         #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
         
