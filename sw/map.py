@@ -37,15 +37,15 @@ class Graph(object):
         return self.adj[u]
 
     def weight(self):
-        for point in self.adj :
+        self.weights = {}  # Réinitialisez weights pour éviter la duplication
+        
+        for point in self.adj:
             for voisin in self.adj[point]:
-                x1 = self.coords[point][0]
-                x2 = self.coords[voisin][0]
-                y1 = self.coords[point][1]
-                y2 = self.coords[voisin][1]
-                w =  sqrt((x1 - x2)**2 + (y1 - y2)**2)
-                self.weights.setdefault((point,voisin), []).append(w)
-                self.weights.setdefault((voisin,point), []).append(w)
+                x1, y1 = self.coords[point]
+                x2, y2 = self.coords[voisin]
+                w = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+                self.weights[(point, voisin)] = w
+                self.weights[(voisin, point)] = w
         
 
 
@@ -89,12 +89,14 @@ def print_chemin(g,chemin):
         
 
 if __name__ == "__main__" : 
-        
-    file = "graph.txt"
+    ### test 
+    file = "sw/graph.txt"
     graph = read_graph(file) #map de la table
     graph.weight()
-    chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "secureJ") #a liste des points parcourus,nd distance parcourue
 
+    chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "potSE") #a liste des points parcourus,nd distance parcourue
+
+    print(graph.weights)
     plt.figure()
     print_map(graph)
 

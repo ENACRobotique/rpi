@@ -22,6 +22,15 @@ class Nav(object):
         """Initialise le graph et ses poids"""
         self.graph = map.read_graph(self.file) 
         self.graph.weight()
+        ## On augmente les poids de la "croix" au milieu pour ne pas passer dans les plantes
+        self.graph.weights[('planteNW', 'mid')] += 10000
+        self.graph.weights[('mid', 'planteNW')] += 10000
+        self.graph.weights[('planteNE', 'mid')] += 10000
+        self.graph.weights[('mid', 'planteNE')] += 10000
+        self.graph.weights[('navSW', 'mid')] += 10000
+        self.graph.weights[('mid', 'navSW')] += 10000
+        self.graph.weights[('navSE', 'mid')] += 10000
+        self.graph.weights[('mid', 'navSE')] += 10000
     
     def getCoords(self,waypoint):
         """Unité en milimètres !!!!"""

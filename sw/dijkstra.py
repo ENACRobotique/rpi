@@ -1,102 +1,125 @@
 import heapq
 
-class PrioQueue(object):
-    def __init__(self, list : list):
+class PriorityQueue(object):
+    def __init__(self, initial_list : list):
         """
-        Créer une file à priorité à partir d'une liste list :
-        la liste list doit contenir les couples (priorité, element)
+        Crée une file à priorité à partir d'une liste initiale.
+        Chaque élément de la liste initiale doit être un tuple (priorité, élément).
         """
-        self.queue = [[prio, i, elt] for (i, (prio, elt)) in enumerate(list)]
+        self.queue = [[priority, index, element] for (index, (priority, element)) in enumerate(initial_list)]
         heapq.heapify(self.queue)
-
 
     def __repr__(self):
         """
-        Représentation chaine de la file a priorite
+        Représentation en chaîne de la file à priorité.
         """
-        return '<PrioQueue: {0.queue}>'.format(self)
+        return '<PriorityQueue: {0.queue}>'.format(self)
 
-
-    def decrease_prio(self, elt, new_prio):
+    def decrease_priority(self, element, new_priority):
         """
-        Met à jour la priorite de 'elt' dans la file
-        en la remplaçant par 'new_prio'
+        Met à jour la priorité d'un élément dans la file à priorité en remplaçant son ancienne priorité par une nouvelle.
         """
-        for i, (_, _, e) in enumerate(self.queue):
-            if e == elt:
-                self.queue[i][0] = new_prio
-                heapq._siftdown(self.queue, 0, i) #type: ignore
+        for index, (_, _, e) in enumerate(self.queue):
+            if e == element:
+                self.queue[index][0] = new_priority
+                heapq._siftdown(self.queue, 0, index) #type: ignore
         return self.queue
-        raise KeyError("decrease_prio")
-
+        raise KeyError("decrease_priority")
 
     def pop(self):
         """
-        Extrait de la file à priorité l'élement de priorité minimale
-        Renvoie le couple (priorité, élement) correspondant
+        Extrait l'élément avec la plus petite priorité de la file à priorité et le renvoie.
         """
-        prio, _, elt = heapq.heappop(self.queue)
-        return (prio, elt)
-
+        priority, _, element = heapq.heappop(self.queue)
+        return (priority, element)
 
     def is_empty(self):
         """
-        Teste si la file à priorité est vide
+        Vérifie si la file à priorité est vide.
         """
         return len(self.queue) == 0
 
 
-INF = 10000
+INFINITY = 10000
 
-def initialisation(G,start):
-    L = G.nodes()
-    d = {}
-    for u in L:
-        d[u]= INF
-    d[start]=0
-    
-    return d
-
-
-def find_min(Q : PrioQueue):
-    a=Q
-    b = a.pop()
-    return b[1]
-
-
-def maj_dist(s1, s2, predecesseur : dict, d :dict , G):
-    a = G.weights[(s1,s2)]
-    if d[s2] > d[s1] + a[0] :
-        d[s2] = d[s1] + a[0]
-        predecesseur[s2] = s1
-
-    return d,predecesseur
-
-
-def dijkstra_classic(G,start,end):  #G un graphe
+def initialize_distances(graph, start_node):
     """
-    return le chemin le plus court (liste de noeuds successif) et la longueur de ce chemin
+    Initialise les distances à partir du noeud de départ dans le graphe.
     """
-    d = initialisation(G,start)
-    L = G.nodes()
-    Lq = [(d[u],u) for u in L]
-    Q = PrioQueue(Lq)
+    nodes = graph.nodes()
+    distances = {}
+    for node in nodes:
+        distances[node] = INFINITY
+    distances[start_node] = 0
+    return distances
+
+
+def find_min(priority_queue : PriorityQueue):
+    """
+    Trouve et renvoie l'élément avec la plus petite priorité dans la file à priorité.
+    """
+    priority, element = priority_queue.pop()
+    return element
+
+
+def update_distances(source, destination, predecessors : dict, distances : dict , graph):
+    """
+    Met à jour la distance entre deux noeuds dans le graphe.
+    """
+    weight = graph.weights[(source, destination)]
+    if distances[destination] > distances[source] + weight :
+        distances[destination] = distances[source] + weight
+        predecessors[destination] = source
+    return distances, predecessors
+
+
+def dijkstra_classic(graph, start_node, end_node):
+    """
+    Applique l'algorithme de Dijkstra pour trouver le chemin le plus court entre le noeud de départ et le noeud de fin dans le graphe.
+    Returns:
+    tuple - Une paire contenant le chemin le plus court (une liste de noeuds successifs) et la longueur de ce chemin.
+    """
+    # Initialisation des distances à partir du noeud de départ
+    distances = initialize_distances(graph, start_node)
+
+    # Récupération de tous les noeuds dans le graphe
+    nodes = graph.nodes()
+
+    # Création de la liste de priorité initiale pour la file à priorité
+    initial_priority_queue = [(distances[node], node) for node in nodes]
+
+    # Création de la file à priorité
+    priority_queue = PriorityQueue(initial_priority_queue)
     
-    predecesseur ={}
-    visite = []
-    while not Q.is_empty():
-        u = find_min(Q)
-        visite.append(u)
-        if u == end :
+    # Dictionnaire pour stocker les prédécesseurs de chaque noeud
+    predecessors = {}
+
+    # Liste pour stocker les noeuds visités
+    visited_nodes = []
+
+    # Boucle principale de l'algorithme de Dijkstra
+    while not priority_queue.is_empty():
+        # Sélection du noeud avec la plus petite distance actuelle dans la file à priorité
+        current_node = find_min(priority_queue)
+        visited_nodes.append(current_node)
+
+        # Si on atteint le noeud de fin, on arrête la recherche
+        if current_node == end_node:
             break
-        for v in G.neighbours(u):
-            maj_dist(u,v,predecesseur,d,G)
-            Q.decrease_prio(v,d[v])
-    chemin = []
-    s = end
-    while s!=start : 
-        chemin +=[s]
-        s = predecesseur[s]
-    chemin += [start]
 
-    return list(reversed(chemin)), d[end]
+        # Parcours des voisins du noeud courant
+        for neighbor_node in graph.neighbours(current_node):
+            # Mise à jour des distances et des prédécesseurs
+            update_distances(current_node, neighbor_node, predecessors, distances, graph)
+            priority_queue.decrease_priority(neighbor_node, distances[neighbor_node])
+
+    # Reconstruction du chemin le plus court à partir des prédécesseurs
+    shortest_path = []
+    current = end_node
+    while current != start_node: 
+        shortest_path.append(current)
+        current = predecessors[current]
+    shortest_path.append(start_node)
+
+    # Retour du chemin le plus court et de sa longueur
+    return list(reversed(shortest_path)), distances[end_node]
