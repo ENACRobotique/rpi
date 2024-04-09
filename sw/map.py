@@ -88,20 +88,21 @@ def print_chemin(g,chemin):
         plt.plot([x1,x2],[y1,y2],color='r',linewidth=5)
         
 
+if __name__ == "__main__" : 
+        
+    file = "graph.txt"
+    graph = read_graph(file) #map de la table
+    graph.weight()
+    chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "secureJ") #a liste des points parcourus,nd distance parcourue
 
-file = "sw/graph.txt"
-graph = read_graph(file) #map de la table
-graph.weight()
-chemin,distance_totale = dijkstra.dijkstra_classic(graph,"p4", "jardiSecureJ") #a liste des points parcourus,nd distance parcourue
+    plt.figure()
+    print_map(graph)
 
-plt.figure()
-print_map(graph)
+    print_chemin(graph,chemin)
 
-print_chemin(graph,chemin)
+    print(chemin)
+    print(distance_totale)
 
-print(chemin)
-print(distance_totale)
-
-print(graph.coords[chemin[1]][0]) #coordonnes x du point 
-#pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
-plt.show()
+    print(graph.coords[chemin[1]][0]) #coordonnes x du point 
+    #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
+    plt.show()

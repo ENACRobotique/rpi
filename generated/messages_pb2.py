@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0emessages.proto\x12\tprotoduck\"\xb7\x01\n\x03Pos\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\r\n\x05theta\x18\x03 \x01(\x02\x12%\n\x03obj\x18\x04 \x01(\x0e\x32\x18.protoduck.Pos.PosObject\"d\n\tPosObject\x12\x0f\n\x0bPOS_ROBOT_W\x10\x00\x12\x10\n\x0cPOS_CARROT_W\x10\x01\x12\x10\n\x0cPOS_CARROT_R\x10\x02\x12\x10\n\x0cPOS_TARGET_W\x10\x03\x12\x10\n\x0cPOS_TARGET_R\x10\x04\"/\n\x05Speed\x12\n\n\x02vx\x18\x01 \x01(\x02\x12\n\n\x02vy\x18\x02 \x01(\x02\x12\x0e\n\x06vtheta\x18\x03 \x01(\x02\"\xca\x01\n\x06Motors\x12\n\n\x02m1\x18\x01 \x01(\x02\x12\n\n\x02m2\x18\x02 \x01(\x02\x12\n\n\x02m3\x18\x03 \x01(\x02\x12-\n\x04type\x18\x04 \x01(\x0e\x32\x1f.protoduck.Motors.MotorDataType\"m\n\rMotorDataType\x12\x13\n\x0fMOTORS_POS_CONS\x10\x00\x12\x15\n\x11MOTORS_SPEED_CONS\x10\x01\x12\x0e\n\nMOTORS_CMD\x10\x02\x12\x10\n\x0cMOTORS_SPEED\x10\x03\x12\x0e\n\nMOTORS_POS\x10\x04\"@\n\x08MotorPid\x12\x10\n\x08motor_no\x18\x01 \x01(\r\x12\n\n\x02kp\x18\x03 \x01(\x02\x12\n\n\x02ki\x18\x04 \x01(\x02\x12\n\n\x02kd\x18\x05 \x01(\x02\"\x16\n\x03\x42\x61t\x12\x0f\n\x07voltage\x18\x01 \x01(\x02\"4\n\x03Ins\x12\r\n\x05theta\x18\x01 \x01(\x02\x12\x0c\n\x04\x62ias\x18\x02 \x01(\x02\x12\x10\n\x08variance\x18\x03 \x01(\x02\"\xb3\x02\n\x07Message\x12,\n\x08msg_type\x18\x03 \x01(\x0e\x32\x1a.protoduck.Message.MsgType\x12\x1d\n\x03pos\x18\x04 \x01(\x0b\x32\x0e.protoduck.PosH\x00\x12!\n\x05speed\x18\x05 \x01(\x0b\x32\x10.protoduck.SpeedH\x00\x12#\n\x06motors\x18\x06 \x01(\x0b\x32\x11.protoduck.MotorsH\x00\x12(\n\tmotor_pid\x18\t \x01(\x0b\x32\x13.protoduck.MotorPidH\x00\x12\x1d\n\x03\x62\x61t\x18\n \x01(\x0b\x32\x0e.protoduck.BatH\x00\x12\x1d\n\x03ins\x18\x0b \x01(\x0b\x32\x0e.protoduck.InsH\x00\"\"\n\x07MsgType\x12\n\n\x06STATUS\x10\x00\x12\x0b\n\x07\x43OMMAND\x10\x01\x42\x07\n\x05innerb\x06proto3'
+  serialized_pb=b'\n\x0emessages.proto\x12\tprotoduck\"\xd8\x01\n\x03Pos\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\r\n\x05theta\x18\x03 \x01(\x02\x12%\n\x03obj\x18\x04 \x01(\x0e\x32\x18.protoduck.Pos.PosObject\"\x84\x01\n\tPosObject\x12\x0f\n\x0bPOS_ROBOT_W\x10\x00\x12\x10\n\x0cPOS_CARROT_W\x10\x01\x12\x10\n\x0cPOS_CARROT_R\x10\x02\x12\x10\n\x0cPOS_TARGET_W\x10\x03\x12\x10\n\x0cPOS_TARGET_R\x10\x04\x12\x0c\n\x08RECALAGE\x10\x05\x12\x10\n\x0cMOVE_ROBOT_R\x10\x06\"/\n\x05Speed\x12\n\n\x02vx\x18\x01 \x01(\x02\x12\n\n\x02vy\x18\x02 \x01(\x02\x12\x0e\n\x06vtheta\x18\x03 \x01(\x02\"\xca\x01\n\x06Motors\x12\n\n\x02m1\x18\x01 \x01(\x02\x12\n\n\x02m2\x18\x02 \x01(\x02\x12\n\n\x02m3\x18\x03 \x01(\x02\x12-\n\x04type\x18\x04 \x01(\x0e\x32\x1f.protoduck.Motors.MotorDataType\"m\n\rMotorDataType\x12\x13\n\x0fMOTORS_POS_CONS\x10\x00\x12\x15\n\x11MOTORS_SPEED_CONS\x10\x01\x12\x0e\n\nMOTORS_CMD\x10\x02\x12\x10\n\x0cMOTORS_SPEED\x10\x03\x12\x0e\n\nMOTORS_POS\x10\x04\"@\n\x08MotorPid\x12\x10\n\x08motor_no\x18\x01 \x01(\r\x12\n\n\x02kp\x18\x03 \x01(\x02\x12\n\n\x02ki\x18\x04 \x01(\x02\x12\n\n\x02kd\x18\x05 \x01(\x02\"\x16\n\x03\x42\x61t\x12\x0f\n\x07voltage\x18\x01 \x01(\x02\"D\n\x03Ins\x12\x0e\n\x06vtheta\x18\x01 \x01(\x02\x12\r\n\x05theta\x18\x02 \x01(\x02\x12\x0c\n\x04\x62ias\x18\x03 \x01(\x02\x12\x10\n\x08variance\x18\x04 \x01(\x02\"\xb3\x02\n\x07Message\x12,\n\x08msg_type\x18\x03 \x01(\x0e\x32\x1a.protoduck.Message.MsgType\x12\x1d\n\x03pos\x18\x04 \x01(\x0b\x32\x0e.protoduck.PosH\x00\x12!\n\x05speed\x18\x05 \x01(\x0b\x32\x10.protoduck.SpeedH\x00\x12#\n\x06motors\x18\x06 \x01(\x0b\x32\x11.protoduck.MotorsH\x00\x12(\n\tmotor_pid\x18\t \x01(\x0b\x32\x13.protoduck.MotorPidH\x00\x12\x1d\n\x03\x62\x61t\x18\n \x01(\x0b\x32\x0e.protoduck.BatH\x00\x12\x1d\n\x03ins\x18\x0b \x01(\x0b\x32\x0e.protoduck.InsH\x00\"\"\n\x07MsgType\x12\n\n\x06STATUS\x10\x00\x12\x0b\n\x07\x43OMMAND\x10\x01\x42\x07\n\x05innerb\x06proto3'
 )
 
 
@@ -56,11 +56,21 @@ _POS_POSOBJECT = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='RECALAGE', index=5, number=5,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='MOVE_ROBOT_R', index=6, number=6,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=113,
-  serialized_end=213,
+  serialized_start=114,
+  serialized_end=246,
 )
 _sym_db.RegisterEnumDescriptor(_POS_POSOBJECT)
 
@@ -99,8 +109,8 @@ _MOTORS_MOTORDATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=358,
-  serialized_end=467,
+  serialized_start=391,
+  serialized_end=500,
 )
 _sym_db.RegisterEnumDescriptor(_MOTORS_MOTORDATATYPE)
 
@@ -124,8 +134,8 @@ _MESSAGE_MSGTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=878,
-  serialized_end=912,
+  serialized_start=927,
+  serialized_end=961,
 )
 _sym_db.RegisterEnumDescriptor(_MESSAGE_MSGTYPE)
 
@@ -180,7 +190,7 @@ _POS = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=30,
-  serialized_end=213,
+  serialized_end=246,
 )
 
 
@@ -225,8 +235,8 @@ _SPEED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=215,
-  serialized_end=262,
+  serialized_start=248,
+  serialized_end=295,
 )
 
 
@@ -279,8 +289,8 @@ _MOTORS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=265,
-  serialized_end=467,
+  serialized_start=298,
+  serialized_end=500,
 )
 
 
@@ -332,8 +342,8 @@ _MOTORPID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=469,
-  serialized_end=533,
+  serialized_start=502,
+  serialized_end=566,
 )
 
 
@@ -364,8 +374,8 @@ _BAT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=535,
-  serialized_end=557,
+  serialized_start=568,
+  serialized_end=590,
 )
 
 
@@ -378,22 +388,29 @@ _INS = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='theta', full_name='protoduck.Ins.theta', index=0,
+      name='vtheta', full_name='protoduck.Ins.vtheta', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='bias', full_name='protoduck.Ins.bias', index=1,
+      name='theta', full_name='protoduck.Ins.theta', index=1,
       number=2, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='variance', full_name='protoduck.Ins.variance', index=2,
+      name='bias', full_name='protoduck.Ins.bias', index=2,
       number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='variance', full_name='protoduck.Ins.variance', index=3,
+      number=4, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -410,8 +427,8 @@ _INS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=559,
-  serialized_end=611,
+  serialized_start=592,
+  serialized_end=660,
 )
 
 
@@ -490,8 +507,8 @@ _MESSAGE = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=614,
-  serialized_end=921,
+  serialized_start=663,
+  serialized_end=970,
 )
 
 _POS.fields_by_name['obj'].enum_type = _POS_POSOBJECT

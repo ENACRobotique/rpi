@@ -5,13 +5,12 @@ from ecal.core.subscriber import ProtoSubscriber, StringSubscriber
 import time
 from math import sqrt, pi, cos, sin
 import sys
-sys.path.append('../generated')
-import robot_state_pb2 as robot_pb
-import lidar_data_pb2 as lidar_pb
+import generated.robot_state_pb2 as robot_pb
+import generated.lidar_data_pb2 as lidar_pb
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
-import navigation.nav as nav
+import nav 
 
 XY_ACCURACY = 20  # mm
 THETA_ACCURACY = 0.05 # radians
@@ -165,6 +164,8 @@ class Robot:
     
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE):
+        """Faire setTargetPos(Pos(x,y,theta)) en mm et angle? """
+
         
         if frame == Frame.ROBOTCENTRIC:
             pos += self.pos
@@ -205,27 +206,51 @@ class Robot:
         self.tempsDebutMatch = time.time()
         ecal_core.log_message("Match started at " + str(self.tempsDebutMatch))
 
+    def initNav(self):
+        """ Initialise la navigation """
+        self.nav.initialisation()
+    
+    def resetPosFromNav(self,waypoint):   
+        x,y = self.nav.getCoords(waypoint)
+        self.resetPos(Pos(x,y,self.pos.theta))
 
     def pathFinder(self,start,end):
+        """Recherche le plus court chemin entre deux points. 
+        \nRetenu dans l'object self.nav.chemin
+        \nUtiliser les noms des waypoints de graph.txt"""
+
         self.nav.entree = start
         self.nav.sortie = end
         self.nav.findPath()
+
+        self.n_points = len(self.nav.chemin)
         self.current_point = 0
         self.nav.current = self.nav.chemin[self.current_point]
+        print(self.nav.chemin)
     
     def followPath(self):
-        self.n_points = len(self.nav.chemin)
-        x,y = self.nav.current
+        """ Fait suivre au robot le chemin en mémoire de la nav """
+        # !!! en milimètres !!!
+        print(f"Following path, now at {self.nav.current}")
+        print(self.current_point)
 
-        if not (self.hasReachedTarget(x,y,self.pos.theta)): # si le robot n'est pas arrivé
-            self.setTargetPos(x,y,self.pos.theta)           # continue d'aller au point en cour
-        else:                                               # sinon si le point est atteint
-            self.current_point += 1                     # on passe au suivant 
-            if self.current_point == self.n_points :        # et si on est arrivé au dernier
-                print(" Je t'avais dis je sais conduire ")  # on s'arrette là
-                return
-            else :                                          # et sinon si on est arrivé au précédent mais pas le dernier
-                self.nav.current = self.nav.chemin[self.current_point] 
+        self.nav.current = self.nav.chemin[self.current_point]
+        x,y = self.nav.graph.coords[self.nav.current]
+        self.setTargetPos(Pos(x,y,self.pos.theta))
+        print(self.pos)
+        print(self.last_target)
+        if self.hasReachedTarget():
+            print(f"{self.nav.current} reached !")
+            print(self.pos)
+            print(self.last_target)
+            self.current_point += 1
+            if self.current_point == self.n_points :
+                print(" Je t'avais dis je sais conduire ")
+
+    def isNavDestReached(self):
+        """Si le dernier point de Nav est atteint renvoie True"""
+        return self.current_point == self.n_points
+                                            
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11robot_state.proto\x12\x04\x65nac\" \n\rno_args_func_\x12\x0f\n\x07nothing\x18\x01 \x01(\x02\"/\n\x08Position\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\r\n\x05theta\x18\x03 \x01(\x02\"/\n\x05Speed\x12\n\n\x02vx\x18\x01 \x01(\x02\x12\n\n\x02vy\x18\x02 \x01(\x02\x12\x0e\n\x06vtheta\x18\x03 \x01(\x02\x62\x06proto3'
+  serialized_pb=b'\n\x11robot_state.proto\x12\x04\x65nac\" \n\rno_args_func_\x12\x0f\n\x07nothing\x18\x01 \x01(\x02\"/\n\x08Position\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\r\n\x05theta\x18\x03 \x01(\x02\"/\n\x05Speed\x12\n\n\x02vx\x18\x01 \x01(\x02\x12\n\n\x02vy\x18\x02 \x01(\x02\x12\x0e\n\x06vtheta\x18\x03 \x01(\x02\"$\n\x03Ins\x12\x0e\n\x06vtheta\x18\x01 \x01(\x02\x12\r\n\x05theta\x18\x02 \x01(\x02\x62\x06proto3'
 )
 
 
@@ -148,9 +148,49 @@ _SPEED = _descriptor.Descriptor(
   serialized_end=157,
 )
 
+
+_INS = _descriptor.Descriptor(
+  name='Ins',
+  full_name='enac.Ins',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='vtheta', full_name='enac.Ins.vtheta', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='theta', full_name='enac.Ins.theta', index=1,
+      number=2, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=159,
+  serialized_end=195,
+)
+
 DESCRIPTOR.message_types_by_name['no_args_func_'] = _NO_ARGS_FUNC_
 DESCRIPTOR.message_types_by_name['Position'] = _POSITION
 DESCRIPTOR.message_types_by_name['Speed'] = _SPEED
+DESCRIPTOR.message_types_by_name['Ins'] = _INS
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 no_args_func_ = _reflection.GeneratedProtocolMessageType('no_args_func_', (_message.Message,), {
@@ -173,6 +213,13 @@ Speed = _reflection.GeneratedProtocolMessageType('Speed', (_message.Message,), {
   # @@protoc_insertion_point(class_scope:enac.Speed)
   })
 _sym_db.RegisterMessage(Speed)
+
+Ins = _reflection.GeneratedProtocolMessageType('Ins', (_message.Message,), {
+  'DESCRIPTOR' : _INS,
+  '__module__' : 'robot_state_pb2'
+  # @@protoc_insertion_point(class_scope:enac.Ins)
+  })
+_sym_db.RegisterMessage(Ins)
 
 
 # @@protoc_insertion_point(module_scope)
