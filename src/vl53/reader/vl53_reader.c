@@ -33,8 +33,6 @@ int main(int argc, char ** argv)
 	VL53L5CX_Configuration 	Dev;
 
 
-	char* client_message = "hello you";
-
     // Create sockets
     socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(socket_desc < 0){
@@ -44,8 +42,6 @@ int main(int argc, char ** argv)
 	server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(2000);
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-	sendto(socket_desc, client_message, strlen(client_message), 0,(struct sockaddr*)&server_addr, sizeof(server_addr));
 
 	/*********************************/
 	/*   Power on sensor and init    */
@@ -79,7 +75,7 @@ int example2(VL53L5CX_Configuration *p_dev)
 	/*   VL53L5CX ranging variables  */
 	/*********************************/
 
-	uint8_t 				status, loop, isAlive, isReady;
+	uint8_t 				status, isAlive, isReady;
 	//uint32_t 				integration_time_ms;
 	VL53L5CX_ResultsData 	Results;		/* Results data from VL53L5CX */
 
@@ -168,15 +164,7 @@ int example2(VL53L5CX_Configuration *p_dev)
 		if(isReady)
 		{
 			vl53l5cx_get_ranging_data(p_dev, &Results);
-
-			//char* msg = "ranging data...";
-			//size_t n = sendto(socket_desc, msg, strlen(msg), 0,(struct sockaddr*)&server_addr, sizeof(server_addr));
-
-			size_t n = sendto(socket_desc, (uint8_t*)Results.distance_mm, sizeof(Results.distance_mm), 0,(struct sockaddr*)&server_addr, sizeof(server_addr));
-
-			printf("sended %lu bytes.\n", n);
-
-			loop++;
+			sendto(socket_desc, (uint8_t*)Results.distance_mm, sizeof(Results.distance_mm), 0,(struct sockaddr*)&server_addr, sizeof(server_addr));
 		}
 
 		/* Wait a few ms to avoid too high polling (function in platform
