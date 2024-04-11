@@ -25,6 +25,5 @@ sudo systemctl enable robot_start.service
 #sudo systemctl enable robot_strat.service
 #sudo systemctl enable robot_vl53.service
 
-
-sudo systemctl reload robot*
+sudo systemctl daemon-reload
 
