@@ -5,7 +5,7 @@ import time, os, sys
 from math import radians
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
 import generated.robot_state_pb2 as robot_pb
-from position_smooth import Smoother
+from lidar.old.position_smooth import Smoother
 
 DEBUG = True
 

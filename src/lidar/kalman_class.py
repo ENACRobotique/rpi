@@ -10,6 +10,7 @@ import numpy as np
 import scipy as sp
 
 
+
 def get_inliers(ldr_angles_mpipi, ldr_distances, d_min, d_max):
     """
     Keep lidar measurements whose distance is between d_min and d_max
@@ -121,6 +122,8 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
     pos_poi_b = []
     pos_poi_w = []
 
+
+    print("data_inliers",data_inliers)
     offset_th = ldr_offset[0] * np.pi / 180
     offset_x = ldr_offset[1]
     offset_y = ldr_offset[2]
@@ -139,9 +142,12 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
             np.cos(data_inliers[0] - angle_dist_est[0, i]),
         )
         error_dist = data_inliers[1] - angle_dist_est[1, i]
+        print("error", error_angle)
+        print("error", error_dist)
         error = np.vstack((error_angle, error_dist))
-
+        print("error:",error)
         # Find pivot point
+        print(np.linalg.norm(error, axis=0))
         idx_pivot = np.argmin(np.linalg.norm(error, axis=0))
 
         # Find pivot nearest neighbors
@@ -209,12 +215,12 @@ class Kalman:
         self.theta = theta0
         self.X = X0
         self.P = P0
-        self.S = sp.linalg.cholesky(P0)
+        self.S = np.linalg.cholesky(P0)
         self.dimx = np.shape(self.P)[0]
         self.Q = Q
-        self.sqrtQ = sp.linalg.cholesky(Q)
+        self.sqrtQ = np.linalg.cholesky(Q)
         self.R = R
-        self.sqrtR = sp.linalg.cholesky(R)
+        self.sqrtR = np.linalg.cholesky(R)
         self.alpha = alpha
         self.beta = beta
         self.kappa = kappa

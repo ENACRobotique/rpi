@@ -40,7 +40,7 @@ class Part(Enum):
 
 
 class Driver:
-    def __init__(self, cb, serial_port='/dev/lidar'):
+    def __init__(self, cb, serial_port='/dev/lidar'): #cb = callback
         # Driver settings and state data
         self.serial_port = serial_port
         self.serial = Serial(self.serial_port, 230400)
