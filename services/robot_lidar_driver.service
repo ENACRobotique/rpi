@@ -10,7 +10,7 @@ Group=pi
 
 SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
  
-ExecStart=python3 /home/pi/robot_rpi_2024/src/lidar/ecal_ld06_driver.py
+ExecStart=python3 /home/pi/rpi2024/src/lidar/ecal_ld06_driver.py
 
 Restart=on-failure
 RestartSec=2 
@@ -20,4 +20,3 @@ TimeoutStopSec=300
 [Install]
 
 
-    

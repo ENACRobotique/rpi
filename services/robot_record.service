@@ -1,6 +1,7 @@
 [Unit]
-Description=Heartbeat
- 
+Description= record data with ecal 
+After=network.target network-online.target
+
 [Service]
 Type=simple
  
@@ -9,14 +10,11 @@ Group=pi
 
 SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
  
-ExecStart=/home/pi/autorun/heartbeat.py
- 
+ExecStart=python3 /home/pi/robot_rpi_2023/src/common/launch_autorecorder.py
+
 Restart=on-failure
 RestartSec=2 
 # Configures the time to wait before service is stopped forcefully.
 TimeoutStopSec=300
  
 [Install]
-WantedBy=multi-user.target
-
-
