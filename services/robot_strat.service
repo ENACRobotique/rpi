@@ -1,0 +1,18 @@
+[Unit]
+Description= robot_match_decision_making
+After=network.target network-online.target robot_lidar_fusion.service robot_bridge.service
+
+[Service]
+Type=simple
+RemainAfterExit=no
+Restart=no
+ 
+User=pi
+Group=pi
+
+SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
+ 
+ExecStart=python3 /home/pi/robot_rpi_2023/src/strategieRobot/strat.py
+ 
+[Install]
+# WantedBy=multi-user.target

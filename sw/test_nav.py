@@ -10,18 +10,15 @@ if __name__ == "__main__" :
     print("test runnning")
     
     robot = robot.Robot()
-    time.sleep(0.1)
 
     robot.initNav()
-    robot.pathFinder("secureB","secureJ")
+    robot.pathFinder("basJ","potSE")
     
-    # faire le reset 1 fois suffit pas alors bon ...
-    for i in range(10000):
-        robot.resetPosFromNav("secureB") # ou pas forcément
+    robot.resetPosFromNav("basJ") # ou pas forcément
     time.sleep(0.1)
     
     while ecal_core.ok():
-        robot.followPath()
+        robot.followNav()
         if robot.isNavDestReached():
             break
         time.sleep(0.1)

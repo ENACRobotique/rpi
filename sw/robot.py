@@ -140,6 +140,7 @@ class Robot:
         #self.resume_pub = ProtoPublisher("resume",robot_pb.no_args_func_)
 
         self.debug_pub =StringPublisher("debug_msg")
+        time.sleep(1)
 
 
     def __repr__(self) -> str:
@@ -206,9 +207,18 @@ class Robot:
         self.tempsDebutMatch = time.time()
         ecal_core.log_message("Match started at " + str(self.tempsDebutMatch))
 
+
+### NAVIGATION ###
     def initNav(self):
         """ Initialise la navigation """
         self.nav.initialisation()
+
+    def goToWaypoint(self,waypoint,theta=...):
+        """ Le robot va directement à un waypoint """
+        if theta == ... :
+            theta = self.pos.theta
+        x,y = self.nav.getCoords(waypoint)
+        self.setTargetPos(Pos(x,y,theta))
     
     def resetPosFromNav(self,waypoint):   
         x,y = self.nav.getCoords(waypoint)
@@ -224,32 +234,30 @@ class Robot:
         self.nav.findPath()
 
         self.n_points = len(self.nav.chemin)
-        self.current_point = 0
-        self.nav.current = self.nav.chemin[self.current_point]
+        self.current_point_index = 0
+        self.nav.current = self.nav.chemin[self.current_point_index]
         print(self.nav.chemin)
     
-    def followPath(self):
-        """ Fait suivre au robot le chemin en mémoire de la nav """
+    def followNav(self):
+        """ Fait suivre au robot le chemin en mémoire de la nav
+         \nIl faut l'appler en boucle pour qu'il passe d'un point à un autre
+         \nJe pense qu'on peut faire mieux !"""
         # !!! en milimètres !!!
         print(f"Following path, now at {self.nav.current}")
-        print(self.current_point)
 
-        self.nav.current = self.nav.chemin[self.current_point]
-        x,y = self.nav.graph.coords[self.nav.current]
-        self.setTargetPos(Pos(x,y,self.pos.theta))
-        print(self.pos)
-        print(self.last_target)
-        if self.hasReachedTarget():
-            print(f"{self.nav.current} reached !")
-            print(self.pos)
-            print(self.last_target)
-            self.current_point += 1
-            if self.current_point == self.n_points :
-                print(" Je t'avais dis je sais conduire ")
+        if len(self.nav.chemin) is not 0 : 
+            self.nav.current = self.nav.chemin[self.current_point_index]
+            self.goToWaypoint(self.nav.current)
+
+            if self.hasReachedTarget():
+                self.current_point_index += 1
+                if self.isNavDestReached():
+                    print(" Destination Reached !")
+                    self.nav.resetPath()
 
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True"""
-        return self.current_point == self.n_points
+        return self.current_point_index == self.n_points
                                             
 
 

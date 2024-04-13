@@ -43,18 +43,10 @@ class Nav(object):
         self.chemin,distance_totale = dijkstra.dijkstra_classic(self.graph,self.entree, self.sortie) #a liste des points parcourus,nd distance parcourue
         # print(graph.coords[chemin[1]][0]) #coordonnes x du point 
         #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
-        
+    
+    def resetPath(self):
+        self.chemin = []
 
-    def send_cmd(self):
-        """
-        Envoi au robot les positions à atteindre fournies par "chemin"
-        Tant que la position souhaitée n'est pas atteinte, on n'envoi pas la position suivante
-        """
-        for x in self.chemin:
-            self.statut = False
-            self.consigne = (x[0],x[1])
-            while not self.statut :
-                pass
 
 if __name__ == "__main__" : 
 
@@ -66,6 +58,6 @@ if __name__ == "__main__" :
     nav.findPath()
     
     plt.plot()
-    nav.send_cmd()
+
     
     ### faire en sorte que le bas niveau renvoi si il est arrivé ou non

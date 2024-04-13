@@ -1,10 +1,6 @@
 [Unit]
-Description= start all systems for the robot
+Description=eCal comm Bridge
 After=network.target network-online.target
-Wants=robot_bridge.service
-Wants=robot_lidar_driver.service
-Wants=robot_vl53.service
-
 
 [Service]
 Type=simple
@@ -13,8 +9,8 @@ User=pi
 Group=pi
 
 SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
- 
-ExecStart=/home/pi/rpi2024/services/heartbeat.py
+WorkingDirectory=/home/pi/robot_rpi_2024/sw/optitrack
+ExecStart=python3 /home/pi/robot_rpi_2024/sw/optitrack/ecal_optitrack.py
  
 Restart=on-failure
 RestartSec=2 
@@ -22,6 +18,5 @@ RestartSec=2
 TimeoutStopSec=300
  
 [Install]
-WantedBy=multi-user.target
 
 
