@@ -2,9 +2,9 @@ import kalman_class
 import ld06_driver as lidar
 import sys
 
-sys.path.append("/home/robot/dev/robot_rpi_2024/generated")
 
-import lidar_data_pb2 as lidar_data
+
+import generated.lidar_data_pb2 as lidar_data
 
 import numpy as np
 
@@ -15,15 +15,14 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
-import robot_state_pb2 as hgpb
-
-ecal_core.initialize(sys.argv, "robotStateHolder")
+import generated.robot_state_pb2 as hgpb
 
 
 
-theta0 = 0  # doit être en radian
-x0 = 0  # en mètre
-y0 = 0  # en mètre
+
+theta0 = np.pi/2  # doit être en radian
+x0 = 1.9  # en mètre
+y0 =  0.25 # en mètre
 X0 = np.array([x0, y0])  # Array (2,) contenant les deux positions initiales x et y
 # 1.2) Donner une estimée de notre incertitude sur l'état initiale (caractérisée par une matrice de covariance)
 p0theta = (
@@ -79,12 +78,12 @@ def prediction(dt, u):
 
 
 def callback_speed(topic_name, msg:hgpb.Speed, timestamp):
-    print(msg)
+    #print(msg)
     u[1], u[2] = msg.vx, msg.vy
 
 
 def callback_gyro(topic_name, msg:hgpb.Ins, timestamp):
-    print(msg)
+    #print(msg)
     u[2] =  msg.vtheta
 
     
@@ -95,10 +94,10 @@ def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
     
     global u, filter, chi, S, P
 
-    print("angles : ", msg.angles)
-    print("distances : ", msg.distances)
-    ldr_angles = np.array(msg.angles)
-    ldr_distances = np.array(msg.distances)
+    #print("angles : ", msg.angles)
+    #print("distances : ", msg.distances)
+    lidar_angles = np.array(msg.angles)
+    lidar_distances = np.array(msg.distances)
     
     ##TODO filtrer points avec la qualité
 
@@ -107,12 +106,11 @@ def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
     d_max = 3.6
 
     data_inliers = kalman_class.get_inliers(
-        ldr_angles, ldr_distances, d_min, d_max
-    )
+        lidar_angles*np.pi/180, lidar_distances/1000, d_min, d_max)
 
-    print("firstdata", data_inliers)
+    # print("firstdata", data_inliers)
     # coordonnées des balises dans le repère global utilisé (côté bleu)
-    balise1 = np.array([-0.01 , 1])
+    balise1 = np.array([-0.09 , 1])
     balise2 = np.array([3.09, 1.95])
     balise3 = np.array([3.09, 0.05])
 
@@ -120,7 +118,7 @@ def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
         np.array([balise1, balise2, balise3])
     )
 
-    print("landmarks : " , landmarks)
+    # print("landmarks : " , landmarks)
     offset_angulaire = 0
     offset_x = 0
     offset_y = 0
@@ -137,32 +135,42 @@ def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
     ####################"Data inliers emptyyy"
     chi, S, P = filter.corr(ymeas, landmarks, index_visible_lm, dimy, sqrtR)
 
-    print("chi", chi)
-    print("pos_poi_b", pos_poi_b)
-    print("pos_poi_w", pos_poi_w)
-    print("angle_dist_meas", angle_dist_meas)
-    print("index_visible_lm", index_visible_lm)
-    print("dimy", dimy)
-    print("sqrtR", sqrtR)
+    # print("chi", chi)
+    # print("pos_poi_b", pos_poi_b)
+    # print("pos_poi_w", pos_poi_w)
+    # print("angle_dist_meas", angle_dist_meas)
+    # print("index_visible_lm", index_visible_lm)
+    # print("dimy", dimy)
+    # print("sqrtR", sqrtR)
 
 if __name__ == '__main__':
+
+    ecal_core.initialize(sys.argv, "lidar_kalman")
+    sleep(1)
     start = time()
     lidar_data_sub = ProtoSubscriber("lidar_data",lidar_data.Lidar)
-    
+    lidar_pos_pub = ProtoPublisher("lidar_pos",hgpb.Position)
+    lidar_pos = hgpb.Position()
+
     speed_sub = ProtoSubscriber("odom_speed", hgpb.Speed)
 
     gyro_sub = ProtoSubscriber("ins", hgpb.Ins)
 
     speed_sub.set_callback(callback_speed)
     gyro_sub.set_callback(callback_gyro)
+    lidar_data_sub.set_callback(callback_lidar)
    
 
     while(1):
         dt = 0.1
         u = np.zeros(3)
         prediction(dt,u)
-        print("pos :", filter.X[0],filter.X[1],filter.theta)
-        lidar_data_sub.set_callback(callback_lidar)
+        state = filter.chi2state(chi)
+        lidar_pos.x = state[2][0]*1000
+        lidar_pos.y = state[2][1]*1000
+        lidar_pos.theta = state[1]
+        print("pos :",int(lidar_pos.x),int(lidar_pos.y),int(lidar_pos.theta*180/np.pi))
+        lidar_pos_pub.send(lidar_pos)
         sleep(dt)
 
 

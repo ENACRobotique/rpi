@@ -11,7 +11,7 @@ import scipy as sp
 
 
 
-def get_inliers(ldr_angles_mpipi, ldr_distances, d_min, d_max):
+def get_inliers(lidar_angles_mpipi, lidar_distances, d_min, d_max):
     """
     Keep lidar measurements whose distance is between d_min and d_max
 
@@ -31,10 +31,9 @@ def get_inliers(ldr_angles_mpipi, ldr_distances, d_min, d_max):
     data_inliers : (2,M) Array of float (M < N)
                     Array containing the angles and the distances that are kept as inliers
     """
-    index_inliers = np.where((d_min < ldr_distances) & (ldr_distances < d_max))[0]
-
-    angle_inliers = ldr_angles_mpipi[index_inliers]
-    dist_inliers = ldr_distances[index_inliers]
+    index_inliers = np.where((d_min < lidar_distances) & (lidar_distances < d_max))[0]
+    angle_inliers = lidar_angles_mpipi[index_inliers]
+    dist_inliers = lidar_distances[index_inliers]
 
     data_inliers = np.vstack((angle_inliers, dist_inliers))
 
@@ -123,7 +122,7 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
     pos_poi_w = []
 
 
-    print("data_inliers",data_inliers)
+    #print("data_inliers",data_inliers)
     offset_th = ldr_offset[0] * np.pi / 180
     offset_x = ldr_offset[1]
     offset_y = ldr_offset[2]
@@ -142,12 +141,12 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
             np.cos(data_inliers[0] - angle_dist_est[0, i]),
         )
         error_dist = data_inliers[1] - angle_dist_est[1, i]
-        print("error", error_angle)
-        print("error", error_dist)
+        # print("error", error_angle)
+        # print("error", error_dist)
         error = np.vstack((error_angle, error_dist))
-        print("error:",error)
+        # print("error:",error)
         # Find pivot point
-        print(np.linalg.norm(error, axis=0))
+        # print(np.linalg.norm(error, axis=0))
         idx_pivot = np.argmin(np.linalg.norm(error, axis=0))
 
         # Find pivot nearest neighbors
@@ -620,7 +619,7 @@ if __name__ == "__main__":
     # Admettons qu'on ait fait ça, dans ce cas on aurait un truc du style...
     ldr_angles_mpipi = np.array(
         [-np.pi, -3 * np.pi / 4, 0, 3 * np.pi / 4, np.pi]
-    )  # il faut absolument avoir préalablement borner ce vecteur de -pi à pi pour faire marcher les prochaines fonctions
+    )  # il faut absolument avoir préalablement borné ce vecteur de -pi à pi pour faire marcher les prochaines fonctions
     ldr_distances = np.array([4, 1, 1, 1, 4])  # les distances doivent être en mètre
     # Admettons aussi qu'on veuille exclure toutes les données inférieures à une distance de 0.1m et supérieures à 3.6m...
     d_min = 0.1
