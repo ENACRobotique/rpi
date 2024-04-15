@@ -1,134 +1,74 @@
-from enum import Enum
-import time 
-
-class State(Enum):
-    INITIALISATION = 0
-    NAVIGATION = 1
-    ARRET = 2
-    RAMASSE_PLANTE = 3
-    DEPOSE = 4
+from fsm import State, FSM
+import sys
+sys.path.append("../")
+from robot import Robot, Pos
+import time
+from math import pi
 
 
-class Strat:
-    """
-    Classe permettant de créer une machine à état dynamique, capable de revenir à l'état précédent etc
-    """
-    #attributs
-    current_state : str 
-    previous_state : str
+class InitState(State):
+    def enter(self, prev_state: State | None):
+        print("Let's get it started in here !")
+        print(f"strat name: {self.globals['strat_name']}")
+        self.start_time = time.time()
+    
+    def loop(self):
+        # tester si tirette tirée
+        if time.time() - self.start_time > 5:
+            color = "bleu"      # récupérer couleur depuis l'IHM
+            if color == "bleu":
+                self.robot.resetPos(Pos(200, 225, pi/2))
+                args = {"panos": ["p1", "p2", "p3", "p4", "p5", "p6"]}
+            else:
+                args = {"panos": ["p9", "p8", "p7", "p6", "p5", "p4"]}
+            return PanosState(self.robot, self.globals, args)
+
+class PanosState(State):
+    def __init__(self, robot: Robot, globals, args={}) -> None:
+        super().__init__(robot, globals, args)
+    
+    def enter(self, prev_state: State | None):
+        # s'il reste des panneaux à tourner, y aller
+        if len(self.args["panos"]) > 0:
+            print(f"Go to {self.args['panos'][0]}")
+            self.robot.goToWaypoint(self.args["panos"][0], pi/2)
+
+    def loop(self) -> State | None:
+        if len(self.args["panos"]) == 0:
+            return EndState(self.robot, self.globals, {})
+        if robot.hasReachedTarget():
+            # touner panneau
+            # partage "args" avec le state "enfant" PanoTurnState
+            return PanoTurnState(self.robot, self.globals, self.args)
+
+class PanoTurnState(State):
+    def __init__(self, robot: Robot, globals, args={}) -> None:
+        super().__init__(robot, globals, args)
+    
+    def enter(self, prev_state: State | None):
+        print(f"tourner panneau {self.args['panos'][0]}...")
+        self.prev_state = prev_state
+        # TODO se positionner précisemment avec l'aruco
+        self.start_time = time.time()
+
+    def loop(self) -> State | None:
+        # faire tourner le panneau
+        if time.time() - self.start_time > 3:
+            return self.prev_state
+
+    def leave(self, next_state: State):
+        # le panneau est tourné, on peut l'oublier pour passer au suivant.
+        del self.args['panos'][0]
+
+class EndState(State):
+    def enter(self, prev_state: State | None):
+        print("The End !")
 
 
-    def __init__(self):
-        self.current_state = State.INITIALISATION
-
-
-    def case_initialisation(self):
-        """
-        initialisation : à preciser plus tard
-        """
-        #mise à jour des états actuels et précédents
-        self.previous_state = self.current_state
-        self.current_state = State.INITIALISATION
-        #initialisation du robot
-        t0 = time.time()
-        t = time.time()
-        while (t - t0) < 3:
-            t = time.time()
-        print("j'ai suit inissialisey")
-
-        #Passage à l'état suivant 
-        self.case_nav("plantes1")
-
-
-    def case_nav(self,point:str):
-        """
-        Voyage de la position actuelle au point passé en paramètre
-        """
-        #mise à jour des états actuels et précédents
-        self.previous_state = self.current_state
-        self.current_state = State.NAVIGATION
-
-        #GO TO
-        x,y = 0.5, 0.7  #points trouvé dans la liste des points du graphe 
-        #going to
-        t0 = time.time()
-        t = time.time()
-        while (t - t0) < 3:
-            t = time.time()
-        print("j'ai suit arrivé")
-
-        #Prochaine action suivant l'état précédent
-
-        if self.previous_state == State.INITIALISATION:
-            self.case_ramasse_plante()
-        elif  self.previous_state == State.RAMASSE_PLANTE:
-            self.case_depose()
-        elif  self.previous_state == State.DEPOSE:
-            self.case_arret()
-        
-
-    def case_ramasse_plante(self):
-        """
-        Envoie les consignes bas niveau pour le ramassage des plantes
-        """
-        #mise à jour des états actuels et précédents
-        self.previous_state = self.current_state
-        self.current_state = State.DEPOSE
-
-        #ramasse ses plantes
-        #going to
-        t0 = time.time()
-        t = time.time()
-        while (t - t0) < 3:
-            t = time.time()
-        print("plantes ramassées")
-
-        #Prochaine action
-        self.case_nav("pt_de_depose")
-
-
-    def case_depose(self):
-        """
-        Envoie les consignes bas niveau de ramassage des plantes
-        """
-        #mise à jour des états actuels et précédents
-        self.previous_state = self.current_state
-        self.current_state = State.RAMASSE_PLANTE
-
-        #ramasse ses plantes
-        #going to
-        t0 = time.time()
-        t = time.time()
-        while (t - t0) < 1:
-            t = time.time()
-        print("plantes déposée")
-
-        #Prochaine action
-        self.case_nav("pt_de_depose")
-
-
-    def case_arret(self):
-        """
-        Arret total de systeme dans la zone de recharge des batteries
-        """
-        #mise à jour des états actuels et précédents
-        self.previous_state = self.current_state
-        self.current_state = State.ARRET
-
-        #ramasse ses plantes
-        #going to
-        t0 = time.time()
-        t = time.time()
-        while (t - t0) < 0.5:
-            t = time.time()
-        print("arrêté")
-
-
-
-
-
-strat = Strat()
-strat.case_initialisation()
-
-
+if __name__ == "__main__":
+    robot = Robot()
+    robot.initNav()
+    globals = {"strat_name": "test strat"}
+    fsm = FSM(robot, InitState, globals)
+    fsm.run()
 

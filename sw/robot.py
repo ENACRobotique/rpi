@@ -174,7 +174,7 @@ class Robot:
             pos = pos.from_frame(self.pos)
         pos.theta = Robot.normalize(pos.theta)
         pb_pos = pos.to_proto()
-        print(f"go to: {pos}")
+        #print(f"go to: {pos}")
         self.set_target_pos_pub.send(pb_pos)
         self.last_target = pos
     
@@ -213,9 +213,9 @@ class Robot:
         """ Initialise la navigation """
         self.nav.initialisation()
 
-    def goToWaypoint(self,waypoint,theta=...):
+    def goToWaypoint(self,waypoint, theta: None | float = None ):
         """ Le robot va directement à un waypoint """
-        if theta == ... :
+        if theta is None :
             theta = self.pos.theta
         x,y = self.nav.getCoords(waypoint)
         self.setTargetPos(Pos(x,y,theta))

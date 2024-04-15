@@ -35,7 +35,7 @@ class Nav(object):
     def getCoords(self,waypoint):
         """Unité en milimètres !!!!"""
         x,y = self.graph.coords[waypoint]
-        print(f"Waypoint {waypoint} is : {x}\t{y} \n")
+        #print(f"Waypoint {waypoint} is : {x}\t{y} \n")
         return x,y
 
     def findPath(self):
