@@ -245,7 +245,7 @@ class Robot:
         # !!! en milimètres !!!
         print(f"Following path, now at {self.nav.current}")
 
-        if len(self.nav.chemin) is not 0 : 
+        if len(self.nav.chemin) != 0 : 
             self.nav.current = self.nav.chemin[self.current_point_index]
             self.goToWaypoint(self.nav.current)
 
