@@ -1,6 +1,6 @@
  #!/bin/env python3
 import sys
-sys.path.append('../generated')
+sys.path.append('../../generated')
 import time
 import messages_pb2 as llpb
 
