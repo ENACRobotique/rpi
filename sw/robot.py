@@ -217,9 +217,9 @@ class Robot:
         """ Le robot va directement à un waypoint """
         if theta is None :
             theta = self.pos.theta
-        x,y = self.nav.getCoords(waypoint)
-        self.setTargetPos(Pos(x,y,theta))
-    
+        closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
+        self.pathFinder(closest,waypoint)
+
     def resetPosFromNav(self,waypoint):   
         x,y = self.nav.getCoords(waypoint)
         self.resetPos(Pos(x,y,self.pos.theta))

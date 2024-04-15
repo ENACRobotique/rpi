@@ -1,7 +1,7 @@
 import map
 import dijkstra
 import matplotlib.pyplot as plt
-
+from math import sqrt
 class Nav(object):  
     def __init__(self):
         """
@@ -46,6 +46,13 @@ class Nav(object):
     
     def resetPath(self):
         self.chemin = []
+    
+    def closestWaypoint(self,x,y):
+        """ Renvoie le waypoint le plus proche en terme de norme """
+        m=[]
+        for w in self.graph.coords:
+            m.append((sqrt((self.graph.coords[w][0]-x)**2 + (self.graph.coords[w][1]-y)**2 ),w))
+        return min(m)[1]
 
 
 if __name__ == "__main__" : 
@@ -56,7 +63,7 @@ if __name__ == "__main__" :
     nav.entree = "secureB"
     nav.sortie = "secureJ"
     nav.findPath()
-    
+    #print(nav.closestWaypoint(100,200))
     plt.plot()
 
     
