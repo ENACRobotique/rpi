@@ -169,7 +169,7 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
         )
 
         # Keep candidate if the error is "low enough", otherwise consider it as lost
-        if min_error[0] <= 180 * np.pi / 180 and min_error[1] <= 4:
+        if min_error[0] <= 30 * np.pi / 180 and min_error[1] <= 1:
             a = candidate_angle
             d = candidate_dist
             angle_dist_meas.append([a, d])

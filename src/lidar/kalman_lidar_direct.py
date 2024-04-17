@@ -5,6 +5,7 @@ import sys
 
 
 import generated.lidar_data_pb2 as lidar_data
+import generated.lidar_data_pb2 as lidar_data
 
 import numpy as np
 
@@ -15,6 +16,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
+import generated.robot_state_pb2 as hgpb
 import generated.robot_state_pb2 as hgpb
 
 
