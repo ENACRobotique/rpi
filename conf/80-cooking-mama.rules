@@ -1,8 +1,7 @@
+# get these info with e.g.: `udevadm info -a /dev/ttyACM0`
 
-# Lidar usb <-> serial adapter
-SUBSYSTEM=="tty", ATTRS{product}=="CP2102 USB to UART Bridge Controller", ATTRS{serial}=="0001", SYMLINK+="lidar", GROUP="dialout"
-
-
-# STM32 virtual serial port
-SUBSYSTEM=="tty", ATTRS{manufacturer}=="STMicroelectronics", ATTRS{product}=="STM32 STLink", SYMLINK+="bas_niveau", GROUP="dialout"
+SUBSYSTEM=="tty", ATTRS{manufacturer}=="STMicroelectronics", ATTRS{serial}=="066EFF3732584B3043195530" SYMLINK+="robot_io", GROUP="dialout" 
+SUBSYSTEM=="tty", KERNEL=="ttyAMA1", SYMLINK:="robot_base"
+SUBSYSTEM=="tty", KERNEL=="ttyAMA2", SYMLINK:="robot_lcd"
+SUBSYSTEM=="tty", KERNEL=="ttyAMA3", SYMLINK:="robot_lidar"
 
