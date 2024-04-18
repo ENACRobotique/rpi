@@ -26,7 +26,6 @@ from time import sleep
 class IO:
     def __init__(self):
 
-        self.serial_port = serial.Serial('/dev/IO',115200) # configurer le port !!!
         
         ecal_core.initialize(sys.argv,"Bridge IO")
 
@@ -43,21 +42,24 @@ class IO:
         self.axL = 7 # ax avec l'ID 5 
         self.axR = 8 # ax avec l'ID 1
 
+        self.serial_port = serial.Serial('/dev/IO',115200) # configurer le port !!!
         self.init_IOs()
 
         sleep(1) # laissons ecal se réveiller  
 
     def __repr__(self):
 
-        print(f"IO on port: {self.serial_port.name} at rate : {self.serial_port.baudrate}\n")
-        print(f"Pince 1 {self.pince1}\n")
-        print(f"Pince 2 {self.pince2}\n")
-        print(f"Pince 3 {self.pince3}\n")
-        print(f"Pince 4 {self.pince4}\n")        
-        print(f"Pano {self.pano}\n")
-        print(f"Bras {self.bras}\n")
-        print(f"AXL {self.axL}\n")
-        print(f"AXR {self.axR}\n")
+        print(f"\nIO on port: {self.serial_port.name} at rate : {self.serial_port.baudrate}")
+        print(f" - Pince_1 \t id : {self.pince1}")
+        print(f" - Pince_2 \t id : {self.pince2}")
+        print(f" - Pince_3 \t id : {self.pince3}")
+        print(f" - Pince_4 \t id : {self.pince4}")        
+        print(f" - Bras \t id : {self.bras}")
+        print(f" - Pano \t id : {self.pano}")
+        print(f" - AXL  \t id : {self.axL}")
+        print(f" - AXR  \t id : {self.axR}")
+        
+        return str('') 
         
         
     def callback_ecal(self,topic_name, msg, timestamp):
@@ -65,18 +67,19 @@ class IO:
     
     def send_to_IO(self,id,val):
         command = str(id) + " " + str(val) + "\n"
-        self.debug_info = command
-        self.serial_port.write(bytes(command,"utf-8"))
+        print(bytes(command,"utf-8"))
+        #self.serial_port.write(bytes(command,"utf-8"))
    
     def init_IOs(self):
         """Definir ici les valeur a mettre a l'initialisation"""
+        print("\nInitialiasing IO")
         self.send_to_IO(self.pince1,1000)
         self.send_to_IO(self.pince2,1000)
         self.send_to_IO(self.pince3,1000)
         self.send_to_IO(self.pince4,1000)
         self.send_to_IO(self.bras,1000)
         self.send_to_IO(self.pano,100)
-        print("Actionneur initialisé")
+        print("IO inited !")
 
 if __name__=="__main__":
 
@@ -84,5 +87,4 @@ if __name__=="__main__":
     print(carte_IO)
 
     while ecal_core.ok():
-        print(carte_IO.debug_info)
         pass

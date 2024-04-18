@@ -277,24 +277,11 @@ class Robot:
         return self.current_point_index == self.n_points
                                         
 
-### Acctionneur ###
-
-    def Pano(self,val):
+### ACTIONNEURS ###
+    def IO(self,id,val):
         """ Définir en externe les valeurs à prendre 
-        \nFaire robot.Pano(valeur) """
-        msg = messag.IO(id = self.pano , val = val)
-        self.IO_pub.send(msg)
-    
-    def AX(self,id,val):
-        """ Définir en externe les valeurs à prendre 
-        \nFaire robot.AX(robot.axL,valeur) pour piloter l'ax de gauche !"""
-        msg = messag.IO(id = id , val = val)
-        self.IO_pub.send(msg)
-
-    def Pince(self,id,val):
-        """ Définir en externe les valeurs à prendre 
-        \nsFairà robot.Pince(robot.pince1,valeur) pour piloter la pince n°1 !"""
-        msg = messag.IO(id = id , val = val)
+        \nFaire robot.IO(robot.axL,valeur) pour piloter l'ax de gauche !"""
+        msg = message.IO(id = id , val = val)
         self.IO_pub.send(msg)
 
 if __name__ == "__main__":

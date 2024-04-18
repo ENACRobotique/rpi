@@ -1,0 +1,22 @@
+[Unit]
+Description=eCal IO Bridge
+After=network.target network-online.target
+
+[Service]
+Type=simple
+ 
+User=pi
+Group=pi
+
+SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
+WorkingDirectory=/home/pi/rpi2024/sw 
+ExecStart=python3 /home/pi/rpi2024/sw/bridge_IO.py
+ 
+Restart=on-failure
+RestartSec=2 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+ 
+[Install]
+
+
