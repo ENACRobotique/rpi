@@ -158,7 +158,7 @@ class Duckoder(Protocol):
 
 
 if __name__ == "__main__":
-    port = sys.argv[1] if len(sys.argv) > 1 else "/dev/bas_niveau"
+    port = sys.argv[1] if len(sys.argv) > 1 else "/dev/robot_base"
 
     ser=Serial(port, 115200)
     with ReaderThread(ser, Duckoder) as p:

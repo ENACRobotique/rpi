@@ -4,6 +4,7 @@ After=network.target network-online.target
 Wants=robot_bridge.service
 Wants=robot_lidar_driver.service
 Wants=robot_vl53.service
+Wants=robot_IO.service
 
 
 [Service]

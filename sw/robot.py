@@ -7,7 +7,6 @@ from math import sqrt, pi, cos, sin
 import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
-import generated.messages_pb2 as message
 
 from enum import Enum
 from dataclasses import dataclass
@@ -88,6 +87,48 @@ class Speed:
         return Speed(s.vx, s.vy, s.vtheta)
 
 
+class Actionneur(Enum):
+    Pince1 = 1
+    Pince2 = 2
+    Pince3 = 5
+    Pince4 = 6
+    Bras   = 3
+    Pano   = 4
+    AxL    = 7
+    AxR    = 8
+
+class ValeurActionneur(Enum):
+    InitPince1 = 870
+    InitPince2 = 870
+    InitPince3 = 1700
+    InitPince4 = 1400
+    InitBras = 1800
+    InitPano = 100
+    InitAxL = 500
+    InitAxR = 640
+
+    OpenPince1 = 870
+    OpenPince2 = 870
+    OpenPince3 = 1700
+    OpenPince4 = 1400
+    
+    ClosePince1 = 870
+    ClosePince2 = 870
+    ClosePince3 = 1700
+    ClosePince4 = 1400
+    
+    DownBras = 1800
+    UpBras = 1800
+    
+    UpAxL = 500
+    UpAxR = 640
+
+    MidAxL = 500
+    MidAxR = 640    
+
+    DownAxL = 500
+    DownAxR = 640
+
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
     
@@ -100,17 +141,7 @@ class Robot:
         self.speed = Speed(0, 0, 0)
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav()
-        self.nav.initialisation()
-            
-        # a configurer en fonction du branchement sur les pins !!!
-        self.pince1 = 1   # servo 1  
-        self.pince2 = 2  # servo 2 
-        self.pince3 = 3  # servo 3 
-        self.pince4 = 4  # servo 4 
-        self.bras = 5  # servo 5 
-        self.pano = 6  # servo *I2C* 
-        self.axL = 7 # ax avec l'ID 5 
-        self.axR = 8 # ax avec l'ID 1
+
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -132,7 +163,7 @@ class Robot:
 
         self.speedReportSub = ProtoSubscriber("odom_speed",robot_pb.Speed)
         self.speedReportSub.set_callback(self.onReceiveSpeed)
-
+        
         #self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
         #self.setPositionSub.set_callback(self.onSetTargetPostition)
 
@@ -147,7 +178,7 @@ class Robot:
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
         self.reset_pos_pub = ProtoPublisher("reset", robot_pb.Position)
 
-        self.IO_pub = ProtoPublisher("IO",message.IO)
+        self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
         #self.claw_pub = ProtoPublisher("set_pince", robot_pb.SetState)
         #self.score_pub = ProtoPublisher("set_score", robot_pb.Match)
@@ -158,6 +189,9 @@ class Robot:
 
         self.debug_pub =StringPublisher("debug_msg")
         time.sleep(1)
+
+        self.nav.initialisation()
+        self.initActionneur()
 
 
     def __repr__(self) -> str:
@@ -234,8 +268,10 @@ class Robot:
         """ Le robot va directement à un waypoint """
         if theta is None :
             theta = self.pos.theta
-        closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
-        self.pathFinder(closest,waypoint)
+        x,y = self.nav.getCoords(waypoint)
+        self.setTargetPos(Pos(x,y,theta))
+        #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
+        #self.pathFinder(closest,waypoint)
 
     def resetPosFromNav(self,waypoint):   
         x,y = self.nav.getCoords(waypoint)
@@ -275,15 +311,27 @@ class Robot:
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True"""
         return self.current_point_index == self.n_points
-                                        
 
-### ACTIONNEURS ###
-    def IO(self,id,val):
+    def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
         """ Définir en externe les valeurs à prendre 
-        \nFaire robot.IO(robot.axL,valeur) pour piloter l'ax de gauche !"""
-        msg = message.IO(id = id , val = val)
+        \nFaire self.setActionneur(Actionneur.AxL,valeur) pour piloter l'ax de gauche !"""
+        if type(val) == int :
+            msg = robot_pb.IO(id = actionneur.value , val = val)    
+        else :
+            msg = robot_pb.IO(id = actionneur.value , val = val.value)
+        
         self.IO_pub.send(msg)
 
+    def initActionneur(self):
+        self.setActionneur(Actionneur.Pince1,ValeurActionneur.InitPince1)
+        self.setActionneur(Actionneur.Pince2,ValeurActionneur.InitPince2)
+        self.setActionneur(Actionneur.Pince3,ValeurActionneur.InitPince3)
+        self.setActionneur(Actionneur.Pince4,ValeurActionneur.InitPince4)
+        self.setActionneur(Actionneur.Bras,ValeurActionneur.InitBras)
+        self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
+        self.setActionneur(Actionneur.AxL,ValeurActionneur.InitAxL)
+        self.setActionneur(Actionneur.AxR,ValeurActionneur.InitAxR)
+    
 if __name__ == "__main__":
     r = Robot()
     while(True):

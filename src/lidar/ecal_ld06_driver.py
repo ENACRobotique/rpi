@@ -21,5 +21,5 @@ if __name__ == '__main__':
         lidar_msg.quality.extend(quality)
         pub.send(lidar_msg, ecal_core.getmicroseconds()[1])
 
-    driver = lidar.Driver(publish_reading, '/dev/lidar')
+    driver = lidar.Driver(publish_reading, '/dev/robot_lidar')
     driver.scan()
