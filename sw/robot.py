@@ -7,6 +7,8 @@ from math import sqrt, pi, cos, sin
 import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
+import generated.messages_pb2 as message
+
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
@@ -99,7 +101,16 @@ class Robot:
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav()
         self.nav.initialisation()
-
+            
+        # a configurer en fonction du branchement sur les pins !!!
+        self.pince1 = 1   # servo 1  
+        self.pince2 = 2  # servo 2 
+        self.pince3 = 3  # servo 3 
+        self.pince4 = 4  # servo 4 
+        self.bras = 5  # servo 5 
+        self.pano = 6  # servo *I2C* 
+        self.axL = 7 # ax avec l'ID 5 
+        self.axR = 8 # ax avec l'ID 1
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -111,6 +122,7 @@ class Robot:
 
         self.tempsDebutMatch = None
 
+        ### SUB ECAL ###
 
         #self.matchReportSub = ProtoSubscriber('match_start',robot_pb.Match)
         #self.matchReportSub.set_callback(self.onReceiveMatchStarted)
@@ -130,8 +142,13 @@ class Robot:
         #self.ihmSub = ProtoSubscriber("ihm",robot_pb.IHM)
         #self.ihmSub.set_callback(self.on_ihm)
 
+        
+        ### PUB ECAL ###
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
         self.reset_pos_pub = ProtoPublisher("reset", robot_pb.Position)
+
+        self.IO_pub = ProtoPublisher("IO",message.IO)
+
         #self.claw_pub = ProtoPublisher("set_pince", robot_pb.SetState)
         #self.score_pub = ProtoPublisher("set_score", robot_pb.Match)
                 
@@ -258,8 +275,27 @@ class Robot:
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True"""
         return self.current_point_index == self.n_points
-                                            
+                                        
 
+### Acctionneur ###
+
+    def Pano(self,val):
+        """ Définir en externe les valeurs à prendre 
+        \nFaire robot.Pano(valeur) """
+        msg = messag.IO(id = self.pano , val = val)
+        self.IO_pub.send(msg)
+    
+    def AX(self,id,val):
+        """ Définir en externe les valeurs à prendre 
+        \nFaire robot.AX(robot.axL,valeur) pour piloter l'ax de gauche !"""
+        msg = messag.IO(id = id , val = val)
+        self.IO_pub.send(msg)
+
+    def Pince(self,id,val):
+        """ Définir en externe les valeurs à prendre 
+        \nsFairà robot.Pince(robot.pince1,valeur) pour piloter la pince n°1 !"""
+        msg = messag.IO(id = id , val = val)
+        self.IO_pub.send(msg)
 
 if __name__ == "__main__":
     r = Robot()
