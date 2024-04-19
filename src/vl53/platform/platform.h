@@ -181,7 +181,7 @@ uint8_t WaitMs(
  * @param (int) *fd : pointer on a I2C channel descriptor.
  * @return (uint8_t) status : 0 if OK
  */
-int32_t vl53l5cx_comms_init(VL53L5CX_Platform * p_platform);
+int32_t vl53l5cx_comms_init(VL53L5CX_Platform * p_platform, uint16_t addr);
 
 
 /**

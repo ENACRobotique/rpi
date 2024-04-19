@@ -20,6 +20,7 @@ int exit_main_loop = 0;
 void sighandler(int signal)
 {
 	printf("SIGNAL Handler called, signal = %d\n", signal);
+	fflush(stdout);	
 	exit_main_loop  = 1;
 }
 
@@ -29,18 +30,22 @@ struct sockaddr_in server_addr;
 
 int main(int argc, char ** argv)
 {
+	uint16_t port = (uint16_t)atoi(argv[1]);
+	uint16_t addr = (uint16_t)atoi(argv[2]);
 	int status;
 	VL53L5CX_Configuration 	Dev;
-
+    printf("Launching VL53 driver on port %u\n", port);
+    fflush(stdout);	
 
     // Create sockets
     socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(socket_desc < 0){
         printf("Error while creating socket\n");
+        fflush(stdout);
         return -1;
     }
 	server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(2000);
+    server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
 	/*********************************/
@@ -48,11 +53,24 @@ int main(int argc, char ** argv)
 	/*********************************/
 
 	/* Initialize channel com */
-	status = vl53l5cx_comms_init(&Dev.platform);
+	status = vl53l5cx_comms_init(&Dev.platform, VL53L5CX_DEFAULT_I2C_ADDRESS);
 	if(status)
 	{
-		printf("VL53L5CX comms init failed\n");
+		printf("VL53L5CX comms init failed.\n");
+		fflush(stdout);
 		return -1;
+	}
+
+	status = vl53l5cx_set_i2c_address(&Dev, addr);
+	if(status) {
+		printf("VL53L5CX set addr failed, trying with new addr\n");
+		fflush(stdout);
+		vl53l5cx_comms_init(&Dev.platform, addr);
+		status = vl53l5cx_set_i2c_address(&Dev, addr);
+		if(status) {
+			printf("VL53L5CX set addr failed with new addr!\n");
+			fflush(stdout);
+		}
 	}
 
 	status = example2(&Dev);
@@ -89,6 +107,7 @@ int example2(VL53L5CX_Configuration *p_dev)
 	if(!isAlive || status)
 	{
 		printf("VL53L5CX not detected at requested address\n");
+		fflush(stdout);
 		return status;
 	}
 
@@ -97,12 +116,13 @@ int example2(VL53L5CX_Configuration *p_dev)
 	if(status)
 	{
 		printf("VL53L5CX ULD Loading failed\n");
+		fflush(stdout);
 		return status;
 	}
 
-	printf("VL53L5CX ULD ready ! (Version : %s)\n",
+	printf("VL53L5CX Ready ! (Version : %s)\n",
 			VL53L5CX_API_REVISION);
-			
+	fflush(stdout);	
 
 	/*********************************/
 	/*        Set some params        */
@@ -115,6 +135,7 @@ int example2(VL53L5CX_Configuration *p_dev)
 	if(status)
 	{
 		printf("vl53l5cx_set_resolution failed, status %u\n", status);
+		fflush(stdout);
 		return status;
 	}
 
@@ -122,10 +143,11 @@ int example2(VL53L5CX_Configuration *p_dev)
 	 * Using 4x4, min frequency is 1Hz and max is 60Hz
 	 * Using 8x8, min frequency is 1Hz and max is 15Hz
 	 */
-	status = vl53l5cx_set_ranging_frequency_hz(p_dev, 2);
+	status = vl53l5cx_set_ranging_frequency_hz(p_dev, 4);
 	if(status)
 	{
 		printf("vl53l5cx_set_ranging_frequency_hz failed, status %u\n", status);
+		fflush(stdout);
 		return status;
 	}
 
@@ -134,6 +156,7 @@ int example2(VL53L5CX_Configuration *p_dev)
 	if(status)
 	{
 		printf("vl53l5cx_set_target_order failed, status %u\n", status);
+		fflush(stdout);
 		return status;
 	}
 
@@ -169,10 +192,11 @@ int example2(VL53L5CX_Configuration *p_dev)
 
 		/* Wait a few ms to avoid too high polling (function in platform
 		 * file, not in API) */
-		WaitMs(&p_dev->platform, 5);
+		WaitMs(&p_dev->platform, 20);
 	}
 
 	status = vl53l5cx_stop_ranging(p_dev);
 	printf("End of ULD demo\n");
+	fflush(stdout);
 	return status;
 }

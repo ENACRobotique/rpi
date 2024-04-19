@@ -50,7 +50,7 @@ struct comms_struct {
 #define ST_TOF_IOCTL_TRANSFER           _IOWR('a',0x1, struct comms_struct)
 #define ST_TOF_IOCTL_WAIT_FOR_INTERRUPT	_IO('a',0x2)
 
-int32_t vl53l5cx_comms_init(VL53L5CX_Platform * p_platform)
+int32_t vl53l5cx_comms_init(VL53L5CX_Platform * p_platform, uint16_t addr)
 {
 
 #ifdef STMVL53L5CX_KERNEL
@@ -61,7 +61,7 @@ int32_t vl53l5cx_comms_init(VL53L5CX_Platform * p_platform)
 	}
 #else
 	/* Create sensor at default i2c address */
-	p_platform->address = 0x52;
+	p_platform->address = addr;
 	p_platform->fd = open("/dev/i2c-1", O_RDONLY);
 	if (p_platform->fd == -1) {
 		LOG("Failed to open /dev/i2c-1\n");
