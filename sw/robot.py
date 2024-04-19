@@ -3,7 +3,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher, StringPublisher
 from ecal.core.subscriber import ProtoSubscriber, StringSubscriber
 import time
-from math import sqrt, pi, cos, sin
+from math import sqrt, pi, cos, sin, atan2 
 import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
@@ -102,8 +102,8 @@ class ValeurActionneur(Enum):
     InitPince2 = 870
     InitPince3 = 1700
     InitPince4 = 1400
-    InitBras = 1800
-    InitPano = 100
+    InitBras = 1400
+    InitPano = 1500
     InitAxL = 500
     InitAxR = 640
 
@@ -117,8 +117,8 @@ class ValeurActionneur(Enum):
     ClosePince3 = 1700
     ClosePince4 = 1400
     
-    DownBras = 1800
-    UpBras = 1800
+    DownBras = 2500
+    UpBras = InitBras
     
     UpAxL = 500
     UpAxR = 640
@@ -128,6 +128,9 @@ class ValeurActionneur(Enum):
 
     DownAxL = 500
     DownAxR = 640
+
+PANO_CONVERT = 1
+PANO_OFFSET = 115 # mm
 
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
@@ -141,7 +144,8 @@ class Robot:
         self.speed = Speed(0, 0, 0)
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav()
-
+        self.pano_angle = 0
+        self.command_sent = False
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -163,6 +167,9 @@ class Robot:
 
         self.speedReportSub = ProtoSubscriber("odom_speed",robot_pb.Speed)
         self.speedReportSub.set_callback(self.onReceiveSpeed)
+
+        self.pano_sub = ProtoSubscriber("aruco",robot_pb.Position_aruco)
+        self.pano_sub.set_callback(self.aruco)
         
         #self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
         #self.setPositionSub.set_callback(self.onSetTargetPostition)
@@ -234,7 +241,12 @@ class Robot:
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
         self.setTargetPos(target, Frame.ROBOT)
     
-
+    def move_rel(self,x,y):
+        if x : 
+            self.move(sqrt(x**2+y**2),atan2(y,x))
+        else :
+            self.move(y,pi/2*np.sign(y))
+    
     def resetPos(self, pos: Pos):
         self.reset_pos_pub.send(pos.to_proto())
     
@@ -273,17 +285,17 @@ class Robot:
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         #self.pathFinder(closest,waypoint)
 
-    def resetPosFromNav(self,waypoint):   
+    def resetPosFromNav(self,waypoint):
         x,y = self.nav.getCoords(waypoint)
         self.resetPos(Pos(x,y,self.pos.theta))
 
-    def pathFinder(self,start,end):
+    def pathFinder(self,dest):
         """Recherche le plus court chemin entre deux points. 
         \nRetenu dans l'object self.nav.chemin
         \nUtiliser les noms des waypoints de graph.txt"""
 
-        self.nav.entree = start
-        self.nav.sortie = end
+        self.nav.entree = self.nav.closestWaypoint(self.pos.x,self.pos.y)
+        self.nav.sortie = dest
         self.nav.findPath()
 
         self.n_points = len(self.nav.chemin)
@@ -312,6 +324,7 @@ class Robot:
         """Si le dernier point de Nav est atteint renvoie True"""
         return self.current_point_index == self.n_points
 
+    ### Actionneur ###
     def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
         """ Définir en externe les valeurs à prendre 
         \nFaire self.setActionneur(Actionneur.AxL,valeur) pour piloter l'ax de gauche !"""
@@ -331,7 +344,33 @@ class Robot:
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         self.setActionneur(Actionneur.AxL,ValeurActionneur.InitAxL)
         self.setActionneur(Actionneur.AxR,ValeurActionneur.InitAxR)
+
+    def aruco(self, topic_name, msg, timestamp):
+        # print(msg)
+        self.aruco_x = msg.x - 30
+        self.aruco_y = msg.z - PANO_OFFSET
+        self.aruco_theta = msg.theta
+
+        self.commande_pano = self.aruco_theta + self.pano_angle
+
+        if self.commande_pano > 180 : 
+            self.commande_pano  = self.commande_pano - 360
+
+        if self.commande_pano < -180 : 
+           self.commande_pano  = self.commande_pano + 360
+
+        self.commande_pano = self.commande_pano*PANO_CONVERT
     
+    def panoDo(self,commande):
+        self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
+        time.sleep(1)
+        self.setActionneur(Actionneur.Pano,int(commande))
+        time.sleep(2)
+        self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
+        time.sleep(0.5)
+        self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
+        time.sleep(2)
+
 if __name__ == "__main__":
     r = Robot()
     while(True):

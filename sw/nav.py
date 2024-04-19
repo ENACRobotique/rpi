@@ -52,6 +52,8 @@ class Nav(object):
         m=[]
         for w in self.graph.coords:
             m.append((sqrt((self.graph.coords[w][0]-x)**2 + (self.graph.coords[w][1]-y)**2 ),w))
+            print(m[-1])
+        print("closest is ", min(m)[1])
         return min(m)[1]
 
 
