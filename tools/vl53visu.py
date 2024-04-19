@@ -17,10 +17,10 @@ class RadarView(QtWidgets.QWidget):
                    "#d43d51"]
     vl53_data = QtCore.pyqtSignal(list)
 
-    def __init__(self, *args, **kwargs):
-        QtWidgets.QWidget.__init__(self, *args, **kwargs)
+    def __init__(self, nb, parent):
+        QtWidgets.QWidget.__init__(self, parent)
         ecal_core.initialize(sys.argv, "VL53Visu")
-        self.lidar_sub = ProtoSubscriber("vl53", pbl.Lidar)
+        self.lidar_sub = ProtoSubscriber(f"vl53_{nb}", pbl.Lidar)
         self.lidar_sub.set_callback(self.handle_lidar_data)
         self.vl53_data.connect(self.handle_data)
         self.data = []
@@ -62,18 +62,7 @@ class RadarView(QtWidgets.QWidget):
 
     def paintEvent(self, e: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
-
-        # paint background
-        brush = QtGui.QBrush()
-        brush.setColor(QtGui.QColor('black'))
-        brush.setStyle(QtCore.Qt.SolidPattern)
         rect = QtCore.QRect(0, 0, painter.device().width(), painter.device().height())
-        painter.fillRect(rect, brush)
-
-        # paint frequency
-        painter.setPen(QtCore.Qt.white)
-        txt = "{:.2f} Hz".format(self.frequency)
-        painter.drawText(10, 20, txt)
 
         # paint scale
         for i, color in enumerate(self.COLOR_SCALE):
@@ -82,19 +71,6 @@ class RadarView(QtWidgets.QWidget):
             painter.setPen(QtCore.Qt.NoPen)
             painter.drawRect(scale_rect)
 
-        # translate and rotate painter
-        #painter.translate(painter.device().width()/2, painter.device().height()/2)
-        #painter.rotate(90)
-
-
-        # draw center
-        painter.setBrush(QtCore.Qt.green)
-        painter.setPen(QtCore.Qt.NoPen)
-        painter.drawEllipse(QtCore.QPoint(0, 0), 5, 5)
-
-        # paint points
-        painter.setBrush(QtCore.Qt.yellow)
-        painter.setPen(QtCore.Qt.NoPen)
         px_w = rect.width() // 8
         px_h = rect.height() // 8
 
@@ -110,11 +86,11 @@ class RadarView(QtWidgets.QWidget):
                 min_dists.append(self.data[idx(index_min, y)])
             for x in range(8):
                 pixel_rect = QtCore.QRect(x * px_w, y * px_h, px_w, px_h)
-                if 6 > y > 2:
+                if (6 > y > 2) or True:
                     d = self.data[idx(x, y)]
                     c = self.color_from_distance(d)
-                    if x == index_min:
-                        c = QtGui.QColor("#00AA00")
+                    #if x == index_min:
+                    #    c = QtGui.QColor("#00AA00")
                 else:
                     c = QtGui.QColor("#0000AA")
                 painter.setBrush(c)
@@ -122,9 +98,9 @@ class RadarView(QtWidgets.QWidget):
 
         avr_x = sum(min_idxs) / len(min_idxs)
         avr_dist = sum(min_dists) / len(min_dists)
-        if avr_dist < 200:
-            painter.setBrush(QtGui.QColor("#db34eb"))
-            painter.drawRect(QtCore.QRect(int((avr_x) * px_w), 0, px_w, rect.height()))
+        #if avr_dist < 200:
+        #    painter.setBrush(QtGui.QColor("#db34eb"))
+        #    painter.drawRect(QtCore.QRect(int((avr_x) * px_w), 0, px_w, rect.height()))
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(400, 400)
@@ -137,7 +113,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self._main)
         layout = QtWidgets.QVBoxLayout(self._main)
 
-        self.radarView = RadarView(self._main)
+        self.radarView = RadarView(sys.argv[1], parent=self._main)
         layout.addWidget(self.radarView)
 
 
