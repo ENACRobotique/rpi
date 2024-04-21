@@ -12,15 +12,8 @@ if __name__ == "__main__" :
     robot = robot.Robot()
 
     robot.initNav()
-    robot.pathFinder("basJ","potSE")
-    
-    robot.resetPosFromNav("basJ") # ou pas forcément
-    time.sleep(0.1)
-    
-    while ecal_core.ok():
-        robot.followNav()
-        if robot.isNavDestReached():
-            break
-        time.sleep(0.1)
+    w = robot.nav.closestWaypoint(1200,500)
+
+    print(robot.nav.getCoords(w))
 
 

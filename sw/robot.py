@@ -88,12 +88,12 @@ class Speed:
 
 
 class Actionneur(Enum):
-    Pince1 = 1
+    Pince1 = 3
     Pince2 = 2
     Pince3 = 5
     Pince4 = 6
-    Bras   = 3
-    Pano   = 4
+    Bras   = 4
+    Pano   = 1
     AxL    = 7
     AxR    = 8
 
@@ -102,7 +102,7 @@ class ValeurActionneur(Enum):
     InitPince2 = 870
     InitPince3 = 1700
     InitPince4 = 1400
-    InitBras = 1400
+    InitBras = 950
     InitPano = 1500
     InitAxL = 500
     InitAxR = 640
@@ -117,7 +117,7 @@ class ValeurActionneur(Enum):
     ClosePince3 = 1700
     ClosePince4 = 1400
     
-    DownBras = 2500
+    DownBras = 1960
     UpBras = InitBras
     
     UpAxL = 500
@@ -129,8 +129,8 @@ class ValeurActionneur(Enum):
     DownAxL = 500
     DownAxR = 640
 
-PANO_CONVERT = 1
-PANO_OFFSET = 115 # mm
+PANO_CONVERT = 90/105 # 2.5 cm
+PANO_OFFSET = 125 # mm
 
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
@@ -146,6 +146,10 @@ class Robot:
         self.nav = nav.Nav()
         self.pano_angle = 0
         self.command_sent = False
+
+        self.aruco_y = 0
+        self.aruco_x = 0
+        self.aruco_theta = 0
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -247,7 +251,16 @@ class Robot:
         else :
             self.move(y,pi/2*np.sign(y))
     
+    def heading(self,angle):
+        """ Angle en degré """ 
+        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle * pi/180))
+    
+    def rotate(self,angle):
+        """ angle en degré """
+        self.heading(self.pos.theta*180/pi + angle)
+    
     def resetPos(self, pos: Pos):
+        print(f"Pos reseted to : {pos.x},\t{pos.y}, \t{pos.theta} ")
         self.reset_pos_pub.send(pos.to_proto())
     
     #def updateScore(self):
@@ -280,6 +293,7 @@ class Robot:
         """ Le robot va directement à un waypoint """
         if theta is None :
             theta = self.pos.theta
+            print(theta*180/pi)
         x,y = self.nav.getCoords(waypoint)
         self.setTargetPos(Pos(x,y,theta))
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
@@ -308,13 +322,13 @@ class Robot:
          \nIl faut l'appler en boucle pour qu'il passe d'un point à un autre
          \nJe pense qu'on peut faire mieux !"""
         # !!! en milimètres !!!
-        print(f"Following path, now at {self.nav.current}")
 
         if len(self.nav.chemin) != 0 : 
             self.nav.current = self.nav.chemin[self.current_point_index]
             self.goToWaypoint(self.nav.current)
 
             if self.hasReachedTarget():
+                #print(f"Following path, now at {self.nav.current}")
                 self.current_point_index += 1
                 if self.isNavDestReached():
                     print(" Destination Reached !")
@@ -336,35 +350,49 @@ class Robot:
         self.IO_pub.send(msg)
 
     def initActionneur(self):
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince1,ValeurActionneur.InitPince1)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince2,ValeurActionneur.InitPince2)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince3,ValeurActionneur.InitPince3)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince4,ValeurActionneur.InitPince4)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.InitBras)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.AxL,ValeurActionneur.InitAxL)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.AxR,ValeurActionneur.InitAxR)
+        time.sleep(0.1)
 
     def aruco(self, topic_name, msg, timestamp):
         # print(msg)
-        self.aruco_x = msg.x - 30
-        self.aruco_y = msg.z - PANO_OFFSET
-        self.aruco_theta = msg.theta
+        self.aruco_theta = msg.theta + self.pano_angle
+        self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15
+        self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
+        
 
-        self.commande_pano = self.aruco_theta + self.pano_angle
+        commande_pano = self.aruco_theta
 
-        if self.commande_pano > 180 : 
-            self.commande_pano  = self.commande_pano - 360
 
-        if self.commande_pano < -180 : 
-           self.commande_pano  = self.commande_pano + 360
+        #print(f"aruco cmd : x = {self.aruco_x}\t y = {self.aruco_y}")
+        if commande_pano > 180 : 
+            commande_pano  = commande_pano - 360
 
-        self.commande_pano = self.commande_pano*PANO_CONVERT
+        if commande_pano < -180 : 
+           commande_pano  = commande_pano + 360
+
+        self.commande_pano = commande_pano*PANO_CONVERT + ValeurActionneur.InitPano.value
     
     def panoDo(self,commande):
+        time.sleep(1)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
         time.sleep(1)
         self.setActionneur(Actionneur.Pano,int(commande))
+        print("commande: ",commande)
         time.sleep(2)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
         time.sleep(0.5)

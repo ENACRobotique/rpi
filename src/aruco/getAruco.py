@@ -127,9 +127,9 @@ if __name__ == "__main__":
             cz , sz = math.cos(rot_z), math.sin(rot_z)
             rot_matrice_z = np.array([[cz,-sz,0],[sz,cz,0],[0,0,1]])
             center = np.matmul(rot_matrice_z,np.matmul(rot_matrice_y,np.matmul(rot_matrice_x,center)))[0]
-            center[0] += 5
+            center[0] += 47
             center[1] += 0
-            center[2] += 2.05
+            center[2] += 23.5
 
             message = hlm.Position_aruco()
             message.x = center[0]

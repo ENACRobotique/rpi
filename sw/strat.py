@@ -15,16 +15,16 @@ class InitState(State):
     def loop(self):
         # tester si tirette tirée
         #self.robot.resetPosFromNav("basB")
-        if time.time() - self.start_time > 5:
+        if time.time() - self.start_time > 1:
             color = "bleu"      # récupérer couleur depuis l'IHM
             args = {}
             if color == "bleu":
-                self.robot.resetPos(Pos(200, 225, pi/2))
+                self.robot.resetPos(Pos(225, 225, pi/2))
                 args["panos"] =  ["p1","p3"] # ["p1", "p2", "p3", "p4", "p5", "p6"]
                 args["pano_angle"] = 68
             else:
                 args["panos"] = ["p9", "p8", "p7", "p6", "p5", "p4"]
-                args["pano_angle"] = 68 + 180 
+                args["pano_angle"] = 68 + 180
             
             self.robot.pano_angle = args["pano_angle"]
 
@@ -41,16 +41,18 @@ class PanosState(State):
         # s'il reste des panneaux à tourner, y aller
         if len(self.args["panos"]) > 0:
             print(f"Go to {self.args['panos'][0]}")
-            self.robot.goToWaypoint(self.args["panos"][0], pi/2)
 
     def loop(self) -> State | None:
         if len(self.args["panos"]) == 0:
-            return EndState(self.robot, self.globals, {})
-        if robot.hasReachedTarget():
-            # touner panneau
-            # partage "args" avec le state "enfant" PanoTurnState
-            return PanoTurnState(self.robot, self.globals, self.args)
+            
+            self.args['next_state'] = EndState(self.robot, self.globals, {})
+            self.args['destination'] = "basB"
+            return NavState(self.robot, self.globals, self.args)
 
+        self.args["destination"] = self.args["panos"][0]
+        self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
+        return NavState(self.robot, self.globals, self.args)        
+        
 class PanoTurnState(State):
     def __init__(self, robot: Robot, globals, args={}) -> None:
         super().__init__(robot, globals, args)
@@ -58,17 +60,17 @@ class PanoTurnState(State):
     def enter(self, prev_state: State | None):
         print(f"tourner panneau {self.args['panos'][0]}...")
         self.prev_state = prev_state
-
+        self.robot.heading(90) # bras // pano
+        time.sleep(1)
+        print(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
         self.robot.move_rel(self.robot.aruco_x,self.robot.aruco_y) # on se rapproche du pano
-        self.start_time = time.time()
-
     def loop(self) -> State | None:
         # faire tourner le panneau
         if self.robot.hasReachedTarget():
             if not self.robot.command_sent :
                 self.robot.command_sent = True
                 self.robot.panoDo(self.robot.commande_pano)
-                return self.prev_state
+                return PanosState(self.robot, self.globals, self.args)
 
     def leave(self, next_state: State):
         # le panneau est tourné, on peut l'oublier pour passer au suivant.
