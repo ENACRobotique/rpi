@@ -2,6 +2,13 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from time import sleep
 
+import messages_pb2 as llpb
+import robot_state_pb2 as hgpb
+
+import ecal.core.core as ecal_core
+from ecal.core.publisher import ProtoPublisher
+from ecal.core.subscriber import ProtoSubscriber
+
 class Team(Enum):
     BLEU = 1
     JAUNE = 2
@@ -85,7 +92,13 @@ class MenuStrat(Menu):
 
 
 class LCD(object):  
+    """
+    Architecture : 
+    Main menu : choix des menus ( 1seul pour l'instant). Quand on clique OK, on rentre dans l'un des sous menus
+    Sous menus : propose plusieurs choix
+    """
     def __init__(self):
+        ### attributs 
         self.team = Team.BLEU
         self.menu = None
         self.score = 0
@@ -93,8 +106,20 @@ class LCD(object):
         self.tirette = False # True, tirée, False, encore en marche
         self.Mainmenu = MainMenu("MainMenu")
         self.stratMenu = MenuStrat("StratMenu")
-        self.posMenu = PositionMenu.MAIN_MENU
+        self.posMenu = PositionMenu.MAIN_MENU  # où on se situe dans l'architecture : menu ou sous menu
         self.stratChoisie = False
+
+        ###publisher et subscribers
+        self.team_sub = ProtoSubscriber("team", hgpb.Team)
+        self.team_sub.set_callback(self.onReceivedTeam)
+
+        self.action_sub = ProtoSubscriber("action", hgpb.Action) # ok ou return
+        self.action_sub.set_callback(self.onReceivedAction)
+
+        self.score_sub = ProtoSubscriber("set_score", hgpb.Match)
+        self.score_sub.set_callback(self.onReceivedScore)
+
+        self.color_pub = ProtoSubscriber("color", hgpb.Color)
 
 
     def initialisation(self):
@@ -105,34 +130,62 @@ class LCD(object):
         self.stratMenu.initialisation()
 
 
+    def onReceivedScore(self, topic_name, hlm, timelf):
+        self.score = hlm.score
+        self.send_msg(self.score)
+
+
+    def onReceivedAction(self, topic_name, hlm, timelf):
+        if (hlm.ok == 1) and (hlm.ret ==0):
+            self.onReceivedOk()
+
+        elif (hlm.ret == 1) and (hlm.ok ==0):
+            self.onReceivedReturn()
+
+        elif hlm.turn ==1:
+            self.onReceivedTurn
+
+
     def onReceivedTeam(self):
         """
         Lorsqu'on appuie sur le bouton la 1ere fois, on est bleu, si on rappuie on change de couleur
+        On commence en None, comme ça le lcd alerte si on veut commencer le match en None
         """
         if self.team == Team.BLEU:
             self.team = Team.JAUNE
+            self.send_color( 255, 255, 0)
         elif self.team == Team.JAUNE:
             self.team = Team.BLEU
+            self.send_color( 0, 0, 255)
         else : 
             self.team = Team.BLEU
-
-        self.send_msg(self.team)
+            self.send_color( 0, 0, 255)
 
 
     def send_msg(self,msg):
         """
-        fonction qui envoie les données à la com
+        fonction qui envoie les données à la com 
+        Sera sûrement inutile par la suite
         """
         print(msg)
 
 
     def onReceivedTurn(self):
         """
-        fonction qui envoie les données à la com
+        fonction qui permet de tourner la page d'un menu. On considère que le bas niveau décide d'envoyer 1 turn page tous les x crans de potard
         """
         self.menu.turnPage()
 
-    # TODO : On received Return
+
+    def onReceivedReturn(self):
+        """
+        Pour l'instant il n'y a pas de sousous menus, donc si on fait return, soit ça ne fait rien, soit ça nous renvoie au menu principal
+        à modifier si on rajoute des sousousmenus
+        """
+        if self.posMenu != PositionMenu.MAIN_MENU:
+            # On revient au menu principal 
+            self.posMenu = PositionMenu.MAIN_MENU
+
 
     def onReceivedOk(self):
         """
@@ -164,7 +217,12 @@ class LCD(object):
             self.send_msg("configNok")
         else:
             self.send_msg("ConfigOk")
-    
+
+
+    def send_color(self, R:int, G:int, B:int):
+        color_msg = hgpb.Color(r=R,g=G,b=B)
+        self.color_pub.send(color_msg)
+
 
 
 ### TODO 
@@ -175,7 +233,7 @@ class LCD(object):
 
 
 if __name__ == "__main__": 
-    ### test , simu
+    ### test , simu  #plus d'actualité avec e-cal
     lcd = LCD()
     lcd.initialisation()
 
