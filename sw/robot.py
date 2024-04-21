@@ -315,28 +315,11 @@ class Robot:
         self.n_points = len(self.nav.chemin)
         self.current_point_index = 0
         self.nav.current = self.nav.chemin[self.current_point_index]
-        print(self.nav.chemin)
+        print("Path found : ",self.nav.chemin)
     
-    def followNav(self):
-        """ Fait suivre au robot le chemin en mémoire de la nav
-         \nIl faut l'appler en boucle pour qu'il passe d'un point à un autre
-         \nJe pense qu'on peut faire mieux !"""
-        # !!! en milimètres !!!
-
-        if len(self.nav.chemin) != 0 : 
-            self.nav.current = self.nav.chemin[self.current_point_index]
-            self.goToWaypoint(self.nav.current)
-
-            if self.hasReachedTarget():
-                #print(f"Following path, now at {self.nav.current}")
-                self.current_point_index += 1
-                if self.isNavDestReached():
-                    print(" Destination Reached !")
-                    self.nav.resetPath()
-
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True"""
-        return self.current_point_index == self.n_points
+        return self.nav.chemin == []
 
     ### Actionneur ###
     def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):

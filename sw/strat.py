@@ -85,11 +85,19 @@ class NavState(State):
     def enter(self, prev_state: State | None):
         print(f"Navigating to {self.args['destination']}.")
         self.robot.pathFinder(self.args['destination'])
+        self.robot.goToWaypoint(self.robot.nav.chemin[0])
     
     def loop(self) -> State | None:
-        self.robot.followNav()
-        if self.robot.isNavDestReached():
-            return self.args['next_state']
+
+        if self.robot.hasReachedTarget():
+            if self.robot.isNavDestReached():
+                return self.args['next_state']
+            del self.robot.nav.chemin[0]
+            self.robot.goToWaypoint(self.robot.nav.chemin[0])
+        
+        # éventuellement :
+        if self.args["alternative"]:
+            return self.args["alt_state"]
 
     
 
