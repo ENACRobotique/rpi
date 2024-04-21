@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11robot_state.proto\x12\x04\x65nac\" \n\rno_args_func_\x12\x0f\n\x07nothing\x18\x01 \x01(\x02\"/\n\x08Position\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\r\n\x05theta\x18\x03 \x01(\x02\"/\n\x05Speed\x12\n\n\x02vx\x18\x01 \x01(\x02\x12\n\n\x02vy\x18\x02 \x01(\x02\x12\x0e\n\x06vtheta\x18\x03 \x01(\x02\"$\n\x03Ins\x12\x0e\n\x06vtheta\x18\x01 \x01(\x02\x12\r\n\x05theta\x18\x02 \x01(\x02\x62\x06proto3'
+  serialized_pb=b'\n\x11robot_state.proto\x12\x04\x65nac\" \n\rno_args_func_\x12\x0f\n\x07nothing\x18\x01 \x01(\x02\"/\n\x08Position\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\r\n\x05theta\x18\x03 \x01(\x02\"@\n\x0ePosition_aruco\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02\x12\r\n\x05theta\x18\x04 \x01(\x02\":\n\x10\x43ommande_solaire\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\x10\n\x08rotation\x18\x03 \x01(\x05\"/\n\x05Speed\x12\n\n\x02vx\x18\x01 \x01(\x02\x12\n\n\x02vy\x18\x02 \x01(\x02\x12\x0e\n\x06vtheta\x18\x03 \x01(\x02\"$\n\x03Ins\x12\x0e\n\x06vtheta\x18\x01 \x01(\x02\x12\r\n\x05theta\x18\x02 \x01(\x02\"\x1d\n\x02IO\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0b\n\x03val\x18\x02 \x01(\x05\x62\x06proto3'
 )
 
 
@@ -103,6 +103,105 @@ _POSITION = _descriptor.Descriptor(
 )
 
 
+_POSITION_ARUCO = _descriptor.Descriptor(
+  name='Position_aruco',
+  full_name='enac.Position_aruco',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='x', full_name='enac.Position_aruco.x', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='y', full_name='enac.Position_aruco.y', index=1,
+      number=2, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='z', full_name='enac.Position_aruco.z', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='theta', full_name='enac.Position_aruco.theta', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=110,
+  serialized_end=174,
+)
+
+
+_COMMANDE_SOLAIRE = _descriptor.Descriptor(
+  name='Commande_solaire',
+  full_name='enac.Commande_solaire',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='x', full_name='enac.Commande_solaire.x', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='y', full_name='enac.Commande_solaire.y', index=1,
+      number=2, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='rotation', full_name='enac.Commande_solaire.rotation', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=176,
+  serialized_end=234,
+)
+
+
 _SPEED = _descriptor.Descriptor(
   name='Speed',
   full_name='enac.Speed',
@@ -144,8 +243,8 @@ _SPEED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=110,
-  serialized_end=157,
+  serialized_start=236,
+  serialized_end=283,
 )
 
 
@@ -183,14 +282,56 @@ _INS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=159,
-  serialized_end=195,
+  serialized_start=285,
+  serialized_end=321,
+)
+
+
+_IO = _descriptor.Descriptor(
+  name='IO',
+  full_name='enac.IO',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='enac.IO.id', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='val', full_name='enac.IO.val', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=323,
+  serialized_end=352,
 )
 
 DESCRIPTOR.message_types_by_name['no_args_func_'] = _NO_ARGS_FUNC_
 DESCRIPTOR.message_types_by_name['Position'] = _POSITION
+DESCRIPTOR.message_types_by_name['Position_aruco'] = _POSITION_ARUCO
+DESCRIPTOR.message_types_by_name['Commande_solaire'] = _COMMANDE_SOLAIRE
 DESCRIPTOR.message_types_by_name['Speed'] = _SPEED
 DESCRIPTOR.message_types_by_name['Ins'] = _INS
+DESCRIPTOR.message_types_by_name['IO'] = _IO
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 no_args_func_ = _reflection.GeneratedProtocolMessageType('no_args_func_', (_message.Message,), {
@@ -207,6 +348,20 @@ Position = _reflection.GeneratedProtocolMessageType('Position', (_message.Messag
   })
 _sym_db.RegisterMessage(Position)
 
+Position_aruco = _reflection.GeneratedProtocolMessageType('Position_aruco', (_message.Message,), {
+  'DESCRIPTOR' : _POSITION_ARUCO,
+  '__module__' : 'robot_state_pb2'
+  # @@protoc_insertion_point(class_scope:enac.Position_aruco)
+  })
+_sym_db.RegisterMessage(Position_aruco)
+
+Commande_solaire = _reflection.GeneratedProtocolMessageType('Commande_solaire', (_message.Message,), {
+  'DESCRIPTOR' : _COMMANDE_SOLAIRE,
+  '__module__' : 'robot_state_pb2'
+  # @@protoc_insertion_point(class_scope:enac.Commande_solaire)
+  })
+_sym_db.RegisterMessage(Commande_solaire)
+
 Speed = _reflection.GeneratedProtocolMessageType('Speed', (_message.Message,), {
   'DESCRIPTOR' : _SPEED,
   '__module__' : 'robot_state_pb2'
@@ -220,6 +375,13 @@ Ins = _reflection.GeneratedProtocolMessageType('Ins', (_message.Message,), {
   # @@protoc_insertion_point(class_scope:enac.Ins)
   })
 _sym_db.RegisterMessage(Ins)
+
+IO = _reflection.GeneratedProtocolMessageType('IO', (_message.Message,), {
+  'DESCRIPTOR' : _IO,
+  '__module__' : 'robot_state_pb2'
+  # @@protoc_insertion_point(class_scope:enac.IO)
+  })
+_sym_db.RegisterMessage(IO)
 
 
 # @@protoc_insertion_point(module_scope)
