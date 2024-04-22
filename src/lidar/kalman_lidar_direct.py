@@ -17,14 +17,14 @@ from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
 import generated.robot_state_pb2 as hgpb
-import generated.robot_state_pb2 as hgpb
 
 
 
 
-theta0 = np.pi/2  # doit être en radian
-x0 = 1.9  # en mètre
-y0 =  0.25 # en mètre
+
+theta0 = np.pi/180 * 60  # doit être en radian
+x0 = 1.750  # en mètre
+y0 =  0.9 # en mètre
 X0 = np.array([x0, y0])  # Array (2,) contenant les deux positions initiales x et y
 # 1.2) Donner une estimée de notre incertitude sur l'état initiale (caractérisée par une matrice de covariance)
 p0theta = (
@@ -133,22 +133,31 @@ def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
         kalman_class.get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R)
     )
 
+    n = len(pos_poi_w)
+    if n >= 1:    
+        b1.send(hgpb.Position(x = (pos_poi_w[0][0])*1000,y =  (pos_poi_w[0][1])*1000 , theta = 0))
+        if n >=2:
+            b2.send(hgpb.Position(x = (pos_poi_w[1][0])*1000,y =  (pos_poi_w[1][1])*1000, theta = 0))
+            if n>=3:
+                b3.send(hgpb.Position(x = (pos_poi_w[2][0])*1000,y =  (pos_poi_w[2][1])*1000, theta = 0))
 
     ####################"Data inliers emptyyy"
     chi, S, P = filter.corr(ymeas, landmarks, index_visible_lm, dimy, sqrtR)
 
     # print("chi", chi)
-    # print("pos_poi_b", pos_poi_b)
-    # print("pos_poi_w", pos_poi_w)
+    #print("pos_poi_b", pos_poi_b)
+    print("pos_poi_w", pos_poi_w)
     # print("angle_dist_meas", angle_dist_meas)
-    # print("index_visible_lm", index_visible_lm)
+    print("index_visible_lm", index_visible_lm)
     # print("dimy", dimy)
     # print("sqrtR", sqrtR)
 
 if __name__ == '__main__':
 
     ecal_core.initialize(sys.argv, "lidar_kalman")
-    sleep(1)
+    b1 = ProtoPublisher("b1",hgpb.Position)
+    b2 = ProtoPublisher("b2",hgpb.Position)
+    b3 = ProtoPublisher("b3",hgpb.Position)
     start = time()
     lidar_data_sub = ProtoSubscriber("lidar_data",lidar_data.Lidar)
     lidar_pos_pub = ProtoPublisher("lidar_pos",hgpb.Position)
@@ -161,17 +170,19 @@ if __name__ == '__main__':
     speed_sub.set_callback(callback_speed)
     gyro_sub.set_callback(callback_gyro)
     lidar_data_sub.set_callback(callback_lidar)
+    sleep(1)
    
 
     while(1):
         dt = 0.1
         u = np.zeros(3)
         prediction(dt,u)
+        #print("u = {u}")
         state = filter.chi2state(chi)
         lidar_pos.x = state[2][0]*1000
         lidar_pos.y = state[2][1]*1000
         lidar_pos.theta = state[1]
-        print("pos :",int(lidar_pos.x),int(lidar_pos.y),int(lidar_pos.theta*180/np.pi))
+        #print("pos :",int(lidar_pos.x),int(lidar_pos.y),int(lidar_pos.theta*180/np.pi))
         lidar_pos_pub.send(lidar_pos)
         sleep(dt)
 
