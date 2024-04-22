@@ -17,3 +17,20 @@ requirements :
 - heapq
 - typing
 - ...
+
+# How to use services
+
+You can manage services by using systemd 
+Do `` sudo systemctl <option> <service> `` to interact.
+
+Options : 
+- start
+- stop
+- status
+- restart
+- enable
+- disable
+
+All robot necessary services being with the prefix "robot_". You can use TAB to list them all while writing the command.
+You can edit the install_service.sh and run if you make new services.
+To edit new services read the associated documentation. You may also just copy paste a working service and hope it works :).
