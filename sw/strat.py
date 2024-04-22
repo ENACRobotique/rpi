@@ -21,10 +21,10 @@ class InitState(State):
             if color == "bleu":
                 self.robot.resetPos(Pos(225, 225, pi/2))
                 args["panos"] =  ["p1","p3"] # ["p1", "p2", "p3", "p4", "p5", "p6"]
-                args["pano_angle"] = 68
+                args["pano_angle"] = 0
             else:
                 args["panos"] = ["p9", "p8", "p7", "p6", "p5", "p4"]
-                args["pano_angle"] = 68 + 180
+                args["pano_angle"] = 180
             
             self.robot.pano_angle = args["pano_angle"]
 

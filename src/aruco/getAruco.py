@@ -96,7 +96,7 @@ def get_Aruco(vs):
             quat = Quaternion(find_quat(rvecs))
             rad = list(map(lambda item: round(item,2) ,quat.yaw_pitch_roll))
 
-            return rad[0], tvecs  # yaw, center
+            return rad[0] + 68 , tvecs  # yaw, center
 
 def convert_deg_to_servo(deg): #FIXME le rendre adaptatif , change à chaque fois que le support est bougé
     ratio = 1
