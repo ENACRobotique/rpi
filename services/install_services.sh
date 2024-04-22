@@ -2,10 +2,11 @@
 
 sp="/home/pi/rpi2024/services"
 
-
+sudo rm /etc/systemd/system/robot_*
 
 sudo ln -s $sp/robot_bridge.service 		/etc/systemd/system/robot_bridge.service
 sudo ln -s $sp/robot_lidar_driver.service 	/etc/systemd/system/robot_lidar_driver.service
+sudo ln -s $sp/robot_lcd.service 		/etc/systemd/system/robot_lcd.service
 #sudo ln -s $sp/robot_lidar_fusion.service 	/etc/systemd/system/robot_lidar_fusion.service
 #sudo ln -s $sp/robot_lidar_loca.service 	/etc/systemd/system/robot_lidar_loca.service
 #sudo ln -s $sp/robot_optitrack.service 		/etc/systemd/system/robot_optitrack.service
@@ -25,8 +26,8 @@ sudo ln -s $sp/robot_aruco.service 		/etc/systemd/system/robot_aruco.service
 sudo systemctl enable robot_start.service
 #sudo systemctl enable robot_strat.service
 #sudo systemctl enable robot_vl53.service
-sudo systemctl enable robot_IO.service
-sudo systemctl enable robot_aruco.service
+#sudo systemctl enable robot_IO.service
+#sudo systemctl enable robot_aruco.service
 
 sudo systemctl daemon-reload
 
