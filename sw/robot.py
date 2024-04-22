@@ -145,6 +145,7 @@ class Robot:
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav()
         self.pano_angle = 0
+        self.aruco_time = 0
         self.command_sent = False
 
         self.aruco_y = 0
@@ -358,6 +359,7 @@ class Robot:
         # position du centre de rotation
         self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15 
         self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
+        self.aruco_time = time.time()
         #print("aruco : ",self.aruco_x,self.aruco_y)
         
 

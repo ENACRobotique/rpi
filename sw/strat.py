@@ -20,7 +20,7 @@ class InitState(State):
             args = {}
             if color == "bleu":
                 self.robot.resetPos(Pos(225, 225, pi/2))
-                args["panos"] =  ["p1","p3"] # ["p1", "p2", "p3", "p4", "p5", "p6"]
+                args["panos"] =  ["p1","p2","p3"] # ["p1", "p2", "p3", "p4", "p5", "p6"]
                 args["pano_angle"] = 0
             else:
                 args["panos"] = ["p9", "p8", "p7", "p6", "p5", "p4"]
@@ -62,10 +62,18 @@ class PanoTurnState(State):
         self.prev_state = prev_state
         self.robot.heading(90) # bras // pano
         time.sleep(1)
+        if (time.time() - self.robot.aruco_time >= 1) or (abs(self.robot.aruco_y) > 100) or abs(self.robot.aruco_theta) < 40:
+            print("fffflllllllaaaaaaaaagggggggggg")
+            self.args['flag_bad_aruco'] = True
+            return
+        else:
+            self.args['flag_bad_aruco']  = False
         print(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
         self.robot.move_rel(self.robot.aruco_x,self.robot.aruco_y) # on se rapproche du pano
     def loop(self) -> State | None:
         # faire tourner le panneau
+        if self.args['flag_bad_aruco']:
+            return PanosState(self.robot, self.globals, self.args)
         if self.robot.hasReachedTarget():
             if not self.robot.command_sent :
                 self.robot.command_sent = True
