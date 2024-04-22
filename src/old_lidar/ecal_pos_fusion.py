@@ -10,8 +10,8 @@ from position_fusion.position_smooth import Smoother
 DEBUG = True
 
 pos_smoother = Smoother([], [], [], [], 2000.0, 10, 3) # set timestamp to really high for when replaying
-max_x_deviation = 0.1 # meters
-max_y_deviation = 0.1
+max_x_deviation = 100 # mm
+max_y_deviation = 100 # mm
 max_theta_deviation = 0.15 # rad (~10 degrees)
 
 ecal_core.initialize([], "position_fusion")

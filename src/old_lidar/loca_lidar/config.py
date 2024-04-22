@@ -3,7 +3,7 @@ from math import pi, radians
 # general settings
 Debug = False #mainly visualisation tools
 
-loca_theta_offset = radians(45.12)# pi/4 #-2.18 : experimental value from evitement data of begining of may
+loca_theta_offset = radians(0)# pi/4 #-2.18 : experimental value from evitement data of begining of may
 
 #Check_obstacle settings
 lidar_x_offset = 0.0 # !! Careful : offset are not implemented yet (value different from 0 may not work)

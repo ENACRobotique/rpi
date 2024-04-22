@@ -48,8 +48,8 @@ class LidarCloudDisplay():
         self.sub_lidar.set_callback(self.on_lidar_scan)
 
     def on_lidar_scan(self, topic_name, msg, time):
-        self.lidar_dist = np.array(msg.distances)
-        self.lidar_theta = np.array(msg.angles)
+        self.lidar_dist = np.array(msg.distances)/1000 # from milimeters to meters
+        self.lidar_theta = np.array(msg.angles)# in degress
 
     def on_button_click(self, event): 
         self.is_displaying = not self.is_displaying

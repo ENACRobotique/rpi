@@ -64,8 +64,8 @@ def send_lidar_scan(pub, distances, angles):
 
 def send_lidar_pos(x, y, theta):
     pos_msg = robot_pb.Position()
-    pos_msg.x = float(x)
-    pos_msg.y = float(y)
+    pos_msg.x = float(x)*1000
+    pos_msg.y = float(y)*1000
     pos_msg.theta = radians(-theta) + config.loca_theta_offset
     print(pos_msg)
     pub_lidar_pos.send(pos_msg, ecal_core.getmicroseconds()[1])
@@ -100,10 +100,10 @@ def on_lidar_scan(topic_name, proto_msg, time):
     if robot_pose == (0.0, 0.0, 0.0):
         pass #logging.warning("Robot pose not received yet - invalid obstacle avoidance")
     
-
     t = ecal_core.getmicroseconds()[1]
-    # Filter lidar_scan
-    lidar_scan =  np.rec.fromarrays([proto_msg.distances, proto_msg.angles], dtype=PolarPts)
+    # Filter 
+    distances = np.array(proto_msg.distances)/1000
+    lidar_scan =  np.rec.fromarrays([distances, proto_msg.angles], dtype=PolarPts)
     basic_filtered_scan = cp.basic_filter_pts(lidar_scan)
 
     amalgames = cp.amalgames_from_cloud(basic_filtered_scan)
@@ -122,7 +122,7 @@ def on_lidar_scan(topic_name, proto_msg, time):
     t2 = ecal_core.getmicroseconds()[1] - t
     # print("processing duration total in ms : ",t2)
 
-def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out = {}) -> Tuple[float, float, float]:
+def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out = {}) :# -> Tuple[float, float, float]:
     """_summary_
 
     Args:
@@ -144,7 +144,7 @@ def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out =
         return (0, 0, 0)
 
     poses = []
-    best_pose = (0, 0, 0)
+    best_pose = [0, 0, 0]
 
     # ###INITIAL FILTERING : remove correspondances that don't have the "mat central" (if it's present at least once) ###
     # remove the correspondances that don't have the "mat central" 
@@ -159,7 +159,7 @@ def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out =
         lidar_angle = pf.lidar_angle_wrt_table(
             lidar_pos, corr, amalgame_1.points, beacons_to_use.points)
         if len(lidar2table_set) == 1: # trivial case
-            best_pose = (lidar_pos[0], lidar_pos[1], lidar_angle)
+            best_pose = [lidar_pos[0], lidar_pos[1], lidar_angle]
             #corr_out |= corr #fusion the two dicts, to make sure that outside the function the dict is not empty
             corr_out.update(corr)
             break
@@ -185,6 +185,8 @@ def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out =
             closest_pt_index = poses_in_table.index(best_pose)
             corr_out.update(list(lidar2table_set)[closest_pt_index])
             print("multiple poses found : best one is : ", best_pose)
+    best_pose[0] = best_pose[0]
+    best_pose[1] = best_pose[1]
     return best_pose
    
 
