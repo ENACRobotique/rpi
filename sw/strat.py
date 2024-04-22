@@ -90,14 +90,11 @@ class NavState(State):
     def loop(self) -> State | None:
 
         if self.robot.hasReachedTarget():
+            del self.robot.nav.chemin[0]
             if self.robot.isNavDestReached():
                 return self.args['next_state']
-            del self.robot.nav.chemin[0]
             self.robot.goToWaypoint(self.robot.nav.chemin[0])
-        
-        # éventuellement :
-        if self.args["alternative"]:
-            return self.args["alt_state"]
+
 
     
 

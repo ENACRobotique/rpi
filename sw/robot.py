@@ -358,6 +358,7 @@ class Robot:
         # position du centre de rotation
         self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15 
         self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
+        #print("aruco : ",self.aruco_x,self.aruco_y)
         
 
         commande_pano = self.aruco_theta + self.pano_angle
