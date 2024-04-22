@@ -353,12 +353,14 @@ class Robot:
 
     def aruco(self, topic_name, msg, timestamp):
         # print(msg)
-        self.aruco_theta = msg.theta + self.pano_angle
-        self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15
+        
+        self.aruco_theta = msg.theta
+        # position du centre de rotation
+        self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15 
         self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
         
 
-        commande_pano = self.aruco_theta
+        commande_pano = self.aruco_theta + self.pano_angle
 
 
         #print(f"aruco cmd : x = {self.aruco_x}\t y = {self.aruco_y}")
