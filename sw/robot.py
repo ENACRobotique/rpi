@@ -7,14 +7,25 @@ from math import sqrt, pi, cos, sin, atan2
 import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
+import generated.messages_pb2 as base_pb
 
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
 import nav 
 
+import lcd_client as lcd
+
 XY_ACCURACY = 20  # mm
 THETA_ACCURACY = 0.05 # radians
+
+class Team(Enum):
+    BLEU = 1
+    JAUNE = 2
+
+class Tirette(Enum):
+    IN = 0
+    OUT = 1
 
 class Frame(Enum):
     TABLE = 0
@@ -152,6 +163,11 @@ class Robot:
         self.aruco_x = 0
         self.aruco_theta = 0
 
+        self.color = Team.BLEU
+        self.tirette = Tirette.OUT
+
+        self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
+
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
         #self.proximityStatus = None
@@ -161,6 +177,21 @@ class Robot:
         #self.pointsEstimes =0
 
         self.tempsDebutMatch = None
+
+        m=lcd.Menu("Robot", None)
+        strat_choices_page = lcd.Choice("Strat", m, ["Basique", "audacieuse"], None)
+        detect_range_page = lcd.Number("Dist detection", m, 20, 150, None)
+        self.pos_page = lcd.Text("Position", m, "---")
+        self.score_page = lcd.Text("Score", m, "0")
+        pid_page = lcd.Menu("PID", m)
+        m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page)
+
+        kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
+        ki_page = lcd.Number("Ki", pid_page, 0, 2, lambda x: self.set_pid_gain(1, x))
+        kd_page = lcd.Number("Kd", pid_page, 0, 5, lambda x: self.set_pid_gain(2, x))
+        pid_page.add_subpages(kp_page, ki_page, kd_page)
+        self.lcd = lcd.LCDClient(m, self.on_lcd_event, self.on_lcd_state)
+        self.lcd.start()
 
         ### SUB ECAL ###
 
@@ -192,6 +223,8 @@ class Robot:
 
         self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
+        self.pid_pub = ProtoPublisher("pid_gains", base_pb.MotorPid)
+
         #self.claw_pub = ProtoPublisher("set_pince", robot_pb.SetState)
         #self.score_pub = ProtoPublisher("set_score", robot_pb.Match)
                 
@@ -205,6 +238,16 @@ class Robot:
         self.nav.initialisation()
         self.initActionneur()
 
+    def set_color(self, c):
+        self.color = c
+        if self.color == Team.JAUNE:
+            self.lcd.red = True
+            self.lcd.green = True
+            self.lcd.blue = False
+        else:
+            self.lcd.red = False
+            self.lcd.green = False
+            self.lcd.blue = True
 
     def __repr__(self) -> str:
         return "Cooking Mama's status storage structure"
@@ -219,7 +262,16 @@ class Robot:
         return angle
     
 
+    def on_lcd_event(self, event):
+        if event.button == robot_pb.LCDEvent.Button.COLOR and event.value == 1:
+            color = Team.BLEU if self.color == Team.JAUNE else Team.JAUNE
+            self.set_color(color)
+        elif event.button == robot_pb.LCDEvent.Button.TIRETTE:
+            self.tirette = Tirette(event.value)
 
+    
+    def on_lcd_state(self, state):
+        self.tirette = Tirette(state.tirette)
 
 
     def hasReachedTarget(self):
@@ -274,6 +326,7 @@ class Robot:
     def onReceivePosition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
         self.pos = Pos.from_proto(msg)
+        self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 
     def onReceiveSpeed(self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
@@ -386,6 +439,13 @@ class Robot:
         time.sleep(0.5)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         time.sleep(2)
+    
+    def set_pid_gain(self, gain, value):
+        self._pid_gains[gain] = value
+        kp, ki, kd = self._pid_gains
+        msg = base_pb.MotorPid(motor_no=0, kp=kp, ki=ki, kd=kd)
+        self.pid_pub.send(msg)
+
 
 if __name__ == "__main__":
     r = Robot()
