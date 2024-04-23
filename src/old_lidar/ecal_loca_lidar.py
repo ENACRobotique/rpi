@@ -21,7 +21,7 @@ ecal_core.initialize(sys.argv, "loca_lidar_ecal_interface")
 
 sub_odom_pos = ProtoSubscriber("odom_pos", robot_pb.Position)
 sub_lidar = ProtoSubscriber("lidar_data", lidar_pb.Lidar)
-#sub_side = ProtoSubscriber("side", robot_pb.Side)
+sub_side = ProtoSubscriber("color", robot_pb.Color)
 #sub_tirette = ProtoSubscriber("ihm", robot_pb.IHM)
 
 pub_filtered_pts = ProtoPublisher("lidar_filtered", lidar_pb.Lidar)
@@ -36,13 +36,13 @@ robot_pose = (0.0, 0.0, 0.0) #x, y, theta (meters, degrees)
 OBSTACLE_CALC = ObstacleCalc(
     config.lidar_x_offset, config.lidar_y_offset, config.lidar_theta_offset)
 
-SIDE_SET = True #Must be False
+SIDE_SET = False
 BLUE_BEACONS = pf.GroupAmalgame(tuple((x / 1000, y / 1000) for x,y in config.blue_points_in_mm), True)
-GREEN_BEACONS = pf.GroupAmalgame(tuple((x / 1000, y / 1000) for x,y in config.green_points_in_mm), True)
+YELLOW_BEACONS = pf.GroupAmalgame(tuple((x / 1000, y / 1000) for x,y in config.yellow_points_in_mm), True)
 beacons_to_use = BLUE_BEACONS
 
 BLUE_FINDER = pf.LinkFinder(BLUE_BEACONS, 0.06, 1.5)
-GREEN_FINDER = pf.LinkFinder(GREEN_BEACONS, 0.06, 1.5)
+YELLOW_FINDER = pf.LinkFinder(YELLOW_BEACONS, 0.06, 1.5)
 finder_to_use = BLUE_FINDER
 
 def send_obstacles_wrt_table(obstacles: List[List[Union[float, float]]]):
@@ -74,15 +74,15 @@ def send_lidar_pos(x, y, theta):
         robot_pb.Position(x=float(x), y=float(y), theta=float(theta+degrees(config.loca_theta_offset))), 
         ecal_core.getmicroseconds()[1]) 
 
-def on_tirette_set(topic_name, side_msg, time):
+def on_side_set(topic_name, side_msg, time):
 #def on_side_set(topic_name, side_msg, time):
     global SIDE_SET, beacons_to_use, finder_to_use
-    if side_msg.color == robot_pb.IHM.BLUE and beacons_to_use != BLUE_BEACONS:
+    if side_msg.color == robot_pb.Side.Color.BLUE and beacons_to_use != BLUE_BEACONS:
         beacons_to_use = BLUE_BEACONS
         finder_to_use = BLUE_FINDER
-    elif side_msg.color == robot_pb.IHM.GREEN and beacons_to_use != GREEN_BEACONS:
-        beacons_to_use = GREEN_BEACONS
-        finder_to_use = GREEN_FINDER
+    elif side_msg.color == robot_pb.Side.Color.YELLOW and beacons_to_use != YELLOW_BEACONS:
+        beacons_to_use = YELLOW_BEACONS
+        finder_to_use = YELLOW_FINDER
     else:
         pass
         # raise ValueError("ecal_loca_lidar - on_side_set - Invalid side value")
@@ -196,7 +196,7 @@ def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out =
 if __name__ == "__main__":
     sub_lidar.set_callback(on_lidar_scan)
     sub_odom_pos.set_callback(on_robot_pos)
-    #sub_side.set_callback(on_side_set)
+    sub_side.set_callback(on_side_set)
     #sub_tirette.set_callback(on_tirette_set)
 
     while ecal_core.ok():

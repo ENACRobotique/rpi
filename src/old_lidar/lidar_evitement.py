@@ -4,7 +4,8 @@ from ecal.core.publisher import ProtoPublisher
 import time, os, sys
 import numpy as np
 from math import radians, atan2, dist
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
+from loca_lidar.config import loca_theta_offset
+#sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
 import generated.lidar_data_pb2 as lidar_data
 import generated.robot_state_pb2 as robot_data
 
@@ -23,7 +24,7 @@ STOP_WIDTH = 30.0e-2
 
 MAX_RADIUS = max([SLOW_DEPTH, SLOW_RADIUS, SLOW_WIDTH, STOP_DEPTH, STOP_RADIUS, STOP_WIDTH])
 MIN_DISTANCE = STOP_RADIUS # Stop applying rectangles strategy when closer than MIN_DISTANCE and revert back to circles only
-LIDAR_OFFSET = np.radians(45.12) + np.pi
+LIDAR_OFFSET = np.radians(loca_theta_offset) + np.pi
 
 last_status = 'stop'
 last_position = [0.0, 0.0, 0.0] # (x, y, theta)
@@ -48,7 +49,7 @@ def compute_distances(topic_name, msg, time):
     global proximity_status_pub
     global lidar_filtered_pub
 
-    distances = np.array(msg.distances)
+    distances = np.array(msg.distances)/1000 # in meters
     angles = np.radians(np.array(msg.angles))
 
     # Filter points that are too far or too close to be useful = range filter
@@ -165,15 +166,15 @@ def compute_distances(topic_name, msg, time):
 
 def get_last_position(topic_name, msg, time):
     global last_position
-    last_position[0] = msg.x
-    last_position[1] = msg.y
+    last_position[0] = msg.x/1000
+    last_position[1] = msg.y/1000
     last_position[2] = msg.theta
 
 
 def get_set_position(topic_name, msg, time):
     global set_position
-    set_position[0] = msg.x
-    set_position[1] = msg.y
+    set_position[0] = msg.x/1000
+    set_position[1] = msg.y/1000
     set_position[2] = msg.theta
 
     
@@ -181,13 +182,14 @@ if __name__ == '__main__':
     print('Starting ultimate-fallback collision avoidance')
     ecal_core.initialize(sys.argv, "lidar_evitement")
 
-    proximity_status_pub = ProtoPublisher("proximity_status", lidar_data.Proximity)
-    lidar_data_sub = ProtoSubscriber("lidar_data", lidar_data.Lidar)
-    lidar_filtered_pub = ProtoPublisher("lidar_filtered", lidar_data.Lidar)
+    proximity_status_pub    = ProtoPublisher("proximity_status", lidar_data.Proximity)
+    lidar_filtered_pub      = ProtoPublisher("lidar_filtered", lidar_data.Lidar)
+    
+    lidar_data_sub      = ProtoSubscriber("lidar_data", lidar_data.Lidar)
     lidar_data_sub.set_callback(compute_distances)
-    odom_position_sub = ProtoSubscriber('odom_pos', robot_data.Position)
+    odom_position_sub   = ProtoSubscriber('odom_pos', robot_data.Position)
     odom_position_sub.set_callback(get_last_position)
-    set_position_sub = ProtoSubscriber('set_position', robot_data.Position)
+    set_position_sub    = ProtoSubscriber('set_position', robot_data.Position)
     set_position_sub.set_callback(get_set_position)
 
     while ecal_core.ok():

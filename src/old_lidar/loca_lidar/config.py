@@ -56,11 +56,11 @@ blue_points_in_mm = ( #(x,y) | Made from Eurobot2023_Rules_FR_FInale, Blue Side
     # (225, 3100) #E (Center of Experience | top middle left)
     ) 
 
-green_points_in_mm = ( #(x,y) | Made from Eurobot2023_Rules_FR_FInale, Green Side
-    (50, 2094), #A (top left)  
-    (1500, -94), #B (middle bottom)
-    (2950, 2094), #C (top right)
-    (-22, 1000), #D (Center of Support de Balise | Top middle)
+yellow_points_in_mm = ( #(x,y) | Made from Eurobot2023_Rules_FR_FInale, Green Side
+    (3090, 1000), #A (top left)  
+    (-90, 50), #B (middle bottom)
+    (-90, 1950), #C (top right)
+    (1725, 2090), #D (Center of Support de Balise | Top middle)
 )
 
 QUALITY_REJECTION_VAL = 160
