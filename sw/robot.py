@@ -51,6 +51,9 @@ class Pos:
     def __sub__(self, other):
         return Pos(self.x - other.x, self.y - other.y, self.theta - other.theta)
 
+    def distance(self, other):
+        return sqrt((other.x - self.x)**2 + (other.y - self.y)**2)
+
     def to_proto(self):
         return robot_pb.Position(x=self.x, y=self.y, theta=self.theta)
     
@@ -363,9 +366,11 @@ class Robot:
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         #self.pathFinder(closest,waypoint)
 
-    def resetPosFromNav(self,waypoint):
+    def resetPosFromNav(self, waypoint, theta=None):
+        if theta is None:
+            theta = self.pos.theta
         x,y = self.nav.getCoords(waypoint)
-        self.resetPos(Pos(x,y,self.pos.theta))
+        self.resetPos(Pos(x, y, theta))
 
     def pathFinder(self,dest):
         """Recherche le plus court chemin entre deux points. 
@@ -373,6 +378,7 @@ class Robot:
         \nUtiliser les noms des waypoints de graph.txt"""
 
         self.nav.entree = self.nav.closestWaypoint(self.pos.x,self.pos.y)
+        print(f"entree: {self.nav.entree}")
         self.nav.sortie = dest
         self.nav.findPath()
 

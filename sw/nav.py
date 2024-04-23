@@ -49,13 +49,11 @@ class Nav(object):
     
     def closestWaypoint(self,x,y):
         """ Renvoie le waypoint le plus proche en terme de norme """
-        m=[]
-        for w in self.graph.coords:
-            m.append((sqrt((self.graph.coords[w][0]-x)**2 + (self.graph.coords[w][1]-y)**2 ),w))
-            #print(m[-1])
-        #print("closest is ", min(m)[1])
-        return min(m)[1]
-
+        def dist_from_xy(w):
+            w_x, w_y = self.graph.coords[w]
+            return sqrt((w_x-x)**2 + (w_y-y)**2 )
+        
+        return min(self.graph.coords, key=dist_from_xy)
 
 if __name__ == "__main__" : 
 

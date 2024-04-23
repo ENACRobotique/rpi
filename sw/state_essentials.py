@@ -38,7 +38,7 @@ class PanosState(State):
         if len(self.args["panos"]) == 0:
             
             self.args['next_state'] = EndState(self.robot, self.globals, {})
-            self.args['destination'] = "basB"
+            self.args['destination'] = self.globals["end_pos"]
             return NavState(self.robot, self.globals, self.args)
 
         self.args["destination"] = self.args["panos"][0]
