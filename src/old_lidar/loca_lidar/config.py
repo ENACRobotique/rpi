@@ -63,6 +63,8 @@ green_points_in_mm = ( #(x,y) | Made from Eurobot2023_Rules_FR_FInale, Green Sid
     (-22, 1000), #D (Center of Support de Balise | Top middle)
 )
 
+QUALITY_REJECTION_VAL = 160
+
 """ # deprecated (wrong xy origin)
 known_points_in_mm = ( #(x,y) | Made from Eurobot2023_Rules_FR_FInale, Blue Side
     (-94, 50), #A (bottom left)     | (22+22+45+5) Bordure mur + Bordure Mur + Moitié + Moitié trou

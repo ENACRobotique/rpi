@@ -7,7 +7,8 @@ Wants=robot_vl53.service
 Wants=robot_IO.service
 Wants=robot_aruco.service
 Wants=robot_lcd.service
-
+Wants=robot_lidar_loca.service
+Wants=robot_lidar_fusion.service
 
 [Service]
 Type=simple

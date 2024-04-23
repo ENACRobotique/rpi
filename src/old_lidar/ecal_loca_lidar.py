@@ -102,8 +102,11 @@ def on_lidar_scan(topic_name, proto_msg, time):
     
     t = ecal_core.getmicroseconds()[1]
     # Filter 
-    distances = np.array(proto_msg.distances)/1000
-    lidar_scan =  np.rec.fromarrays([distances, proto_msg.angles], dtype=PolarPts)
+    quality_filter = np.array(proto_msg.quality) > config.QUALITY_REJECTION_VAL
+
+    distances = np.array(proto_msg.distances)[quality_filter]/1000 # in meters
+    angles = np.array(proto_msg.angles)[quality_filter]
+    lidar_scan =  np.rec.fromarrays([distances,angles], dtype=PolarPts)
     basic_filtered_scan = cp.basic_filter_pts(lidar_scan)
 
     amalgames = cp.amalgames_from_cloud(basic_filtered_scan)
