@@ -2,6 +2,7 @@ import struct
 from enum import Enum
 from serial import Serial
 
+QUALITY_REJECTION_VAL = 160
 
 class Cloud:
     def __init__(self):
@@ -99,8 +100,9 @@ class Driver:
                     if self.cloud.count > 0 and angle < self.cloud.max_angle:
                         self.cb(self.cloud.get_angles(), self.cloud.get_distances(), self.cloud.get_qualities())
                         self.cloud = Cloud()
-
-                    self.cloud.add(distance, angle, quality)
+                        
+                    if quality > QUALITY_REJECTION_VAL :
+                        self.cloud.add(distance, angle, quality)
 
                 self.expected_type = Part.START
                 self.expected_length = 1
