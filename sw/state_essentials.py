@@ -77,13 +77,19 @@ class PanoTurnState(State):
         self.robot.command_sent = False
         del self.args['panos'][0]
     
-class AvoidState(State):
-    """ Args : """
-    def __init__(self, robot: Robot, globals: dict, args: dict) -> None:
-        super().__init__(robot, globals, args)
+# class AvoidState(State):
+#     """ dans le navstate on regarde (indirectement) le topic proximity et on renvoie cet état en conséquence" """
+#     def __init__(self, robot: Robot, globals: dict, args: dict) -> None:
+#         super().__init__(robot, globals, args)
     
-    def enter(self, prev_state: State | None):
-        ...
+#     def enter(self, prev_state: State | None):
+#         self.prev_state = prev_state
+#         self.timeout = self.args['timeout']
+#         self.init_time = time.time()
 
-    def loop(self) -> State | None:
-        ...
+#         ...
+
+#     def loop(self) -> State | None:
+#         if time.time()-self.init_time >= self.timeout:
+#            
+#         ...
