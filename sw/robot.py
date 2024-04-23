@@ -32,6 +32,13 @@ class Frame(Enum):
     ROBOTCENTRIC = 1
     ROBOT = 2
 
+class Strat(Enum):
+    Homologation = 0
+    Demo = 1
+    Basique = 2
+    Audacieuse = 3
+    ShowOff = 4
+
 @dataclass
 class Pos:
     x: float
@@ -165,6 +172,7 @@ class Robot:
 
         self.color = Team.BLEU
         self.tirette = Tirette.OUT
+        self.strat = Strat.Homologation
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
@@ -179,7 +187,7 @@ class Robot:
         self.tempsDebutMatch = None
 
         m=lcd.Menu("Robot", None)
-        strat_choices_page = lcd.Choice("Strat", m, ["Basique", "audacieuse"], None)
+        strat_choices_page = lcd.Choice("Strat", m, [s for s in Strat], self.set_strat)
         detect_range_page = lcd.Number("Dist detection", m, 20, 150, None)
         self.pos_page = lcd.Text("Position", m, "---")
         self.score_page = lcd.Text("Score", m, "0")
@@ -212,16 +220,14 @@ class Robot:
 
         #self.proximitySub = ProtoSubscriber("proximity_status",lidar_pb.Proximity)
         #self.proximitySub.set_callback(self.onProximityStatus)
-
-        #self.ihmSub = ProtoSubscriber("ihm",robot_pb.IHM)
-        #self.ihmSub.set_callback(self.on_ihm)
-
         
         ### PUB ECAL ###
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
         self.reset_pos_pub = ProtoPublisher("reset", robot_pb.Position)
 
         self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
+
+        self.color_pub = ProtoPublisher("color", robot_pb.Side)
 
         self.pid_pub = ProtoPublisher("pid_gains", base_pb.MotorPid)
 
@@ -240,14 +246,18 @@ class Robot:
 
     def set_color(self, c):
         self.color = c
+        msg = robot_pb.Side()
         if self.color == Team.JAUNE:
+            msg.color = robot_pb.Side.Color.YELLOW
             self.lcd.red = True
             self.lcd.green = True
             self.lcd.blue = False
         else:
+            msg.color = robot_pb.Side.Color.BLUE
             self.lcd.red = False
             self.lcd.green = False
             self.lcd.blue = True
+        self.color_pub.send(msg)
 
     def __repr__(self) -> str:
         return "Cooking Mama's status storage structure"
@@ -440,6 +450,9 @@ class Robot:
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         time.sleep(2)
     
+    def set_strat(self, strat):
+        self.strat = strat
+
     def set_pid_gain(self, gain, value):
         self._pid_gains[gain] = value
         kp, ki, kd = self._pid_gains
