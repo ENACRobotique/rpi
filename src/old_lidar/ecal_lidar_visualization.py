@@ -48,7 +48,7 @@ class LidarCloudDisplay():
         self.sub_lidar.set_callback(self.on_lidar_scan)
 
     def on_lidar_scan(self, topic_name, msg, time):
-        self.lidar_dist = np.array(msg.distances)/1000
+        self.lidar_dist = np.array(msg.distances)/1000 ## in meters
         self.lidar_theta = np.array(msg.angles)
 
     def on_button_click(self, event): 
@@ -90,7 +90,7 @@ class CorrespondanceDisplay():
         lidar2table = eval(msg) #str to dict
         self.text = list(lidar2table.values()) # put the index of the table beacon ([0-4])
         try:
-            self.r = [self.amalgames.lidar_dist[i] for i in lidar2table.keys()] # find the coordinate of the amalgame associated
+            self.r = [self.amalgames.lidar_dist[i] * 1000 for i in lidar2table.keys()] # find the coordinate of the amalgame associated
             self.theta = [self.amalgames.lidar_theta[i] for i in lidar2table.keys()]
         except IndexError: # Seems to happen when no correspondance lidar & table found and when having lot of data flow (~20hz lidar)
             print("removing correspondance lidar/table")
@@ -100,6 +100,7 @@ class CorrespondanceDisplay():
 
     
     def display(self, ax):
+        """ Display beacons number in red """
         for i in range(len(self.text)):
             try:
                 ax.text(np.deg2rad(self.theta[i]), self.r[i] ,self.text[i], color="r")
@@ -154,14 +155,14 @@ if __name__ == "__main__":
     
     # Fixed table coordinates in table axes (first point is repeated to complete the shape)
     tabx = [
-        [0.0, 3.0, 3.0, 0.0, 0.0], # table
-        [0.0, 0.0, -0.2, -0.2, 0.0], # panier 1
-        [0.0, 0.0, -0.2, -0.2, 0.0] # panier 2
+        [0.00, 3.00, 3.00, 0.00, 0.00], # table
+        [1.05, 1.50, 1.50, 1.05, 1.05], # zone déportée 1 
+        [1.50, 1.95, 1.95, 1.50, 1.50] # zone déportée 2 
     ]
     taby = [
-        [0.0, 0.0, 2.0, 2.0, 0.0],
-        [0.0, 0.45, 0.45, 0.0, 0.0],
-        [1.55, 2.0, 2.0, 1.55, 1.55]
+        [0.00, 0.00, 2.00, 2.00, 0.00],
+        [2.00, 2.00, 2.17,2.17, 2.00],
+        [2.00, 2.00, 2.17,2.17, 2.00]
     ]
     odom_pos_sub = ProtoSubscriber('odom_pos', robot_data.Position)
     odom_pos_sub.set_callback(update_last_position)
