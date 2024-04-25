@@ -65,7 +65,7 @@ class Driver:
 
             elif self.expected_type == Part.LEN:
                 # Decode data length message
-                self.count = data[0] & 0x0E
+                self.count = data[0] & 0x1F
                 self.expected_type = Part.DATA
                 self.expected_length = 9 + 3 * self.count
 
@@ -82,10 +82,13 @@ class Driver:
                 crc = struct.unpack('<B', data[data_end+4:])
 
                 # Extract point cloud
-                if end_angle < start_angle:
-                    step = (end_angle + 360 - start_angle) / self.count
-                else:
-                    step = (end_angle - start_angle) / self.count
+                if self.count :
+                    if end_angle < start_angle:
+                        step = (end_angle + 360 - start_angle) / self.count
+                    else:
+                        step = (end_angle - start_angle) / self.count
+                else : 
+                    print("count is zero")
 
 
                 for i in range(self.count):
