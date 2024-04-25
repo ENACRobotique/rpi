@@ -61,4 +61,4 @@ if __name__=="__main__":
     print(carte_IO)
 
     while ecal_core.ok():
-        pass
+        sleep(1)
