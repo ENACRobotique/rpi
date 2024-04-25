@@ -8,6 +8,8 @@ import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
+import common
+from common import Pos, Speed, dist_to_line # tkt ça marche
 
 from enum import Enum
 from dataclasses import dataclass
@@ -18,6 +20,10 @@ import lcd_client as lcd
 
 XY_ACCURACY = 20  # mm
 THETA_ACCURACY = 0.05 # radians
+AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
+
+# avoidance bounds 
+BOUNDS = (-100,400,-250,250)
 
 class Team(Enum):
     BLEU = 1
@@ -33,79 +39,12 @@ class Frame(Enum):
     ROBOT = 2
 
 class Strat(Enum):
-    Homologation = 0
+    Basique = 0
     Demo = 1
-    Basique = 2
+    Homologation = 2
     Audacieuse = 3
     ShowOff = 4
 
-@dataclass
-class Pos:
-    x: float
-    y: float
-    theta: float
-
-    def __add__(self, other):
-        return Pos(self.x + other.x, self.y + other.y, self.theta + other.theta)
-    
-    def __sub__(self, other):
-        return Pos(self.x - other.x, self.y - other.y, self.theta - other.theta)
-
-    def distance(self, other):
-        return sqrt((other.x - self.x)**2 + (other.y - self.y)**2)
-
-    def to_proto(self):
-        return robot_pb.Position(x=self.x, y=self.y, theta=self.theta)
-    
-    @staticmethod
-    def from_proto(p: robot_pb.Position):
-        return Pos(p.x, p.y, p.theta)
-
-    @staticmethod
-    def from_np(p: np.array):
-        return Pos(p[0], p[1], p[2])
-    
-    def to_frame(self, new_frame):
-        """
-        pos: position in the current frame
-        new_frame: frame that pos will be converted to
-        """
-        dp = self - new_frame
-        ct = cos(new_frame.theta)
-        st = sin(new_frame.theta)
-        rot = np.array([[ct,  st, 0],
-                        [-st, ct, 0],
-                        [0,   0,  1]])
-        new_pos = rot.dot(np.array([dp.x, dp.y, dp.theta]))
-        return Pos.from_np(new_pos)
-    
-    def from_frame(self, pos_frame):
-        """
-        pos: position in the pos_frame
-        pos_frame: frame 'position' is expressed on, in the current frame
-        """
-        ct = cos(pos_frame.theta)
-        st = sin(pos_frame.theta)
-        rot = np.array([[ct,  st, 0],
-                        [-st, ct, 0],
-                        [0,   0,  1]])
-        rot = rot.transpose()
-        pos = rot.dot(np.array([self.x, self.y, self.theta]))
-        pos = Pos.from_np(pos) + pos_frame
-        return pos
-
-@dataclass
-class Speed:
-    vx: float
-    vy: float
-    vtheta: float
-
-    def to_proto(self):
-        return robot_pb.Speed(x=self.vx, y=self.vy, theta=self.vtheta)
-    
-    @staticmethod
-    def from_proto(s: robot_pb.Speed):
-        return Speed(s.vx, s.vy, s.vtheta)
 
 
 class Actionneur(Enum):
@@ -175,7 +114,7 @@ class Robot:
 
         self.color = Team.BLEU
         self.tirette = Tirette.OUT
-        self.strat = Strat.Homologation
+        self.strat = Strat.Basique
         
         self.obstacles = []
 
@@ -331,9 +270,14 @@ class Robot:
         """ angle en degré """
         self.heading(self.pos.theta*180/pi + angle)
     
-    def resetPos(self, pos: Pos):
-        print(f"Pos reseted to : {pos.x},\t{pos.y}, \t{pos.theta} ")
+    def resetPos(self, pos: Pos, timeout=2):
         self.reset_pos_pub.send(pos.to_proto())
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if self.pos.distance(pos) < 1:
+                print(f"Pos reseted to : {pos.x},\t{pos.y}, \t{pos.theta} ")
+                time.sleep(0.1)
+                break
     
     #def updateScore(self):
     #    self.score_pub.send(robot_pb.Match(score=self.pointsEstimes))
@@ -488,7 +432,44 @@ class Robot:
         for i,ob in enumerate(self.obstacles) :
             if i < 3:
                 self.objects_pubs[i].send(ob[0].to_proto())
+    
+
+    def obstacle_in_way(self, target_pos: Pos):
+        """Return True if obstacles in bounds towards target_pos"""
+        if self.pos.distance(target_pos) < 1:
+            return False
+        dir = atan2(target_pos.y-self.pos.y,target_pos.x-self.pos.x)
+        traj_frame = Pos(self.pos.x, self.pos.y, dir)
+
+        for obj_pos, _size in self.obstacles:
+            obj = obj_pos.to_frame(traj_frame)
             
+            x_min, x_max, y_min, y_max = BOUNDS
+            if x_min < obj.x < x_max and  y_min < obj.y < y_max :
+                return True
+            
+        return False
+
+
+
+    # def obstacle_dist_on_path(self,target_pos:Pos):
+    #     """Return True if the robot could colide with something on path and cooord of problem"""
+    #     if self.pos.distance(target_pos) < 1:
+    #         return False, 3600
+        
+    #     problems = []
+    #     for obj_pos,size in self.obstacles:
+    #         dist, pt = dist_to_line(obj_pos, self.pos, target_pos)
+    #         if dist < AVOIDANCE_OBSTACLE_MARGIN:
+    #             problems.append(pt)
+        
+    #     if problems :
+    #         closest_problem = min(problems, key=lambda x: self.pos.distance(x))
+    #         return True, self.pos.distance(closest_problem)
+    #     else:
+    #         return False, 3600
+
+
 
 
 

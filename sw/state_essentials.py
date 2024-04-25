@@ -1,25 +1,53 @@
 from fsm import State
 from robot import Robot
+from common import Pos
 import time
+from enum import Enum
+
 
 class NavState(State):
-    """ Args : next_state, destination (waypoints only), enemy_alternative_route, timout_enemy"""
+    """ Args : next_state, destination (waypoints only), enemy_alternative_route, timeout"""
+
+    class MoveStatus(Enum):
+        MOVING = 1
+        STOPPED = 2
+
     def __init__(self, robot: Robot, globals: dict, args: dict) -> None:
         super().__init__(robot, globals, args)
     
     def enter(self, prev_state: State | None):
         print(f"Navigating to {self.args['destination']}.")
         self.robot.pathFinder(self.args['destination'])
-        self.robot.goToWaypoint(self.robot.nav.chemin[0])
+        self.move_status = self.MoveStatus.STOPPED
+        self.t_stop = time.time()
+        if "timeout" not in self.args:
+            self.args["timeout"] = 5 # default timeout 
     
     def loop(self) -> State | None:
+        x,y = self.robot.nav.getCoords(self.robot.nav.chemin[0])
+      
+        if self.robot.obstacle_in_way(Pos(x=x,y=y,theta=0)) :
+            if self.move_status == self.MoveStatus.STOPPED:# wait timeout before doing other planned action
+                if time.time() - self.t_stop > self.args["timeout"] and "alternative" in self.args:
+                    return self.args["alternative"]
+                
+            elif self.move_status == self.MoveStatus.MOVING: # Stop the robot and start timeout timer
+                self.t_stop = time.time()
+                self.robot.setTargetPos(self.robot.pos)
+                self.move_status = self.MoveStatus.STOPPED
+        else:
+            if self.move_status == self.MoveStatus.STOPPED:
+                self.robot.goToWaypoint(self.robot.nav.chemin[0])
+                self.move_status = self.MoveStatus.MOVING
 
-        if self.robot.hasReachedTarget():
-            del self.robot.nav.chemin[0]
-            if self.robot.isNavDestReached():
-                return self.args['next_state']
-            self.robot.goToWaypoint(self.robot.nav.chemin[0])
+            elif self.move_status == self.MoveStatus.MOVING: 
+                if self.robot.hasReachedTarget():
+                    del self.robot.nav.chemin[0]
+                    if self.robot.isNavDestReached():
+                        return self.args['next_state']
+                    self.robot.goToWaypoint(self.robot.nav.chemin[0])
 
+    
 class EndState(State):
     def enter(self, prev_state: State | None):
         print("The End !")
@@ -43,7 +71,7 @@ class PanosState(State):
 
         self.args["destination"] = self.args["panos"][0]
         self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
-        return NavState(self.robot, self.globals, self.args)        
+        return NavState(self.robot, self.globals, self.args)
         
 class PanoTurnState(State):
     def __init__(self, robot: Robot, globals, args={}) -> None:

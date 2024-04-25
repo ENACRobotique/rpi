@@ -86,8 +86,12 @@ class InitState(State):
             
             # args["destination"] = 'p1'
             # args["next_state"] = PanosState(self.robot, self.globals, args)
-            
-            return PanosState(self.robot, self.globals, args)
+            args = {
+                "destination": self.globals["end_pos"],
+                'next_state': EndState(self.robot, self.globals, self.args)
+            }
+            return NavState(self.robot, self.globals, args)
+            #return PanosState(self.robot, self.globals, args)
 
 
 
