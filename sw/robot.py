@@ -176,6 +176,8 @@ class Robot:
         self.color = Team.BLEU
         self.tirette = Tirette.OUT
         self.strat = Strat.Homologation
+        
+        self.obstacles = []
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
@@ -218,6 +220,9 @@ class Robot:
         self.pano_sub = ProtoSubscriber("aruco",robot_pb.Position_aruco)
         self.pano_sub.set_callback(self.aruco)
         
+        self.amalgame_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
+        self.amalgame_sub.set_callback(self.detection)
+
         #self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
         #self.setPositionSub.set_callback(self.onSetTargetPostition)
 
@@ -242,6 +247,7 @@ class Robot:
         #self.resume_pub = ProtoPublisher("resume",robot_pb.no_args_func_)
 
         self.debug_pub =StringPublisher("debug_msg")
+        self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",robot_pb.Position) for i in range(3)]
         time.sleep(1)
 
         self.nav.initialisation()
@@ -293,7 +299,7 @@ class Robot:
     
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE):
-        """Faire setTargetPos(Pos(x,y,theta)) en mm et angle? """
+        """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
 
         
         if frame == Frame.ROBOTCENTRIC:
@@ -464,6 +470,26 @@ class Robot:
         kp, ki, kd = self._pid_gains
         msg = base_pb.MotorPid(motor_no=0, kp=kp, ki=ki, kd=kd)
         self.pid_pub.send(msg)
+    
+
+    def detection(self, topic_name, msg, timestamp):
+        """ Try to find ennemies 
+        \nSend 3 detected object Pos on ecal to visualize but saves all of them """
+        def filter_pos(pos_size):
+            pos, size = pos_size
+            if 0 < pos.x < 3000 and  0 < pos.y < 2000 :# exclude object out of the table
+                if sqrt(pos.x**2 + pos.y**2) < 1500 and size < 30 : # exclude close and tiny object ( test in conditions !)
+                    return False
+                return True
+
+        amalgames = [(Pos(x,y,0).from_frame(self.pos), size) for x,y,size in zip(msg.x,msg.y,msg.size)]
+        
+        self.obstacles = list(filter(filter_pos,amalgames))
+        for i,ob in enumerate(self.obstacles) :
+            if i < 3:
+                self.objects_pubs[i].send(ob[0].to_proto())
+            
+
 
 
 if __name__ == "__main__":

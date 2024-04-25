@@ -7,8 +7,8 @@ import numpy as np
 from numpy import typing as npt
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
-from loca_lidar.config import QUALITY_REJECTION_VAL
 
+QUALITY_REJECTION_VAL = 160
 MAX_DIST = 3600 # diagonal of the table in mm
 AMALGAME_DIST_THRESHOLD_SQUARE = 150**2
 

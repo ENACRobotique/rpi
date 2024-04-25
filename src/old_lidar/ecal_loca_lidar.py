@@ -21,7 +21,7 @@ ecal_core.initialize(sys.argv, "loca_lidar_ecal_interface")
 
 sub_odom_pos = ProtoSubscriber("odom_pos", robot_pb.Position)
 sub_lidar = ProtoSubscriber("lidar_data", lidar_pb.Lidar)
-sub_side = ProtoSubscriber("color", robot_pb.Color)
+sub_side = ProtoSubscriber("color", robot_pb.Side)
 #sub_tirette = ProtoSubscriber("ihm", robot_pb.IHM)
 
 pub_filtered_pts = ProtoPublisher("lidar_filtered", lidar_pb.Lidar)
