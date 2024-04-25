@@ -36,9 +36,6 @@ def find_quat(rvecs):
     qw = math.cos(theta/2)
     return (qw, qx, qy, qz)
 
-def start_video():
-    return cv2.VideoCapture(0)
-
 def estimatePoseSingleMarkers(corners, marker_size, mtx, distortion):
     '''
     This will estimate the rvec and tvec for each of the marker corners detected by:
@@ -105,7 +102,17 @@ def convert_deg_to_servo(deg): #FIXME le rendre adaptatif , change à chaque foi
 
 
 if __name__ == "__main__":
-    vs = start_video()
+    vs = cv2.VideoCapture(0)
+    if not vs.isOpened():
+        print("Can't open camera!!!")
+        exit(-1)
+    
+    #vs.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    #vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    vs.set(cv2.CAP_PROP_FPS, 10)
+    w, h = vs.get(cv2.CAP_PROP_FRAME_WIDTH), vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print(f"Opened camera with resolution {w}x{h}!")
+
     ecal_core.initialize(sys.argv, "aruco")
     publisher = ProtoPublisher("aruco",hlm.Position_aruco)
 
