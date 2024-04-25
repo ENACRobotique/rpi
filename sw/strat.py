@@ -33,9 +33,20 @@ END_POS = {
     }
 }
 
+ALT_END_POS = {
+    Team.JAUNE: {
+        Strat.Basique: 'secureJ',
+        Strat.Audacieuse: 'basJ'
+    },
+    Team.BLEU: {
+        Strat.Basique: 'secureB',
+        Strat.Audacieuse: 'basB'
+    }
+}
+
 STRAT_DATA = {
     Team.JAUNE: {
-        "panos": ["p9", "p8", "p7", "p6", "p5", "p4"],
+        "panos": ["p9", "p8", "p7", "p6", "p5"],
         "pano_angle": 180
     },
     Team.BLEU: {
@@ -86,12 +97,15 @@ class InitState(State):
             
             # args["destination"] = 'p1'
             # args["next_state"] = PanosState(self.robot, self.globals, args)
-            args = {
-                "destination": self.globals["end_pos"],
-                'next_state': EndState(self.robot, self.globals, self.args)
+            
+            args_alt = {
+                "destination": ALT_END_POS[self.robot.color][self.robot.strat],
+                'next_state': EndState(self.robot, self.globals, args)
             }
-            return NavState(self.robot, self.globals, args)
-            #return PanosState(self.robot, self.globals, args)
+
+            args["alternative"] = NavState(self.robot, self.globals, args_alt)
+
+            return PanosState(self.robot, self.globals, args)
 
 
 

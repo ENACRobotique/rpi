@@ -18,8 +18,8 @@ import nav
 
 import lcd_client as lcd
 
-XY_ACCURACY = 20  # mm
-THETA_ACCURACY = 0.05 # radians
+XY_ACCURACY = 40  # mm
+THETA_ACCURACY = 0.1 # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
 # avoidance bounds 

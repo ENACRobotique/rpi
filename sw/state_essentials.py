@@ -28,6 +28,7 @@ class NavState(State):
       
         if self.robot.obstacle_in_way(Pos(x=x,y=y,theta=0)) :
             if self.move_status == self.MoveStatus.STOPPED:# wait timeout before doing other planned action
+                #print(f"obstacle int the way to '{self.robot.nav.chemin[0]}'")
                 if time.time() - self.t_stop > self.args["timeout"] and "alternative" in self.args:
                     return self.args["alternative"]
                 
