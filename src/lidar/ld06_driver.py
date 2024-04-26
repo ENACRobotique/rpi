@@ -82,28 +82,27 @@ class Driver:
                 crc = struct.unpack('<B', data[data_end+4:])
 
                 # Extract point cloud
-                if self.count :
+                if self.count > 1:
                     if end_angle < start_angle:
-                        step = (end_angle + 360 - start_angle) / self.count
+                        step = (end_angle + 360 - start_angle) / (self.count-1)
                     else:
-                        step = (end_angle - start_angle) / self.count
+                        step = (end_angle - start_angle) / (self.count-1)
+                
+                    for i in range(self.count):
+                        distance = struct.unpack('<H', message_data[3*i:3*i+2])[0]
+                        quality = struct.unpack('<B', message_data[3*i+2:3*i+3])[0]
+                        angle = start_angle + i * step
+
+                        if angle >= 360:
+                            angle -= 360
+
+                        if self.cloud.count > 0 and angle < self.cloud.max_angle:
+                            self.cb(self.cloud.get_angles(), self.cloud.get_distances(), self.cloud.get_qualities())
+                            self.cloud = Cloud()
+
+                        self.cloud.add(distance, angle, quality)
                 else : 
                     print("count is zero")
-
-
-                for i in range(self.count):
-                    distance = struct.unpack('<H', message_data[3*i:3*i+2])[0]
-                    quality = struct.unpack('<B', message_data[3*i+2:3*i+3])[0]
-                    angle = start_angle + i * step
-
-                    if angle >= 360:
-                        angle -= 360
-
-                    if self.cloud.count > 0 and angle < self.cloud.max_angle:
-                        self.cb(self.cloud.get_angles(), self.cloud.get_distances(), self.cloud.get_qualities())
-                        self.cloud = Cloud()
-
-                    self.cloud.add(distance, angle, quality)
 
                 self.expected_type = Part.START
                 self.expected_length = 1
