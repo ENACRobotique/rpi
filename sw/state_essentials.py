@@ -5,6 +5,11 @@ import time
 from enum import Enum
 
 
+def timeout(init_time,timeout):
+    """Return True if timeout """   
+    return time.time() - init_time  >= timeout
+
+
 class NavState(State):
     """ Args : next_state, destination (waypoints only), enemy_alternative_route, timeout"""
 
@@ -24,8 +29,12 @@ class NavState(State):
             self.args["timeout"] = 5 # default timeout 
     
     def loop(self) -> State | None:
+        
+        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
+            self.robot.updateScore(-10)
+            return EndState(self.robot, self.globals, self.args)
         x,y = self.robot.nav.getCoords(self.robot.nav.chemin[0])
-      
+        
         if self.robot.obstacle_in_way(Pos(x=x,y=y,theta=0)) :
             if self.move_status == self.MoveStatus.STOPPED:# wait timeout before doing other planned action
                 #print(f"obstacle int the way to '{self.robot.nav.chemin[0]}'")
@@ -51,6 +60,11 @@ class NavState(State):
     
 class EndState(State):
     def enter(self, prev_state: State | None):
+        self.robot.updateScore(10)
+        #si le robot entre dans le End state suite a un timeout de fin de match ( avant les PAMI )
+        # cela signifie donc qu'on est pas dans la zone finale qui rapporte les 10 point
+        # alors il faudra faire score -=10 avant de rentrer dans l'etat ( donc un timeout force le score -10 et le endstate)
+        # display score on LCD 
         print("The End !")
 
 
@@ -64,6 +78,11 @@ class PanosState(State):
             print(f"Go to {self.args['panos'][0]}")
 
     def loop(self) -> State | None:
+        
+        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
+            self.robot.updateScore(-10)
+            return EndState(self.robot, self.globals, self.args)
+        
         if len(self.args["panos"]) == 0:
             
             self.args['next_state'] = EndState(self.robot, self.globals, {})
@@ -91,7 +110,13 @@ class PanoTurnState(State):
             self.args['flag_bad_aruco']  = False
         print(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
         self.robot.move_rel(self.robot.aruco_x,self.robot.aruco_y) # on se rapproche du pano
+    
     def loop(self) -> State | None:
+        
+        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
+            self.robot.updateScore(-10)
+            return EndState(self.robot, self.globals, self.args)
+        
         # faire tourner le panneau
         if self.args['flag_bad_aruco']:
             return PanosState(self.robot, self.globals, self.args)
@@ -99,6 +124,7 @@ class PanoTurnState(State):
             if not self.robot.command_sent :
                 self.robot.command_sent = True
                 self.robot.panoDo(self.robot.commande_pano)
+                self.robot.updateScore(5)
                 return PanosState(self.robot, self.globals, self.args)
 
     def leave(self, next_state: State):

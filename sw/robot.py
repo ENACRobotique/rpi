@@ -115,7 +115,7 @@ class Robot:
         self.color = Team.BLEU
         self.tirette = Tirette.OUT
         self.strat = Strat.Basique
-        
+        self.score = 0
         self.obstacles = []
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
@@ -138,8 +138,8 @@ class Robot:
         pid_page = lcd.Menu("PID", m)
         m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page)
 
-        kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
-        ki_page = lcd.Number("Ki", pid_page, 0, 2, lambda x: self.set_pid_gain(1, x))
+        kp_page = lcd.Number("Kp", pid_page, 0, 20, lambda x: self.set_pid_gain(0, x))
+        ki_page = lcd.Number("Ki", pid_page, 0, 5, lambda x: self.set_pid_gain(1, x))
         kd_page = lcd.Number("Kd", pid_page, 0, 5, lambda x: self.set_pid_gain(2, x))
         pid_page.add_subpages(kp_page, ki_page, kd_page)
         self.lcd = lcd.LCDClient(m, self.on_lcd_event, self.on_lcd_state)
@@ -279,8 +279,10 @@ class Robot:
                 time.sleep(0.1)
                 break
     
-    #def updateScore(self):
-    #    self.score_pub.send(robot_pb.Match(score=self.pointsEstimes))
+    def updateScore(self,points):
+        self.score += points
+        self.score_page.set_text(f"Score",f"{self.score}")
+        self.lcd.set_page(self.score_page)
 
     def onSetTargetPostition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -310,7 +312,7 @@ class Robot:
         """ Le robot va directement à un waypoint """
         if theta is None :
             theta = self.pos.theta
-            print(theta*180/pi)
+            #print(theta*180/pi)
         x,y = self.nav.getCoords(waypoint)
         self.setTargetPos(Pos(x,y,theta))
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)

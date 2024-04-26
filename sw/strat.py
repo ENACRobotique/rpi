@@ -59,7 +59,8 @@ STRAT_DATA = {
 globals = {
     "strat_name": "pano strat",
     "end_pos": None,
-    "data": None
+    "data": None,
+    "match_timeout":88
 }
 
 class PreInit(State):
@@ -77,6 +78,7 @@ class InitState(State):
         # tester si tirette tirée
         #self.robot.resetPosFromNav("basB")
         if self.robot.tirette == Tirette.OUT:
+            self.globals["match_start_time"] = time.time()
             print(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
             self.globals["end_pos"] = END_POS[self.robot.color][self.robot.strat]
             self.globals["data"] = STRAT_DATA[self.robot.color]
@@ -94,6 +96,7 @@ class InitState(State):
             #args["panos"] =  STRAT_DATA[self.robot.color]["panos"].copy()
             #args["pano_angle"] =  STRAT_DATA[self.robot.color]["pano_angle"]
             self.robot.pano_angle = args["pano_angle"]
+            self.robot.updateScore(0)
             
             # args["destination"] = 'p1'
             # args["next_state"] = PanosState(self.robot, self.globals, args)
@@ -106,9 +109,6 @@ class InitState(State):
             args["alternative"] = NavState(self.robot, self.globals, args_alt)
 
             return PanosState(self.robot, self.globals, args)
-
-
-
 
 
 
