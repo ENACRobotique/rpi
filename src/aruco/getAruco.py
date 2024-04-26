@@ -107,9 +107,9 @@ if __name__ == "__main__":
         print("Can't open camera!!!")
         exit(-1)
     
-    #vs.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    #vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    vs.set(cv2.CAP_PROP_FPS, 10)
+    vs.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    vs.set(cv2.CAP_PROP_FPS, 5)
     w, h = vs.get(cv2.CAP_PROP_FRAME_WIDTH), vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
     print(f"Opened camera with resolution {w}x{h}!")
 
