@@ -25,11 +25,11 @@ sub_side = ProtoSubscriber("color", robot_pb.Side)
 #sub_tirette = ProtoSubscriber("ihm", robot_pb.IHM)
 
 pub_filtered_pts = ProtoPublisher("lidar_filtered", lidar_pb.Lidar)
-pub_amalgames = ProtoPublisher("amalgames", lidar_pb.Lidar)
+pub_amalgames = ProtoPublisher("amalgames_loca", lidar_pb.Lidar)
 pub_beacons = StringPublisher("beacons") # Only up to 5 points are sent, the index correspond to the fixed_point
 pub_lidar_pos = ProtoPublisher("lidar_pos", robot_pb.Position)
 pub_lidar_pos_deg = ProtoPublisher("deg_lidar_pos", robot_pb.Position)
-pub_obstacles = ProtoPublisher("obstacles_wrt_table", lidar_pb.Obstacles)
+#pub_obstacles = ProtoPublisher("obstacles_wrt_table", lidar_pb.Amalgames)
 
 last_known_lidar = (0, 0, 0) #x, y, theta (meters, degrees)
 robot_pose = (0.0, 0.0, 0.0) #x, y, theta (meters, degrees)
@@ -46,14 +46,14 @@ YELLOW_FINDER = pf.LinkFinder(YELLOW_BEACONS, 0.06, 1.5)
 finder_to_use = BLUE_FINDER
 
 def send_obstacles_wrt_table(obstacles: List[List[Union[float, float]]]):
-    msg = lidar_pb.Obstacles()
+    msg = lidar_pb.Amalgames()
     x, y = [], []
     for obstacle in obstacles:
         x.append(obstacle[0])
         y.append(obstacle[1])
     msg.x.extend(x)
     msg.y.extend(y)
-    pub_obstacles.send(msg, ecal_core.getmicroseconds()[1])
+    #pub_obstacles.send(msg, ecal_core.getmicroseconds()[1])
     
 def send_lidar_scan(pub, distances, angles):
     lidar_msg = lidar_pb.Lidar()
@@ -67,7 +67,7 @@ def send_lidar_pos(x, y, theta):
     pos_msg.x = float(x)*1000
     pos_msg.y = float(y)*1000
     pos_msg.theta = radians(-theta) + config.loca_theta_offset
-    print(pos_msg)
+    #print(pos_msg)
     pub_lidar_pos.send(pos_msg, ecal_core.getmicroseconds()[1])
     # human readable version : 
     pub_lidar_pos_deg.send(
@@ -117,7 +117,7 @@ def on_lidar_scan(topic_name, proto_msg, time):
     lidar2table = {}
     #TODO : remove empty amalgames['centerpolar]
     lidar_pose = calculate_lidar_pose(amalgames['center_polar'], robot_pose, lidar2table)
-    print(lidar_pose)
+    #print(lidar_pose)
     if lidar_pose != (0, 0, 0):
         pub_beacons.send(str(lidar2table))
         send_lidar_pos(*lidar_pose)
@@ -187,7 +187,7 @@ def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out =
             best_pose = min(poses_in_table, key=lambda x: cp.get_squared_dist_cartesian(robot_pose[:2], x))
             closest_pt_index = poses_in_table.index(best_pose)
             corr_out.update(list(lidar2table_set)[closest_pt_index])
-            print("multiple poses found : best one is : ", best_pose)
+            #print("multiple poses found : best one is : ", best_pose)
     best_pose[0] = best_pose[0]
     best_pose[1] = best_pose[1]
     return best_pose

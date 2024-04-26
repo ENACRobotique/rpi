@@ -1,0 +1,23 @@
+[Unit]
+Description= All lidar services (in file lidar_clients.sh)
+After=network.target network-online.target
+Requires=robot_lidar_driver.service
+
+[Service]
+Type=simple
+ 
+User=pi
+Group=pi
+
+SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
+
+ExecStart=python3 /home/pi/rpi2024/services/lidar_clients.py
+
+Restart=on-failure
+RestartSec=2 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+ 
+[Install]
+
+

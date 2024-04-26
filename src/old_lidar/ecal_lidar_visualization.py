@@ -148,7 +148,7 @@ if __name__ == "__main__":
     cloud_pts = (
         LidarCloudDisplay(fig, 'lidar_data', 'y', 0.1),
         LidarCloudDisplay(fig, 'lidar_filtered', 'g', 0.3),
-        LidarCloudDisplay(fig, 'amalgames', 'b', 0.5),
+        LidarCloudDisplay(fig, 'amalgames_loca', 'b', 0.5),
     )
     corr_disp = CorrespondanceDisplay(cloud_pts[2])
     zoom_butt = Zoom(fig, 3.1)

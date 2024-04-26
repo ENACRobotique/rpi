@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher

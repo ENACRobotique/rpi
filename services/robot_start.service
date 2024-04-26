@@ -2,13 +2,13 @@
 Description= start all systems for the robot
 After=network.target network-online.target
 Wants=robot_bridge.service
+Wants=robot_lcd.service
 Wants=robot_lidar_driver.service
+Wants=robot_lidar_clients.service
 Wants=robot_vl53.service
 Wants=robot_IO.service
 Wants=robot_aruco.service
-Wants=robot_lcd.service
-Wants=robot_lidar_loca.service
-Wants=robot_lidar_fusion.service
+Wants=robot_strat.service
 
 [Service]
 Type=simple
