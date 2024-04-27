@@ -1,12 +1,12 @@
 from fsm import State
-from robot import Robot
+from robot import Robot,Actionneur,ValeurActionneur
 from common import Pos
 import time
 from enum import Enum
-
+from math import pi
 
 def timeout(init_time,timeout):
-    """Return True if timeout """   
+    """Return True if timeout """
     return time.time() - init_time  >= timeout
 
 
@@ -85,9 +85,7 @@ class PanosState(State):
         
         if len(self.args["panos"]) == 0:
             
-            self.args['next_state'] = EndState(self.robot, self.globals, {})
-            self.args['destination'] = self.globals["end_pos"]
-            return NavState(self.robot, self.globals, self.args)
+            return FarmingState(self.robot, self.globals, self.args)
 
         self.args["destination"] = self.args["panos"][0]
         self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
@@ -108,7 +106,7 @@ class PanoTurnState(State):
             return
         else:
             self.args['flag_bad_aruco']  = False
-        print(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
+        #print(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
         self.robot.move_rel(self.robot.aruco_x,self.robot.aruco_y) # on se rapproche du pano
     
     def loop(self) -> State | None:
@@ -132,19 +130,165 @@ class PanoTurnState(State):
         self.robot.command_sent = False
         del self.args['panos'][0]
     
-# class AvoidState(State):
-#     """ dans le navstate on regarde (indirectement) le topic proximity et on renvoie cet état en conséquence" """
-#     def __init__(self, robot: Robot, globals: dict, args: dict) -> None:
+class FarmingState(State):
+    def __init__(self, robot: Robot, globals, args={}) -> None:
+        super().__init__(robot, globals, args)
+    def enter(self, prev_state: State | None):
+        #if len(self.args["plantes"]) > 0:
+        print(f"Go to {self.args['plantes'][0][0]}")
+
+        time.sleep(1)
+        self.robot.recallageLidar()
+
+    def loop(self) -> State | None:
+        
+        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
+            self.robot.updateScore(-10)
+            return EndState(self.robot, self.globals, self.args)
+        
+        if len(self.args["plantes"]) == 0:
+            
+            self.args['next_state'] = EndState(self.robot, self.globals, {})
+            self.args['destination'] = self.globals["end_pos"]
+            return NavState(self.robot, self.globals, self.args)
+
+        self.args["destination"] = self.args["plantes"][0][0]
+        self.args['next_state'] = PlantesState(self.robot, self.globals, self.args)
+        return NavState(self.robot, self.globals, self.args)
+
+class PlantesState(State):
+    """TEMPORAIRE """
+    class MoveStatus(Enum):
+        MOVING = 1
+        STOPPED = 2
+
+    def __init__(self, robot: Robot, globals, args={}) -> None:
+        super().__init__(robot, globals, args)
+    
+    def enter(self, prev_state: State | None):
+        print(f"Chercher plantes {self.args['plantes'][0][0]}...")
+        self.prev_state = prev_state
+        self.robot.heading(self.args['plantes'][0][3])
+        self.move_status = self.MoveStatus.STOPPED
+        time.sleep(1)
+    
+    def loop(self) -> State | None:
+        
+        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
+            self.robot.updateScore(-10)
+            return EndState(self.robot, self.globals, self.args)
+        
+        # s'alligner en utilisant les VL53
+        if self.robot.hasReachedTarget():
+            if not self.robot._face_plante:
+                print("je m'alligne ")
+                self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
+                time.sleep(0.1)
+                self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
+                time.sleep(0.1)
+                self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.DownAxL)
+                time.sleep(1)
+                if self.move_status == self.MoveStatus.STOPPED :
+                    self.robot.move(200,(self.args['plantes'][0][1]))
+                    self.move_status = self.MoveStatus.MOVING
+                    time.sleep(2)
+
+        if self.move_status == self.MoveStatus.MOVING:
+                if self.robot.hasReachedTarget():
+                    print("je suis aligné")
+                    self.robot._face_plante = True
+                    self.move_status = self.MoveStatus.STOPPED
+        
+        #prendre la plante
+        if self.robot._face_plante:
+            if not self.robot._plante:
+                
+                if self.robot.hasReachedTarget():
+                    self.move_status = self.MoveStatus.STOPPED
+                    print("je prend")
+                    self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.ClosePince1)
+                    time.sleep(0.1)
+                    self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.ClosePince2)
+                    time.sleep(1)
+                    self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
+                    self.robot._plante = True
+                    print("j'ai pris la plante")
+        
+        if self.robot._plante:
+                print( "je vais déposer ")
+                self.robot.recallageLidar()
+                
+                self.args["destination"] = self.args["depose"][0][0]
+                self.args['next_state'] = DeposeState(self.robot, self.globals, self.args)
+                return NavState(self.robot, self.globals, self.args)
+
+    def leave(self, next_state: State):
+        # les plantes sont rammasée, on peut l'oublier pour passer au suivant.
+        del self.args['plantes'][0]
+
+
+
+class DeposeState(State):
+    """TEMPORAIRE """
+    def __init__(self, robot: Robot, globals, args={}) -> None:
+        super().__init__(robot, globals, args)
+    
+    def enter(self, prev_state: State | None):
+        print(f" Déposer Butin {self.args['depose'][0][0]}...")
+        self.prev_state = prev_state
+        self.robot.heading(self.args['depose'][0][1])
+    
+    def loop(self) -> State | None:
+        
+        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
+            self.robot.updateScore(-10)
+            return EndState(self.robot, self.globals, self.args)
+        
+        # prendre la plante
+        if self.robot.hasReachedTarget():
+            self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
+            time.sleep(0.1)
+            self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
+
+            if self.robot.hasReachedTarget():
+                self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.ClosePince1)
+                time.sleep(0.1)
+                self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.ClosePince2)
+                time.sleep(0.1)
+                self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
+
+                self.args["destination"] = self.globals["end_pos"]
+                self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+                return NavState(self.robot, self.globals, self.args)
+
+# class PotState(State):
+#     """TEMPORAIRE """
+#     def __init__(self, robot: Robot, globals, args={}) -> None:
 #         super().__init__(robot, globals, args)
     
 #     def enter(self, prev_state: State | None):
+#         print(f"Chercher pot {self.args['pots'][0][0]}...")
 #         self.prev_state = prev_state
-#         self.timeout = self.args['timeout']
-#         self.init_time = time.time()
-
-#         ...
-
+#         self.robot.heading(self.args['pots'][0][1])
+    
 #     def loop(self) -> State | None:
-#         if time.time()-self.init_time >= self.timeout:
-#            
-#         ...
+        
+#         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
+#             self.robot.updateScore(-10)
+#             return EndState(self.robot, self.globals, self.args)
+        
+#         # poser la plante dans le pot
+#         if self.robot.hasReachedTarget():
+#             self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
+#             self.robot.move(50,self.args['pots'][0][1])
+#             self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
+#             if self.robot.hasReachedTarget():
+#                 self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.ClosePince2)
+#                 time.sleep(0.1)
+#                 self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
+#                 return PotState(self.robot, self.globals, self.args)
+
+#     def leave(self, next_state: State):
+#         # les pots sont rammassé, on peut l'oublier pour passer au suivant.
+#         del self.args['pots'][0]
+    

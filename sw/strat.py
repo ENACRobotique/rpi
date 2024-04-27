@@ -47,11 +47,17 @@ ALT_END_POS = {
 STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
-        "pano_angle": 180
+        "pano_angle": 180,
+        "plantes":[("planteNE",45,-45,135)],
+        "pots":[("jardiPotJHaut",45,45)],
+        "depose":[("basJ",-90,90)]
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
-        "pano_angle": 0
+        "pano_angle": 0,
+        "plantes":[("planteNW",45,-45,270)],
+        "pots":[("jardiPotBHaut",135,225)],
+        "depose":[("basB",-90,90)]
     }
 }
 
@@ -92,6 +98,9 @@ class InitState(State):
             args = {
                 "panos": self.globals["data"]["panos"],
                 "pano_angle": self.globals["data"]["pano_angle"],
+                "plantes": self.globals["data"]["plantes"],
+                "pots": self.globals["data"]["pots"],
+                "depose": self.globals["data"]["depose"]
             }
             #args["panos"] =  STRAT_DATA[self.robot.color]["panos"].copy()
             #args["pano_angle"] =  STRAT_DATA[self.robot.color]["pano_angle"]

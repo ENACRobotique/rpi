@@ -58,36 +58,29 @@ class Actionneur(Enum):
     AxR    = 8
 
 class ValeurActionneur(Enum):
-    InitPince1 = 870
-    InitPince2 = 1000
-    InitPince3 = 1700
-    InitPince4 = 1400
-    InitBras = 950
     InitPano = 1500
-    InitAxL = 500
-    InitAxR = 640
 
-    OpenPince1 = 870
+    OpenPince1 = 2150
     OpenPince2 = 1400
     OpenPince3 = 1700
     OpenPince4 = 1400
     
-    ClosePince1 = 870
+    ClosePince1 = 1800
     ClosePince2 = 1000
     ClosePince3 = 1700
     ClosePince4 = 1400
     
     DownBras = 1960
-    UpBras = InitBras
+    UpBras = 950
     
     UpAxL = 800
-    UpAxR = 640
+    UpAxR = 200
 
     MidAxL = 500
-    MidAxR = 640    
+    MidAxR = 640   
 
     DownAxL = 40
-    DownAxR = 640
+    DownAxR = 1010
 
 PANO_CONVERT = 90/105 # 2.5 cm
 PANO_OFFSET = 125 # mm
@@ -107,6 +100,7 @@ class Robot:
         self.pano_angle = 0
         self.aruco_time = 0
         self.command_sent = False
+        self.lidar_pos = Pos(0,0,0)
 
         self.aruco_y = 0
         self.aruco_x = 0
@@ -162,6 +156,9 @@ class Robot:
         self.amalgame_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
         self.amalgame_sub.set_callback(self.detection)
 
+        self.lidar_sub = ProtoSubscriber("smooth_pos", robot_pb.Position)
+        self.lidar_sub.set_callback(self.onLidar)
+
         #self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
         #self.setPositionSub.set_callback(self.onSetTargetPostition)
 
@@ -188,7 +185,9 @@ class Robot:
         self.debug_pub =StringPublisher("debug_msg")
         self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",robot_pb.Position) for i in range(3)]
         time.sleep(1)
-
+        self._plante = False
+        self._face_plante = False
+        self._depose =False
         self.nav.initialisation()
         self.initActionneur()
 
@@ -205,6 +204,7 @@ class Robot:
             self.lcd.red = False
             self.lcd.green = False
             self.lcd.blue = True
+        print("Equipe : ",c)
         self.color_pub.send(msg)
 
     def __repr__(self) -> str:
@@ -342,6 +342,14 @@ class Robot:
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True"""
         return self.nav.chemin == []
+    
+    def onLidar (self, topic_name, msg, timestamp):
+        self.lidar_pos = Pos.from_proto(msg)
+    
+    def recallageLidar (self):
+        self.pos = self.lidar_pos
+    
+
 
     ### Actionneur ###
     def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
@@ -356,21 +364,21 @@ class Robot:
 
     def initActionneur(self):
         time.sleep(0.1)
-        self.setActionneur(Actionneur.Pince1,ValeurActionneur.InitPince1)
+        self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.Pince2,ValeurActionneur.InitPince2)
+        self.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.Pince3,ValeurActionneur.InitPince3)
+        self.setActionneur(Actionneur.Pince3,ValeurActionneur.OpenPince3)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.Pince4,ValeurActionneur.InitPince4)
+        self.setActionneur(Actionneur.Pince4,ValeurActionneur.OpenPince4)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.Bras,ValeurActionneur.InitBras)
+        self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
         time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.AxL,ValeurActionneur.InitAxL)
+        self.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.AxR,ValeurActionneur.InitAxR)
+        self.setActionneur(Actionneur.AxR,ValeurActionneur.UpAxR)
         time.sleep(0.1)
 
     def aruco(self, topic_name, msg, timestamp):
