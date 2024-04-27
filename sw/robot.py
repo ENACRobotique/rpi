@@ -59,7 +59,7 @@ class Actionneur(Enum):
 
 class ValeurActionneur(Enum):
     InitPince1 = 870
-    InitPince2 = 870
+    InitPince2 = 1000
     InitPince3 = 1700
     InitPince4 = 1400
     InitBras = 950
@@ -68,25 +68,25 @@ class ValeurActionneur(Enum):
     InitAxR = 640
 
     OpenPince1 = 870
-    OpenPince2 = 870
+    OpenPince2 = 1400
     OpenPince3 = 1700
     OpenPince4 = 1400
     
     ClosePince1 = 870
-    ClosePince2 = 870
+    ClosePince2 = 1000
     ClosePince3 = 1700
     ClosePince4 = 1400
     
     DownBras = 1960
     UpBras = InitBras
     
-    UpAxL = 500
+    UpAxL = 800
     UpAxR = 640
 
     MidAxL = 500
     MidAxR = 640    
 
-    DownAxL = 500
+    DownAxL = 40
     DownAxR = 640
 
 PANO_CONVERT = 90/105 # 2.5 cm

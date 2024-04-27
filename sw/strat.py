@@ -24,29 +24,29 @@ START_POS = {
 
 END_POS = {
     Team.JAUNE: {
-        Strat.Basique: 'midJ',
+        Strat.Basique: 'secureJ',
         Strat.Audacieuse: 'midJ'
     },
     Team.BLEU: {
-        Strat.Basique: 'midB',
+        Strat.Basique: 'secureB',
         Strat.Audacieuse: 'midB'
     }
 }
 
 ALT_END_POS = {
     Team.JAUNE: {
-        Strat.Basique: 'secureJ',
+        Strat.Basique: 'midJ',
         Strat.Audacieuse: 'basJ'
     },
     Team.BLEU: {
-        Strat.Basique: 'secureB',
+        Strat.Basique: 'midB',
         Strat.Audacieuse: 'basB'
     }
 }
 
 STRAT_DATA = {
     Team.JAUNE: {
-        "panos": ["p9", "p8", "p7", "p6", "p5"],
+        "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
         "pano_angle": 180
     },
     Team.BLEU: {
