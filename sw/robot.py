@@ -3,7 +3,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher, StringPublisher
 from ecal.core.subscriber import ProtoSubscriber, StringSubscriber
 import time
-from math import sqrt, pi, cos, sin, atan2 
+from math import sqrt, pi, cos, sin, atan2, radians
 import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
@@ -18,8 +18,8 @@ import nav
 
 import lcd_client as lcd
 
-XY_ACCURACY = 40  # mm
-THETA_ACCURACY = 0.1 # radians
+XY_ACCURACY = 8  # mm
+THETA_ACCURACY = radians(4) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
 # avoidance bounds 
@@ -132,8 +132,8 @@ class Robot:
         pid_page = lcd.Menu("PID", m)
         m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page)
 
-        kp_page = lcd.Number("Kp", pid_page, 0, 20, lambda x: self.set_pid_gain(0, x))
-        ki_page = lcd.Number("Ki", pid_page, 0, 5, lambda x: self.set_pid_gain(1, x))
+        kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
+        ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
         kd_page = lcd.Number("Kd", pid_page, 0, 5, lambda x: self.set_pid_gain(2, x))
         pid_page.add_subpages(kp_page, ki_page, kd_page)
         self.lcd = lcd.LCDClient(m, self.on_lcd_event, self.on_lcd_state)
