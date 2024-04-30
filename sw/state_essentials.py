@@ -1,9 +1,9 @@
 from fsm import State
-from robot import Robot,Actionneur,ValeurActionneur
+from robot import Robot,Actionneur,ValeurActionneur,XY_ACCURACY
 from common import Pos
 import time
 from enum import Enum
-from math import pi, radians, degrees
+from math import pi, radians, degrees,sqrt
 
 def timeout(init_time,timeout):
     """Return True if timeout """
@@ -34,17 +34,20 @@ class NavState(State):
     def loop(self) -> State | None:
         
         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            self.robot.updateScore(-10)
             return EndState(self.robot, self.globals, self.args)
-        x,y = self.robot.nav.getCoords(self.robot.nav.chemin[0])
+        x = self.robot.nav_pos[0].x
+        y = self.robot.nav_pos[0].y
         
         if self.robot.obstacle_in_way(Pos(x=x,y=y,theta=0)) :
             if self.move_status == self.MoveStatus.STOPPED:# wait timeout before doing other planned action
-                #print(f"obstacle int the way to '{self.robot.nav.chemin[0]}'")
+                #print(f"obstacle in the way to '{self.robot.nav.chemin[0]}'")
+                #self.robot.setTargetPos(self.robot.pos)
                 if time.time() - self.t_stop > self.args["timeout"] and "alternative" in self.args:
+                    #print("alternative way")
                     return self.args["alternative"]
                 
             elif self.move_status == self.MoveStatus.MOVING: # Stop the robot and start timeout timer
+                #print(f"STOPPING started timer")
                 self.t_stop = time.time()
                 self.robot.setTargetPos(self.robot.pos)
                 self.move_status = self.MoveStatus.STOPPED
@@ -63,19 +66,19 @@ class NavState(State):
     
 class EndState(State):
     def enter(self, prev_state: State | None):
-        self.robot.updateScore(10)
+        x1,y1 = self.robot.nav.getCoords(self.globals['end_pos'])
+        if sqrt((x1-self.robot.pos.x)**2+(self.robot.pos.y)**2) < XY_ACCURACY:
+            self.robot.updateScore(10)
         self.robot.buzz(ord('B'))
-        time.sleep(1)
-        self.robot.buzz(ord('A'))
-        time.sleep(1)
-        self.robot.buzz(ord('D'))
-        time.sleep(1)
-        self.robot.buzz(ord('0'))
-        #si le robot entre dans le End state suite a un timeout de fin de match ( avant les PAMI )
-        # cela signifie donc qu'on est pas dans la zone finale qui rapporte les 10 point
-        # alors il faudra faire score -=10 avant de rentrer dans l'etat ( donc un timeout force le score -10 et le endstate)
-        # display score on LCD 
         print("The End !")
+        for i in range(4):
+            self.robot.buzz(ord('B'))
+            time.sleep(0.1)
+            self.robot.buzz(ord('A'))
+            time.sleep(0.1)
+            self.robot.buzz(ord('D'))
+            time.sleep(0.1)
+        self.robot.buzz(ord('0'))
 
 
 class PanosState(State):
@@ -90,12 +93,12 @@ class PanosState(State):
     def loop(self) -> State | None:
         
         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            self.robot.updateScore(-10)
             return EndState(self.robot, self.globals, self.args)
         
         if len(self.args["panos"]) == 0:
-            
-            return EndState(self.robot, self.globals, self.args) # FarmingState(self.robot, self.globals, self.args)
+            self.args["destination"] = self.globals['end_pos']
+            self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+            return NavState(self.robot, self.globals, self.args)
 
         self.args["destination"] = self.args["panos"][0]
         self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
@@ -122,7 +125,6 @@ class PanoTurnState(State):
     def loop(self) -> State | None:
         
         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            self.robot.updateScore(-10)
             return EndState(self.robot, self.globals, self.args)
         
         # faire tourner le panneau
@@ -158,7 +160,6 @@ class FarmingState(State):
     def loop(self) -> State | None:
         
         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            self.robot.updateScore(-10)
             return EndState(self.robot, self.globals, self.args)
         
         if len(self.args["plantes"]) == 0:
@@ -190,7 +191,6 @@ class PlantesState(State):
     def loop(self) -> State | None:
         
         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            self.robot.updateScore(-10)
             return EndState(self.robot, self.globals, self.args)
         
         # s'alligner en utilisant les VL53
@@ -267,7 +267,6 @@ class DeposeState(State):
     def loop(self) -> State | None:
         
         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            self.robot.updateScore(-10)
             return EndState(self.robot, self.globals, self.args)
         
         if self.robot.hasReachedTarget():
@@ -313,7 +312,6 @@ class DeposeState(State):
 #     def loop(self) -> State | None:
         
 #         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-#             self.robot.updateScore(-10)
 #             return EndState(self.robot, self.globals, self.args)
         
 #         # poser la plante dans le pot

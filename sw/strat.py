@@ -110,22 +110,27 @@ class InitState(State):
                 "pots": self.globals["data"]["pots"],
                 "depose": self.globals["data"]["depose"]
             }
-            #args["panos"] =  STRAT_DATA[self.robot.color]["panos"].copy()
-            #args["pano_angle"] =  STRAT_DATA[self.robot.color]["pano_angle"]
+            
             self.robot.pano_angle = args["pano_angle"]
             self.robot.updateScore(0)
-            
-            # args["destination"] = 'p1'
-            # args["next_state"] = PanosState(self.robot, self.globals, args)
-            
+ 
             args_alt = {
                 "destination": ALT_END_POS[self.robot.color][self.robot.strat],
                 'next_state': EndState(self.robot, self.globals, args)
             }
-
             args["alternative"] = NavState(self.robot, self.globals, args_alt)
-            return TestState(self.robot, self.globals, args)
-            return PanosState(self.robot, self.globals, args)
+            
+            
+            if self.robot.strat == Strat.Basique:
+                return PanosState(self.robot, self.globals, args)
+            
+            if self.robot.strat == Strat.Audacieuse:
+                
+                #farming puis pano
+                args['next_state'] = PanosState(self.robot, self.globals, args)
+                return FarmingState(self.robot, self.globals, args)
+            
+            #return TestState(self.robot, self.globals, args)
 
 class TestState(State):
     def enter(self, prev_state: State | None):
