@@ -1,7 +1,7 @@
 import map
 import dijkstra
 import matplotlib.pyplot as plt
-from math import sqrt
+from math import sqrt,pi
 class Nav(object):  
     def __init__(self):
         """
@@ -38,9 +38,31 @@ class Nav(object):
         #print(f"Waypoint {waypoint} is : {x}\t{y} \n")
         return x,y
 
-    def findPath(self):
-        """Renvoi le chemin le plus cours entre l'entrée et la sortie"""
-        self.chemin,distance_totale = dijkstra.dijkstra_classic(self.graph,self.entree, self.sortie) #a liste des points parcourus,nd distance parcourue
+    def findPath(self, theta_start, theta_dest):
+        """Renvoi le chemin le plus cours entre l'entrée et la sortie -> une liste de tuple des positions (x,y,theta) a faire"""
+        dtheta =theta_dest-theta_start
+        if dtheta < -pi :
+            theta_start -= 2*pi
+        elif dtheta > pi :
+            theta_start += 2*pi
+
+        self.chemin,self.distance_totale = dijkstra.dijkstra_classic(self.graph,self.entree, self.sortie) #a liste des points parcourus,nd distance parcourue
+        dist = 0 
+        x,y = self.getCoords(self.chemin[0])
+        pos=[(x,y,theta_start)]
+        
+        for i in range(1,len(self.chemin)):
+            x1,y1 = self.getCoords(self.chemin[i-1])
+            x2,y2 = self.getCoords(self.chemin[i])
+            dist += sqrt((x2-x1)**2+(y2-y1)**2)
+            theta = theta_start + (dtheta)*dist/self.distance_totale
+            pos.append((x2,y2,theta))
+        
+        #print("Positions",pos)
+        return pos
+        
+
+        #print("distance", self.distance_totale)
         # print(graph.coords[chemin[1]][0]) #coordonnes x du point 
         #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
     

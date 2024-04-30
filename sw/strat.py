@@ -124,8 +124,18 @@ class InitState(State):
             }
 
             args["alternative"] = NavState(self.robot, self.globals, args_alt)
-
+            return TestState(self.robot, self.globals, args)
             return PanosState(self.robot, self.globals, args)
+
+class TestState(State):
+    def enter(self, prev_state: State | None):
+        self.robot.resetPosFromNav('basB',radians(90))
+        self.args['destination'] = 'jardiSecureB'
+        self.args['orientation'] = radians(-90)
+    
+    def loop(self):
+        self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+        return NavState(self.robot, self.globals, self.args)
 
 
 

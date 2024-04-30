@@ -3,7 +3,7 @@ from robot import Robot,Actionneur,ValeurActionneur
 from common import Pos
 import time
 from enum import Enum
-from math import pi, radians
+from math import pi, radians, degrees
 
 def timeout(init_time,timeout):
     """Return True if timeout """
@@ -16,17 +16,20 @@ class NavState(State):
     class MoveStatus(Enum):
         MOVING = 1
         STOPPED = 2
-
+        
     def __init__(self, robot: Robot, globals: dict, args: dict) -> None:
         super().__init__(robot, globals, args)
     
     def enter(self, prev_state: State | None):
-        print(f"Navigating to {self.args['destination']}.")
-        self.robot.pathFinder(self.args['destination'])
+
+        if not 'orientation' in self.args:
+            self.args['orientation'] = self.robot.pos.theta
+        print(f"Navigating to {self.args['destination'],degrees(self.args['orientation'])}.")
+        self.dtheta= self.robot.pathFinder(self.args['destination'],self.args['orientation'])
         self.move_status = self.MoveStatus.STOPPED
         self.t_stop = time.time()
         if "timeout" not in self.args:
-            self.args["timeout"] = 5 # default timeout 
+            self.args["timeout"] = 5 # default timeout
     
     def loop(self) -> State | None:
         
@@ -47,15 +50,15 @@ class NavState(State):
                 self.move_status = self.MoveStatus.STOPPED
         else:
             if self.move_status == self.MoveStatus.STOPPED:
-                self.robot.goToWaypoint(self.robot.nav.chemin[0])
+                self.robot.setTargetPos(self.robot.nav_pos[0])
                 self.move_status = self.MoveStatus.MOVING
 
             elif self.move_status == self.MoveStatus.MOVING: 
                 if self.robot.hasReachedTarget():
-                    del self.robot.nav.chemin[0]
+                    del self.robot.nav_pos[0]
                     if self.robot.isNavDestReached():
                         return self.args['next_state']
-                    self.robot.goToWaypoint(self.robot.nav.chemin[0])
+                    self.robot.setTargetPos(self.robot.nav_pos[0])
 
     
 class EndState(State):
@@ -92,7 +95,7 @@ class PanosState(State):
         
         if len(self.args["panos"]) == 0:
             
-            return FarmingState(self.robot, self.globals, self.args)
+            return EndState(self.robot, self.globals, self.args) # FarmingState(self.robot, self.globals, self.args)
 
         self.args["destination"] = self.args["panos"][0]
         self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
@@ -267,7 +270,6 @@ class DeposeState(State):
             self.robot.updateScore(-10)
             return EndState(self.robot, self.globals, self.args)
         
-        # prendre la plante
         if self.robot.hasReachedTarget():
             if self.substate == 0:
                 self.start_time = time.time()

@@ -3,7 +3,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher, StringPublisher
 from ecal.core.subscriber import ProtoSubscriber, StringSubscriber
 import time
-from math import sqrt, pi, cos, sin, atan2, radians
+from math import sqrt, pi, cos, sin, atan2, radians,degrees
 import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
@@ -253,7 +253,8 @@ class Robot:
         #print(f"go to: {pos}")
         self.set_target_pos_pub.send(pb_pos)
         self.last_target = pos
-    
+
+
     def move(self, distance, direction):
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
@@ -335,30 +336,36 @@ class Robot:
         x,y = self.nav.getCoords(waypoint)
         self.resetPos(Pos(x, y, theta))
 
-    def pathFinder(self,dest):
+    def pathFinder(self,dest,orientation):
         """Recherche le plus court chemin entre deux points. 
         \nRetenu dans l'object self.nav.chemin
         \nUtiliser les noms des waypoints de graph.txt"""
 
         self.nav.entree = self.nav.closestWaypoint(self.pos.x,self.pos.y)
-        print(f"entree: {self.nav.entree}")
         self.nav.sortie = dest
-        self.nav.findPath()
+        nav_pos = self.nav.findPath(self.pos.theta,orientation)
 
         self.n_points = len(self.nav.chemin)
+        print(f"entree: {self.nav.entree}")
         self.current_point_index = 0
         self.nav.current = self.nav.chemin[self.current_point_index]
         print("Path found : ",self.nav.chemin)
+        self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
+        #print("Pos's are : ",self.nav_pos)
+
+        
     
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True"""
-        return self.nav.chemin == []
+        return self.nav_pos == []
     
     def onLidar (self, topic_name, msg, timestamp):
         self.lidar_pos = Pos.from_proto(msg)
     
     def recallageLidar (self):
-        self.pos = self.lidar_pos
+        self.pos.x = self.lidar_pos.x
+        self.pos.y = self.lidar_pos.y
+        
     
 
 
@@ -396,7 +403,6 @@ class Robot:
 
     def aruco(self, topic_name, msg, timestamp):
         """Callback Ecal du code getAruco, stocke la commande du panneau"""
-    def aruco(self, topic_name, msg, timestamp):
         # print(msg)
         
         self.aruco_theta = msg.theta
@@ -405,11 +411,7 @@ class Robot:
         self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
         self.aruco_time = time.time()
         #print("aruco : ",self.aruco_x,self.aruco_y)
-        
-
         commande_pano = self.aruco_theta + self.pano_angle
-
-
         #print(f"aruco cmd : x = {self.aruco_x}\t y = {self.aruco_y}")
         if commande_pano > 180 : 
             commande_pano  = commande_pano - 360
@@ -420,16 +422,18 @@ class Robot:
         self.commande_pano = commande_pano*PANO_CONVERT + ValeurActionneur.InitPano.value
     
     def panoDo(self,commande):
-        time.sleep(1)
+        """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
+        \nArgs: int:consigne du servo"""
+        time.sleep(0.5)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
         time.sleep(1)
         self.setActionneur(Actionneur.Pano,int(commande))
-        print("commande: ",commande)
-        time.sleep(2)
+        #print("commande: ",commande)
+        time.sleep(1)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        time.sleep(0.5)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        time.sleep(2)
+        time.sleep(0.1)
     
     def set_strat(self, strat):
         self.strat = strat
@@ -474,6 +478,7 @@ class Robot:
                 return True
             
         return False
+    
 
 
 
