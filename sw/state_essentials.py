@@ -61,6 +61,13 @@ class NavState(State):
 class EndState(State):
     def enter(self, prev_state: State | None):
         self.robot.updateScore(10)
+        self.robot.buzz(ord('B'))
+        time.sleep(1)
+        self.robot.buzz(ord('A'))
+        time.sleep(1)
+        self.robot.buzz(ord('D'))
+        time.sleep(1)
+        self.robot.buzz(ord('0'))
         #si le robot entre dans le End state suite a un timeout de fin de match ( avant les PAMI )
         # cela signifie donc qu'on est pas dans la zone finale qui rapporte les 10 point
         # alors il faudra faire score -=10 avant de rentrer dans l'etat ( donc un timeout force le score -10 et le endstate)
@@ -123,6 +130,11 @@ class PanoTurnState(State):
                 self.robot.command_sent = True
                 self.robot.panoDo(self.robot.commande_pano)
                 self.robot.updateScore(5)
+                self.robot.buzz(ord('D'))
+                time.sleep(0.1)
+                self.robot.buzz(ord('G'))
+                time.sleep(0.1)
+                self.robot.buzz(ord('0'))
                 return PanosState(self.robot, self.globals, self.args)
 
     def leave(self, next_state: State):
@@ -218,7 +230,7 @@ class PlantesState(State):
                 print( "je vais déposer ")
                 self.robot.recallageLidar()
                 
-                self.args["destination"] = self.args["depose"][0][0]
+                self.args["destination"] = self.args["pots"][0][0]
                 self.args['next_state'] = DeposeState(self.robot, self.globals, self.args)
                 return NavState(self.robot, self.globals, self.args)
 
@@ -229,14 +241,25 @@ class PlantesState(State):
 
 
 class DeposeState(State):
-    """TEMPORAIRE """
+    """
+    (depose_wp, azimut, theta_pince)
+    """
+    class Azimut(Enum):
+        WEST = pi
+        EAST = 0
+        SOUTH = -pi/2
+
     def __init__(self, robot: Robot, globals, args={}) -> None:
         super().__init__(robot, globals, args)
     
     def enter(self, prev_state: State | None):
-        print(f" Déposer Butin {self.args['depose'][0][0]}...")
+        print(f" Déposer Butin {self.args['pots'][0][0]}...")
         self.prev_state = prev_state
-        self.robot.heading(self.args['depose'][0][1])
+        self.heeee = self.args['pots'][0][1].value - self.args['pots'][0][2]
+        self.robot.heading(self.heeee)
+        self.substate = 0
+        self.start_time = 0
+        self.open_time = 0
     
     def loop(self) -> State | None:
         
@@ -246,20 +269,34 @@ class DeposeState(State):
         
         # prendre la plante
         if self.robot.hasReachedTarget():
-            self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
-            time.sleep(0.1)
-            self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
-
-            if self.robot.hasReachedTarget():
-                self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.ClosePince1)
+            if self.substate == 0:
+                self.start_time = time.time()
+                self.substate += 1
+            elif self.substate == 1:
+                if time.time() - self.start_time > 2:
+                    self.robot.recallageLidar()
+                    self.robot.goToWaypoint(self.args['pots'][0][0], self.heeee)
+                    self.substate += 2
+            elif self.substate == 3:
+                self.robot.move(150, self.args['pots'][0][2])
+                self.substate += 1
+            elif self.substate == 4:
+                self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
                 time.sleep(0.1)
-                self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.ClosePince2)
-                time.sleep(0.1)
-                self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
+                self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
+                self.open_time = time.time()
+                self.substate += 1
+            elif self.substate == 5:
+                if time.time() - self.open_time > 1:
+                    self.robot.setActionneur(Actionneur.Pince1,ValeurActionneur.ClosePince1)
+                    time.sleep(0.1)
+                    self.robot.setActionneur(Actionneur.Pince2,ValeurActionneur.ClosePince2)
+                    # time.sleep(0.1)
+                    # self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
 
-                self.args["destination"] = self.globals["end_pos"]
-                self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-                return NavState(self.robot, self.globals, self.args)
+                    self.args["destination"] = self.globals["end_pos"]
+                    self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+                    return NavState(self.robot, self.globals, self.args)
 
 # class PotState(State):
 #     """TEMPORAIRE """

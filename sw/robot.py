@@ -22,6 +22,9 @@ XY_ACCURACY = 8  # mm
 THETA_ACCURACY = radians(4) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
+THETA_PINCES_BABORD = radians(60)  #pinces babord
+THETA_PINCES_TRIBORD = radians(-60)
+
 # avoidance bounds 
 BOUNDS = (-100,400,-250,250)
 
@@ -60,15 +63,15 @@ class Actionneur(Enum):
 class ValeurActionneur(Enum):
     InitPano = 1500
 
-    OpenPince1 = 2150
-    OpenPince2 = 1400
-    OpenPince3 = 1700
-    OpenPince4 = 1400
+    OpenPince1 = 1130
+    OpenPince2 = 1800
+    OpenPince3 = 1600
+    OpenPince4 = 1600
     
-    ClosePince1 = 1800
-    ClosePince2 = 1000
-    ClosePince3 = 1700
-    ClosePince4 = 1400
+    ClosePince1 = 750
+    ClosePince2 = 1400
+    ClosePince3 = 1600
+    ClosePince4 = 1600
     
     DownBras = 1960
     UpBras = 950
@@ -263,12 +266,14 @@ class Robot:
             self.move(y,pi/2*np.sign(y))
     
     def heading(self,angle):
-        """ Angle en degré """ 
-        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle * pi/180))
+        """ S'oriente vers la direction donnée
+         \nArgs float:theta en radian""" 
+        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle))
     
     def rotate(self,angle):
-        """ angle en degré """
-        self.heading(self.pos.theta*180/pi + angle)
+        """ Rotation en relatif
+         \nArgs, float:theta en radians """
+        self.heading(self.pos.theta + angle)
     
     def resetPos(self, pos: Pos, timeout=2):
         self.reset_pos_pub.send(pos.to_proto())
@@ -283,6 +288,11 @@ class Robot:
         self.score += points
         self.score_page.set_text(f"Score",f"{self.score}")
         self.lcd.set_page(self.score_page)
+    
+    def buzz(self,tone):
+        """Args , string:tone"""
+        self.lcd.buzz = tone
+        self.lcd.display()
 
     def onSetTargetPostition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -309,7 +319,8 @@ class Robot:
         self.nav.initialisation()
 
     def goToWaypoint(self,waypoint, theta: None | float = None ):
-        """ Le robot va directement à un waypoint """
+        """ Le robot va directement à un waypoint avec ou sans angle donné
+        \nArgs, string:waypoint, float|None:theta"""
         if theta is None :
             theta = self.pos.theta
             #print(theta*180/pi)
@@ -354,7 +365,8 @@ class Robot:
     ### Actionneur ###
     def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
         """ Définir en externe les valeurs à prendre 
-        \nFaire self.setActionneur(Actionneur.AxL,valeur) pour piloter l'ax de gauche !"""
+        \nArgs, Actionneur:actionneur, ValeurActionneur|int:valeur
+        \n Ex: Faire setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL) pour piloter l'ax de gauche !"""
         if type(val) == int :
             msg = robot_pb.IO(id = actionneur.value , val = val)    
         else :
@@ -363,6 +375,7 @@ class Robot:
         self.IO_pub.send(msg)
 
     def initActionneur(self):
+        """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
         time.sleep(0.1)
         self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
         time.sleep(0.1)
@@ -381,6 +394,8 @@ class Robot:
         self.setActionneur(Actionneur.AxR,ValeurActionneur.UpAxR)
         time.sleep(0.1)
 
+    def aruco(self, topic_name, msg, timestamp):
+        """Callback Ecal du code getAruco, stocke la commande du panneau"""
     def aruco(self, topic_name, msg, timestamp):
         # print(msg)
         

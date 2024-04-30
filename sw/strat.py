@@ -3,7 +3,7 @@ from fsm import State, FSM
 from state_essentials import *
 import sys
 sys.path.append("../")
-from robot import Robot, Pos,Team, Tirette, Strat
+from robot import Robot, Pos,Team, Tirette, Strat, THETA_PINCES_BABORD, THETA_PINCES_TRIBORD
 import robot
 import time
 from math import pi
@@ -48,15 +48,15 @@ STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
         "pano_angle": 180,
-        "plantes":[("planteNE",45,-45,135)],
-        "pots":[("jardiPotJHaut",45,45)],
+        "plantes":[("planteNE",THETA_PINCES_BABORD, None, 135)], 
+        "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
         "depose":[("basJ",-90,90)]
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
         "pano_angle": 0,
-        "plantes":[("planteNW",45,-45,270)],
-        "pots":[("jardiPotBHaut",135,225)],
+        "plantes":[("planteNW",THETA_PINCES_BABORD, None,270)],
+        "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
         "depose":[("basB",-90,90)]
     }
 }
@@ -73,12 +73,22 @@ class PreInit(State):
     def loop(self):
         if self.robot.tirette == Tirette.IN:
             return InitState(self.robot, self.globals, {})
+        self.robot.buzz(ord('E'))
+        time.sleep(0.3)
 
 class InitState(State):
     def enter(self, prev_state: State | None):
         print("Let's get it started in here !")
         print(f"strat name: {self.globals['strat_name']}")
         self.start_time = time.time()
+        self.robot.buzz(ord('E'))
+        time.sleep(0.1)
+        self.robot.buzz(ord('F'))
+        time.sleep(0.1)
+        self.robot.buzz(ord('G'))
+        time.sleep(0.1)
+        self.robot.buzz(ord('0'))
+
     
     def loop(self):
         # tester si tirette tirée
@@ -92,9 +102,7 @@ class InitState(State):
             w, theta = start_pos
             wx, wy = self.robot.nav.getCoords(w)
             rp = Pos(wx, wy, theta)
-            while self.robot.pos.distance(rp) > 5:
-                self.robot.resetPosFromNav(*start_pos)
-                time.sleep(0.1)
+            self.robot.resetPosFromNav(*start_pos)
             args = {
                 "panos": self.globals["data"]["panos"],
                 "pano_angle": self.globals["data"]["pano_angle"],
