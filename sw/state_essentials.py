@@ -3,7 +3,7 @@ from robot import Robot,Actionneur,ValeurActionneur
 from common import Pos
 import time
 from enum import Enum
-from math import pi
+from math import pi, radians
 
 def timeout(init_time,timeout):
     """Return True if timeout """
@@ -105,7 +105,7 @@ class PanoTurnState(State):
     def enter(self, prev_state: State | None):
         print(f"tourner panneau {self.args['panos'][0]}...")
         self.prev_state = prev_state
-        self.robot.heading(90) # bras // pano
+        self.robot.heading(radians(90)) # bras // pano
         time.sleep(1)
         if (time.time() - self.robot.aruco_time >= 1) or (abs(self.robot.aruco_y) > 100) or abs(self.robot.aruco_theta) < 40:
             print("fffflllllllaaaaaaaaagggggggggg")
