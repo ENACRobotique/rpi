@@ -23,6 +23,7 @@ class Nav(object):
         self.graph = map.read_graph(self.file) 
         self.graph.weight()
         ## On augmente les poids de la "croix" au milieu pour ne pas passer dans les plantes
+        ## à changer si o sait qu'on a pris les plantes
         self.graph.weights[('planteNW', 'mid')] += 10000
         self.graph.weights[('mid', 'planteNW')] += 10000
         self.graph.weights[('planteNE', 'mid')] += 10000
@@ -76,6 +77,8 @@ class Nav(object):
             return sqrt((w_x-x)**2 + (w_y-y)**2 )
         
         return min(self.graph.coords, key=dist_from_xy)
+
+
 
 if __name__ == "__main__" : 
 

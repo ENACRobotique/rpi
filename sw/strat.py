@@ -44,20 +44,23 @@ ALT_END_POS = {
     }
 }
 
+
+#Reminder : Plante params : ['waypoint','azimut']
+#Reminder : Depose params : ['waypoint','azimut']
 STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
         "pano_angle": 180,
-        "plantes":[("planteNE",THETA_PINCES_BABORD, None, 135)], 
+        "plantes":[Plante("planteNE",radians(60))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
-        "depose":[("basJ",-90,90)]
+        "depose":[Depose("basJ",radians(-60))]
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
         "pano_angle": 0,
-        "plantes":[("planteNW",THETA_PINCES_BABORD, None,270)],
+        "plantes":[Plante("planteNW",radians(-90-60))],
         "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
-        "depose":[("basB",-90,90)]
+        "depose":[Depose("basB",radians(-150))]
     }
 }
 
@@ -74,19 +77,20 @@ class PreInit(State):
         if self.robot.tirette == Tirette.IN:
             return InitState(self.robot, self.globals, {})
         self.robot.buzz(ord('E'))
-        time.sleep(0.3)
+        time.sleep(0.2)
 
 class InitState(State):
     def enter(self, prev_state: State | None):
         print("Let's get it started in here !")
         print(f"strat name: {self.globals['strat_name']}")
         self.start_time = time.time()
-        self.robot.buzz(ord('E'))
-        time.sleep(0.1)
-        self.robot.buzz(ord('F'))
-        time.sleep(0.1)
-        self.robot.buzz(ord('G'))
-        time.sleep(0.1)
+        for i in range(4):
+            self.robot.buzz(ord('E'))
+            time.sleep(0.1)
+            self.robot.buzz(ord('F'))
+            time.sleep(0.1)
+            self.robot.buzz(ord('G'))
+            time.sleep(0.1)
         self.robot.buzz(ord('0'))
 
     
@@ -127,7 +131,7 @@ class InitState(State):
             if self.robot.strat == Strat.Audacieuse:
                 
                 #farming puis pano
-                args['next_state'] = PanosState(self.robot, self.globals, args)
+                #args['next_state'] = PanosState(self.robot, self.globals, args)
                 return FarmingState(self.robot, self.globals, args)
             
             #return TestState(self.robot, self.globals, args)

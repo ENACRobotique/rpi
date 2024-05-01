@@ -57,8 +57,8 @@ class Actionneur(Enum):
     Pince4 = 6
     Bras   = 4
     Pano   = 1
-    AxL    = 7
-    AxR    = 8
+    AxBabord    = 7
+    AxTribord    = 8
 
 class ValeurActionneur(Enum):
     InitPano = 1500
@@ -76,14 +76,14 @@ class ValeurActionneur(Enum):
     DownBras = 1960
     UpBras = 950
     
-    UpAxL = 800
-    UpAxR = 200
+    UpAxBabord = 800
+    UpAxTribord = 200
 
-    MidAxL = 500
-    MidAxR = 640   
+    MidAxBabord = 500
+    MidAxTribord = 640   
 
-    DownAxL = 40
-    DownAxR = 1010
+    DownAxBabord = 40
+    DownAxTribord = 1010
 
 PANO_CONVERT = 90/105 # 2.5 cm
 PANO_OFFSET = 125 # mm
@@ -188,9 +188,7 @@ class Robot:
         self.debug_pub =StringPublisher("debug_msg")
         self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",robot_pb.Position) for i in range(3)]
         time.sleep(1)
-        self._plante = False
-        self._face_plante = False
-        self._depose =False
+
         self.nav.initialisation()
         self.initActionneur()
 
@@ -331,13 +329,14 @@ class Robot:
         #self.pathFinder(closest,waypoint)
 
     def resetPosFromNav(self, waypoint, theta=None):
+        print("Reseted nav at :", waypoint)
         if theta is None:
             theta = self.pos.theta
         x,y = self.nav.getCoords(waypoint)
         self.resetPos(Pos(x, y, theta))
 
     def pathFinder(self,dest,orientation):
-        """Recherche le plus court chemin entre deux points. 
+        """Recherche le plus court chemin entre deux points.
         \nRetenu dans l'object self.nav.chemin
         \nUtiliser les noms des waypoints de graph.txt"""
 
@@ -396,9 +395,9 @@ class Robot:
         time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
+        self.setActionneur(Actionneur.AxBabord,ValeurActionneur.UpAxBabord)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.AxR,ValeurActionneur.UpAxR)
+        self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
         time.sleep(0.1)
 
     def aruco(self, topic_name, msg, timestamp):
