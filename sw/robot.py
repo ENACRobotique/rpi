@@ -287,7 +287,7 @@ class Robot:
         
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
-        self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
+        return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
     def move_rel(self,x,y,blocking=False, timeout = 10):
         if x : 
@@ -298,7 +298,7 @@ class Robot:
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
          \nArgs float:theta en radian""" 
-        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle),Frame.TABLE, blocking, timeout)
+        return self.setTargetPos(Pos(self.pos.x,self.pos.y,angle),Frame.TABLE, blocking, timeout)
     
     def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
@@ -364,7 +364,7 @@ class Robot:
             theta = self.pos.theta
             #print(theta*180/pi)
         x,y = self.nav.getCoords(waypoint)
-        self.setTargetPos(Pos(x,y,theta))
+        return self.setTargetPos(Pos(x,y,theta))
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         #self.pathFinder(closest,waypoint)
 

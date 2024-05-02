@@ -197,6 +197,7 @@ class PlantesState(State):
         self.prev_state = prev_state
         self.Ms = Moissonneuses
         self.M = None
+        self.pince_no = 1
 
     # Reminder : Plante  ['waypoint','azimut']
     # Reminder : Moissonneuse  ['pince','open','closed','orientation','ax','axUp','axDown']
@@ -220,8 +221,27 @@ class PlantesState(State):
         self.robot.heading(self.M.orientation+self.args["orientation"], blocking=True) #azimut des plantes + mettre les pince en face
         
         print("Je suis en face")
-        print("I do what VL53 order")
-        self.robot.move(150,-self.M.orientation, blocking=True)
+        #print("I do what VL53 order")
+
+        time.sleep(1)
+        angle = 0
+        distance = 0
+        for i in range(5):
+            vl53_angles = self.robot.vl53_angle[self.pince_no]
+            if len(vl53_angles) > 0:
+                print(f"vl53 detected plante at {vl53_angles[0]}°")
+                angle = vl53_angles[0]
+                distance = self.robot.vl53_distance[self.pince_no][0]
+                break
+            else:
+                print("no plant detected")
+            time.sleep(1)
+        else:
+            self.pince_no += 1
+            return
+            
+        self.robot.heading(self.robot.pos.theta - radians(angle), blocking=True)
+        self.robot.move(distance,-self.M.orientation, blocking=True)
         self.robot.setActionneur(self.M.pince,self.M.closePince)
         time.sleep(0.1)
         print("Plante attrapée")
@@ -231,6 +251,7 @@ class PlantesState(State):
         theta = self.robot.pos.theta
         self.robot.setTargetPos(Pos(x=x, y=y, theta=theta), blocking=True)
         print("je reviens en place")
+        self.pince_no += 1
     
     def leave(self, next_state: State):
         # les plantes sont rammasée, on peut l'oublier pour passer au suivant.
