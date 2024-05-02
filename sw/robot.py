@@ -104,6 +104,8 @@ class Robot:
         self.aruco_time = 0
         self.command_sent = False
         self.lidar_pos = Pos(0,0,0)
+        self.vl53_angle = [[],[],[],[],[]]
+        self.vl53_distance = [[],[],[],[],[]]
 
         self.aruco_y = 0
         self.aruco_x = 0
@@ -116,6 +118,9 @@ class Robot:
         self.obstacles = []
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
+
+        self.solar_offset = 125 # Basic solar offset
+        self.solar_ratio = 90/105
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -133,12 +138,18 @@ class Robot:
         self.pos_page = lcd.Text("Position", m, "---")
         self.score_page = lcd.Text("Score", m, "0")
         pid_page = lcd.Menu("PID", m)
-        m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page)
+        solar_page = lcd.Menu("Solar",m)
+        m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page, solar_page)
 
         kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
         ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
         kd_page = lcd.Number("Kd", pid_page, 0, 5, lambda x: self.set_pid_gain(2, x))
         pid_page.add_subpages(kp_page, ki_page, kd_page)
+
+        solar_offset_page = lcd.Number("Offset", solar_page, 100, 140, self.set_solar_offset)
+        solar_ratio_page = lcd.Number("Ratio", solar_page, 0, 2, self.set_solar_ratio)
+        solar_page.add_subpages(solar_offset_page, solar_ratio_page)
+
         self.lcd = lcd.LCDClient(m, self.on_lcd_event, self.on_lcd_state)
         self.lcd.start()
 
@@ -167,6 +178,15 @@ class Robot:
 
         #self.proximitySub = ProtoSubscriber("proximity_status",lidar_pb.Proximity)
         #self.proximitySub.set_callback(self.onProximityStatus)
+
+        self.vl53_1_sub = ProtoSubscriber("vl53_1",lidar_pb.Lidar)
+        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,1))
+        self.vl53_2_sub = ProtoSubscriber("vl53_2",lidar_pb.Lidar)
+        self.vl53_2_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,2))
+        self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
+        self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,3))
+        self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
+        self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,4))
         
         ### PUB ECAL ###
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
@@ -422,6 +442,12 @@ class Robot:
         self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
         time.sleep(0.1)
 
+    def set_solar_offset(self, x):
+        self.solar_offset = x
+    
+    def set_solar_ratio(self,x):
+        self.solar_ratio = x
+
     def aruco(self, topic_name, msg, timestamp):
         """Callback Ecal du code getAruco, stocke la commande du panneau"""
         # print(msg)
@@ -500,6 +526,117 @@ class Robot:
             
         return False
     
+    def vl53_detect_plante(self, msg, id):
+        distances = list(msg.distances)
+        distance_matrix = np.empty((8,8))
+
+        def idx(x, y):
+            return (7 - y) * 8 + (7 - x)
+        
+        for y in range(8):
+            for x in range(8):
+                distance_matrix[y,x] = distances[idx(x,y)]
+
+        x_mins_lines = []
+        ys = []
+        for y in range(1,6):
+            line = distance_matrix[y]
+            x_mins_before = set()
+            x_mins_after = {0,1,2,3,4,5,6,7}
+            while x_mins_after != x_mins_before:
+                x_mins_before = x_mins_after
+                x_mins_after = set()
+                for x in x_mins_before:
+                    if x == 0:
+                        x_mins_after.add(min([x,x+1], key = lambda a: line[a]))
+                    elif x == 7:
+                        x_mins_after.add(min([x-1,x], key = lambda a: line[a]))
+                    else:
+                        x_mins_after.add(min([x-1,x,x+1], key = lambda a: line[a]))
+            
+            to_remove = []
+            for x in x_mins_after:
+                if line[x] > 200:
+                    to_remove.append(x)
+            
+            for x in to_remove:
+                x_mins_after.remove(x)
+
+            if 0 < len(x_mins_after) <= 2:
+                ground = False
+                if y == 5:
+                    for x in x_mins_after:
+                        if line[x] > 90: ground = True
+
+                if ground == False:
+                    x_mins_lines.append(x_mins_after)
+                    ys.append(y)
+        
+        # print("#############")
+        # print(ys)
+        # print(x_mins_lines)
+        # for y,x in zip(ys,self.x_mins_lines) :
+        #     print(f"y={y} mins={x} val={[self.distance_matrix[y][a] for a in x]}")
+        # for y in ys:
+        #     print(f"y={y} distances= {self.distance_matrix[y]}")
+
+
+        if len(x_mins_lines) < 3:
+            self.vl53_angle[id] = []
+            self.vl53_distance[id] = []
+            return
+        
+        single = []
+        for i in range(len(x_mins_lines)):
+            x = x_mins_lines[i]
+            if len(x) == 1:
+                single = [i]
+        
+        if single:
+            # print("Single plant")
+            number_of_line = len(x_mins_lines)
+            x_moy = x_mins_lines[single[0]].pop()
+            distance_moy = distance_matrix[ys[single[0]]][x_moy]
+            for i in range(number_of_line):
+                if i != single[0]:
+                    if i in single:
+                        x = x_mins_lines[i].pop()
+                        x_moy += x
+                        distance_moy += distance_matrix[ys[i]][x]
+            x_moy = x_moy / len(single)
+            distance_moy = distance_moy / len(single)
+            # print(f"Position_x: {x_moy} Distance: {distance_moy}")
+            self.vl53_angle[id] = [(x_moy - 3.5) * 5.625]
+            self.vl53_distance[id] = [distance_moy]
+
+        else:
+            # print("Two plant")
+            number_of_line = len(x_mins_lines)
+            xs_0 = list(x_mins_lines[0])
+            xs_0.sort()
+            x_moy_0 = xs_0[0]
+            distance_moy_0 = distance_matrix[ys[0]][x_moy_0]
+            x_moy_1 = xs_0[1]
+            distance_moy_1 = distance_matrix[ys[0]][x_moy_1]
+            for i in range(1,number_of_line):
+                xs = list(x_mins_lines[i])
+                xs.sort()
+                x_moy_0 += xs[0]
+                distance_moy_0 += distance_matrix[ys[0]][xs[0]]
+                x_moy_1 += xs[1]
+                distance_moy_1 += distance_matrix[ys[0]][xs[1]]
+            x_moy_0 = x_moy_0 / number_of_line
+            x_moy_1 = x_moy_1 / number_of_line
+            distance_moy_0 = distance_moy_0 / number_of_line
+            distance_moy_1 = distance_moy_1 / number_of_line
+            # print(f"Position_x: {x_moy_0} Distance: {distance_moy_0}")
+            # print(f"Position_x: {x_moy_1} Distance: {distance_moy_1}")
+            if distance_moy_0 < distance_moy_1:
+                self.vl53_angle[id] = [(x_moy_0 - 3.5) * 5.625, (x_moy_1 - 3.5) * 5.625]
+                self.vl53_distance[id] = [distance_moy_0, distance_moy_1]
+            else:
+                self.vl53_angle[id] = [(x_moy_1 - 3.5) * 5.625, (x_moy_0 - 3.5) * 5.625]
+                self.vl53_distance[id] = [distance_moy_1, distance_moy_0]
 
 
 
