@@ -19,7 +19,7 @@ import nav
 import lcd_client as lcd
 
 XY_ACCURACY = 8  # mm
-THETA_ACCURACY = radians(4) # radians
+THETA_ACCURACY = radians(10) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
 THETA_PINCES_BABORD = radians(60)  #pinces babord
@@ -63,16 +63,22 @@ class Actionneur(Enum):
 class ValeurActionneur(Enum):
     InitPano = 1500
 
-    OpenPince1 = 1130
-    OpenPince2 = 1800
-    OpenPince3 = 1120
-    OpenPince4 = 1120
+    OpenPince1 = 1120
+    OpenPince2 = 1900
+    OpenPince3 = 850
+    OpenPince4 = 1070
     
-    ClosePince1 = 750
-    ClosePince2 = 1400
-    ClosePince3 = 1300
-    ClosePince4 = 1300
+    ClosePince1 = 800
+    ClosePince2 = 1560
+    ClosePince3 = 1190
+    ClosePince4 = 1305
+
+    ClosePincePot1 = 830
+    ClosePincePot2 = 1590
+    ClosePincePot3 = 1150
+    ClosePincePot4 = 1260
     
+
     DownBras = 1960
     UpBras = 950
     
@@ -102,8 +108,11 @@ class Robot:
         self.aruco_time = 0
         self.command_sent = False
         self.lidar_pos = Pos(0,0,0)
-        self.vl53_angle = [[],[],[],[],[]]
-        self.vl53_distance = [[],[],[],[],[]]
+        self.vl53_data: dict[Actionneur,None|tuple] = {Actionneur.Pince1: None,
+                           Actionneur.Pince2: None,
+                           Actionneur.Pince3: None,
+                           Actionneur.Pince4: None
+                           }
 
         self.aruco_y = 0
         self.aruco_x = 0
@@ -117,7 +126,7 @@ class Robot:
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
-        self.solar_offset = 125 # Basic solar offset
+        self.solar_offset = 115 # Basic solar offset
         self.solar_ratio = 90/105
 
         #self.tirette = robot_pb.IHM.T_NONE
@@ -178,13 +187,13 @@ class Robot:
         #self.proximitySub.set_callback(self.onProximityStatus)
 
         self.vl53_1_sub = ProtoSubscriber("vl53_1",lidar_pb.Lidar)
-        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,1))
+        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince1))
         self.vl53_2_sub = ProtoSubscriber("vl53_2",lidar_pb.Lidar)
-        self.vl53_2_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,2))
+        self.vl53_2_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince2))
         self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
-        self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,3))
+        self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince3))
         self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
-        self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg,4))
+        self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
         
         ### PUB ECAL ###
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
@@ -419,6 +428,7 @@ class Robot:
             msg = robot_pb.IO(id = actionneur.value , val = val.value)
         
         self.IO_pub.send(msg)
+        time.sleep(0.1)
 
     def initActionneur(self):
         """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
@@ -526,10 +536,22 @@ class Robot:
     
     def vl53_detect_plante(self, msg, id):
         distances = list(msg.distances)
-        distance_matrix = np.empty((8,8))
+        #distance_matrix = np.empty((8,8))
 
         def idx(x, y):
             return (7 - y) * 8 + (7 - x)
+        
+        self.vl53_data[id] = None
+
+        index_mins = []
+        for y in range(3, 6):
+            index_min = min(range(8), key=lambda x: distances[idx(x, y)])
+            index_mins.append(index_min)
+        index_min = sorted(index_mins)[len(index_mins)//2]
+        dist = distances[idx(index_min, index_mins.index(index_min))]
+        self.vl53_data[id] = ((index_min - 3.5) * 5.625, dist)
+        return
+
         
         for y in range(8):
             for x in range(8):

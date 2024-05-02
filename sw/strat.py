@@ -75,10 +75,11 @@ globals = {
 
 class PreInit(State):
     def loop(self):
-        if self.robot.tirette == Tirette.IN:
-            return InitState(self.robot, self.globals, {})
-        self.robot.buzz(ord('E'))
-        time.sleep(0.2)
+        while True:
+            if self.robot.tirette == Tirette.IN:
+                yield InitState(self.robot, self.globals, {})
+            self.robot.buzz(ord('E'))
+            time.sleep(0.5)
 
 class InitState(State):
     def enter(self, prev_state: State | None):
@@ -96,49 +97,49 @@ class InitState(State):
 
     
     def loop(self):
-        # tester si tirette tirée
-        #self.robot.resetPosFromNav("basB")
-        if self.robot.tirette == Tirette.OUT:
-            self.globals["match_start_time"] = time.time()
-            print(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
-            self.globals["end_pos"] = END_POS[self.robot.color][self.robot.strat]
-            self.globals["data"] = STRAT_DATA[self.robot.color]
-            self.globals["alt_end"] = ALT_END_POS[self.robot.color][self.robot.strat]
-            start_pos = START_POS[self.robot.color][self.robot.strat]
-            w, theta = start_pos
-            wx, wy = self.robot.nav.getCoords(w)
-            rp = Pos(wx, wy, theta)
-            self.robot.resetPosFromNav(*start_pos)
-            #print("position robot", self.robot.pos.x, self.robot.pos.y, self.robot.pos.theta)
-            args = {
-                "panos": self.globals["data"]["panos"],
-                "pano_angle": self.globals["data"]["pano_angle"],
-                "plantes": self.globals["data"]["plantes"],
-                "pots": self.globals["data"]["pots"],
-                "depose": self.globals["data"]["depose"]
-            }
-            
-            self.robot.pano_angle = args["pano_angle"]
-            self.robot.updateScore(0)
- 
-            args_alt = {
-                "destination": self.globals["alt_end"],
-                'next_state': EndState(self.robot, self.globals, args)
-            }
-            args["alternative"] = NavState(self.robot, self.globals, args_alt)
-            
-            
-            if self.robot.strat == Strat.Basique:
-                return TestState(self.robot, self.globals, args)
-                #return PanosState(self.robot, self.globals, args)
-            
-            if self.robot.strat == Strat.Audacieuse:
+        while True:
+            # tester si tirette tirée
+            #self.robot.resetPosFromNav("basB")
+            if self.robot.tirette == Tirette.OUT:
+                self.robot.tempsDebutMatch = time.time()
+                print(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
+                self.globals["end_pos"] = END_POS[self.robot.color][self.robot.strat]
+                self.globals["data"] = STRAT_DATA[self.robot.color]
+                self.globals["alt_end"] = ALT_END_POS[self.robot.color][self.robot.strat]
+                start_pos = START_POS[self.robot.color][self.robot.strat]
+                w, theta = start_pos
+                wx, wy = self.robot.nav.getCoords(w)
+                rp = Pos(wx, wy, theta)
+                self.robot.resetPosFromNav(*start_pos)
+                #print("position robot", self.robot.pos.x, self.robot.pos.y, self.robot.pos.theta)
+                args = {
+                    "panos": self.globals["data"]["panos"],
+                    "pano_angle": self.globals["data"]["pano_angle"],
+                    "plantes": self.globals["data"]["plantes"],
+                    "pots": self.globals["data"]["pots"],
+                    "depose": self.globals["data"]["depose"]
+                }
                 
-                #farming puis pano
-                #args['next_state'] = PanosState(self.robot, self.globals, args)
-                return FarmingState(self.robot, self.globals, args)
+                self.robot.pano_angle = args["pano_angle"]
+                self.robot.updateScore(0)
+    
+                args_alt = {
+                    "destination": self.globals["alt_end"],
+                    'next_state': EndState(self.robot, self.globals, args)
+                }
+                args["alternative"] = NavState(self.robot, self.globals, args_alt)
+                
+                
+                if self.robot.strat == Strat.Basique:
+                    #yield TestState(self.robot, self.globals, args)
+                    yield PanosState(self.robot, self.globals, args)
+                
+                if self.robot.strat == Strat.Audacieuse:
+                    
+                    #farming puis pano
+                    #args['next_state'] = PanosState(self.robot, self.globals, args)
+                    yield FarmingState(self.robot, self.globals, args)
             
-            return TestState(self.robot, self.globals, args)
 
 class TestState(State):
     def enter(self, prev_state: State | None):
@@ -151,6 +152,7 @@ class TestState(State):
         time.sleep(1)
         self.robot.setActionneur(Actionneur.Pince3, ValeurActionneur.ClosePince3)
         time.sleep(1)
+        yield None
         
         #print("test fini!")
         #return NavState(self.robot, self.globals, self.args)
@@ -162,6 +164,6 @@ class TestState(State):
 if __name__ == "__main__":
     robot = Robot()
     robot.initNav()
-    fsm = FSM(robot, PreInit, globals)
+    fsm = FSM(robot, PreInit, EndState, globals)
     fsm.run()
 

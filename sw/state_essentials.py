@@ -41,37 +41,35 @@ class NavState(State):
         if "timeout" not in self.args:
             self.args["timeout"] = 5 # default timeout
     
-    def loop(self) -> State | None:
-        
-        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            return EndState(self.robot, self.globals, self.args)
-        x = self.robot.nav_pos[0].x
-        y = self.robot.nav_pos[0].y
-        
-        if self.robot.obstacle_in_way(Pos(x=x,y=y,theta=0)) :
-            if self.move_status == self.MoveStatus.STOPPED:# wait timeout before doing other planned action
-                #print(f"obstacle in the way to '{self.robot.nav.chemin[0]}'")
-                #self.robot.setTargetPos(self.robot.pos)
-                if time.time() - self.t_stop > self.args["timeout"] and "alternative" in self.args:
-                    #print("alternative way")
-                    return self.args["alternative"]
-                
-            elif self.move_status == self.MoveStatus.MOVING: # Stop the robot and start timeout timer
-                #print(f"STOPPING started timer")
-                self.t_stop = time.time()
-                self.robot.setTargetPos(self.robot.pos)
-                self.move_status = self.MoveStatus.STOPPED
-        else:
-            if self.move_status == self.MoveStatus.STOPPED:
-                self.robot.setTargetPos(self.robot.nav_pos[0])
-                self.move_status = self.MoveStatus.MOVING
-
-            elif self.move_status == self.MoveStatus.MOVING: 
-                if self.robot.hasReachedTarget():
-                    del self.robot.nav_pos[0]
-                    if self.robot.isNavDestReached():
-                        return self.args['next_state']
+    def loop(self):
+        while True:
+            x = self.robot.nav_pos[0].x
+            y = self.robot.nav_pos[0].y
+            
+            if self.robot.obstacle_in_way(Pos(x=x,y=y,theta=0)) :
+                if self.move_status == self.MoveStatus.STOPPED:# wait timeout before doing other planned action
+                    #print(f"obstacle in the way to '{self.robot.nav.chemin[0]}'")
+                    #self.robot.setTargetPos(self.robot.pos)
+                    if time.time() - self.t_stop > self.args["timeout"] and "alternative" in self.args:
+                        #print("alternative way")
+                        yield self.args["alternative"]
+                    
+                elif self.move_status == self.MoveStatus.MOVING: # Stop the robot and start timeout timer
+                    #print(f"STOPPING started timer")
+                    self.t_stop = time.time()
+                    self.robot.setTargetPos(self.robot.pos)
+                    self.move_status = self.MoveStatus.STOPPED
+            else:
+                if self.move_status == self.MoveStatus.STOPPED:
                     self.robot.setTargetPos(self.robot.nav_pos[0])
+                    self.move_status = self.MoveStatus.MOVING
+
+                elif self.move_status == self.MoveStatus.MOVING: 
+                    if self.robot.hasReachedTarget():
+                        del self.robot.nav_pos[0]
+                        if self.robot.isNavDestReached():
+                            yield self.args['next_state']
+                        self.robot.setTargetPos(self.robot.nav_pos[0])
 
     
 class EndState(State):
@@ -102,26 +100,22 @@ class PanosState(State):
         if len(self.args["panos"]) > 0:
             print(f"Go to {self.args['panos'][0]}")
 
-    def loop(self) -> State | None:
-        
-        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            return EndState(self.robot, self.globals, self.args)
-        
-        if len(self.args["panos"]) == 0:
-            
-            if self.robot.strat == Strat.Basique:
-                self.args["destination"] = self.globals['end_pos']
-                self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-                return NavState(self.robot, self.globals, self.args)
-                
-            elif self.robot.strat == Strat.Audacieuse:
-                self.args["destination"] = self.globals['end_pos']
-                self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-                return NavState(self.robot, self.globals, self.args)
+    def loop(self):
+        while True:
+            if len(self.args["panos"]) == 0:
+                if self.robot.strat == Strat.Basique:
+                    self.args["destination"] = self.globals['end_pos']
+                    self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+                    yield NavState(self.robot, self.globals, self.args)
+                    
+                elif self.robot.strat == Strat.Audacieuse:
+                    self.args["destination"] = self.globals['end_pos']
+                    self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+                    yield NavState(self.robot, self.globals, self.args)
 
-        self.args["destination"] = self.args["panos"][0]
-        self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
-        return NavState(self.robot, self.globals, self.args)
+            self.args["destination"] = self.args["panos"][0]
+            self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
+            yield NavState(self.robot, self.globals, self.args)
         
 class PanoTurnState(State):
     def __init__(self, robot: Robot, globals, args={}) -> None:
@@ -141,20 +135,17 @@ class PanoTurnState(State):
         #print(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
         self.robot.move_rel(self.robot.aruco_x,self.robot.aruco_y) # on se rapproche du pano
     
-    def loop(self) -> State | None:
-        
-        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            return EndState(self.robot, self.globals, self.args)
-        
-        # faire tourner le panneau
-        if self.args['flag_bad_aruco']:
-            return PanosState(self.robot, self.globals, self.args)
-        if self.robot.hasReachedTarget():
-            if not self.robot.command_sent :
-                self.robot.command_sent = True
-                self.robot.panoDo(self.robot.commande_pano)
-                self.robot.updateScore(5)
-                return PanosState(self.robot, self.globals, self.args)
+    def loop(self):
+        while True:
+            # faire tourner le panneau
+            if self.args['flag_bad_aruco']:
+                yield PanosState(self.robot, self.globals, self.args)
+            if self.robot.hasReachedTarget():
+                if not self.robot.command_sent :
+                    self.robot.command_sent = True
+                    self.robot.panoDo(self.robot.commande_pano)
+                    self.robot.updateScore(5)
+                    yield PanosState(self.robot, self.globals, self.args)
 
     def leave(self, next_state: State):
         # le panneau est tourné, on peut l'oublier pour passer au suivant.
@@ -171,22 +162,18 @@ class FarmingState(State):
         time.sleep(1)
         #self.robot.recallageLidar()
 
-    def loop(self) -> State | None:
-        
-        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            return EndState(self.robot, self.globals, self.args)
-        
-        if len(self.args["plantes"]) == 0:
-            
-            self.args['next_state'] = EndState(self.robot, self.globals, {})
-            self.args['destination'] = self.globals["end_pos"]
-            return NavState(self.robot, self.globals, self.args)
+    def loop(self):
+        while True:
+            if len(self.args["plantes"]) == 0:
+                self.args['next_state'] = EndState(self.robot, self.globals, {})
+                self.args['destination'] = self.globals["end_pos"]
+                yield NavState(self.robot, self.globals, self.args)
 
-        self.args["destination"] = self.args["plantes"][0].waypoint
-        self.args["orientation"] = self.args["plantes"][0].azimut
-        self.args['next_state'] = PlantesState(self.robot, self.globals, self.args)
+            self.args["destination"] = self.args["plantes"][0].waypoint
+            self.args["orientation"] = self.args["plantes"][0].azimut
+            self.args['next_state'] = PlantesState(self.robot, self.globals, self.args)
 
-        return NavState(self.robot, self.globals, self.args)
+            yield NavState(self.robot, self.globals, self.args)
 
 class PlantesState(State):
     def __init__(self, robot: Robot, globals, args={}) -> None:
@@ -196,62 +183,67 @@ class PlantesState(State):
         print(f"Chercher plantes {self.args['plantes'][0].waypoint}...")
         self.prev_state = prev_state
         self.Ms = Moissonneuses
-        self.M = None
-        self.pince_no = 1
 
     # Reminder : Plante  ['waypoint','azimut']
     # Reminder : Moissonneuse  ['pince','open','closed','orientation','ax','axUp','axDown']
-    def loop(self) -> State | None:
-        
-        if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
-            return EndState(self.robot, self.globals, self.args)
-        
-        if not len(self.Ms):
-            # self.args["destination"] = self.globals['depose']
-            # self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-            return FarmingState(self.robot, self.globals, self.args) #DeposeState ou PotState ect ... 
-        
-        self.M  = self.Ms[0]
-        # descend l'ax et ouvre la pince
-        self.robot.setActionneur(self.M.ax,self.M.axDown)
-        time.sleep(0.1)
-        self.robot.setActionneur(self.M.pince,self.M.openPince)
-        time.sleep(0.1)
-        print("Je tourne")
-        self.robot.heading(self.M.orientation+self.args["orientation"], blocking=True) #azimut des plantes + mettre les pince en face
-        
-        print("Je suis en face")
-        #print("I do what VL53 order")
-
-        time.sleep(1)
-        angle = 0
-        distance = 0
-        for i in range(5):
-            vl53_angles = self.robot.vl53_angle[self.pince_no]
-            if len(vl53_angles) > 0:
-                print(f"vl53 detected plante at {vl53_angles[0]}°")
-                angle = vl53_angles[0]
-                distance = self.robot.vl53_distance[self.pince_no][0]
-                break
-            else:
-                print("no plant detected")
-            time.sleep(1)
-        else:
-            self.pince_no += 1
-            return
+    def loop(self):
+        self.robot.move(100, -self.Ms[0].orientation)
+        for M in self.Ms:
+            # if not len(self.Ms):
+            #     # self.args["destination"] = self.globals['depose']
+            #     # self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+            #     yield FarmingState(self.robot, self.globals, self.args) #DeposeState ou PotState ect ... 
+            # descend l'ax et ouvre la pince
+            self.robot.setActionneur(M.ax,M.axDown)
+            self.robot.setActionneur(M.pince,M.openPince)
+            print("Je tourne")
+            self.robot.heading(M.orientation+self.args["orientation"]) #azimut des plantes + mettre les pince en face
+            while not self.robot.hasReachedTarget():
+                yield None
+            print("Je suis en face")
             
-        self.robot.heading(self.robot.pos.theta - radians(angle), blocking=True)
-        self.robot.move(distance,-self.M.orientation, blocking=True)
-        self.robot.setActionneur(self.M.pince,self.M.closePince)
-        time.sleep(0.1)
-        print("Plante attrapée")
-        del self.Ms[0]
-        self.M = None
-        x, y = self.robot.nav.getCoords(self.args["destination"])
-        theta = self.robot.pos.theta
-        self.robot.setTargetPos(Pos(x=x, y=y, theta=theta), blocking=True)
-        print("je reviens en place")
-        self.pince_no += 1
+            while not self.robot.hasReachedTarget():
+                yield None
+            time.sleep(1)
+            angle = 0
+            distance = 0
+            for i in range(5):
+                data = self.robot.vl53_data[M.pince]
+                print(self.robot.vl53_data)
+                if data is not None:
+                    angle, distance = data
+                    print(f"vl53{M.pince} detected plante at {angle}°")
+                    distance -= 10
+                    break
+                else:
+                    print("no plant detected")
+                time.sleep(1)
+            else:
+                yield None
+                continue
+                
+            self.robot.heading(self.robot.pos.theta - radians(angle))
+            print(f"heading {self.robot.pos.theta - radians(angle)}")
+            while not self.robot.hasReachedTarget():
+                yield None
+            print("ok")
+            self.robot.move(distance,-M.orientation)
+            while not self.robot.hasReachedTarget():
+                yield None
+            self.robot.setActionneur(M.pince,M.closePince)
+            time.sleep(0.1)
+            print("Plante attrapée")
+            
+            #x, y = self.robot.nav.getCoords(self.args["destination"])
+            #theta = self.robot.pos.theta
+            #self.robot.setTargetPos(Pos(x=x, y=y, theta=theta))
+            self.robot.move(-100, -M.orientation)
+            while not self.robot.hasReachedTarget():
+                yield None
+            print("je reviens en place")
+        for M in self.Ms:
+            self.robot.setActionneur(M.ax,M.axUp)
+        yield FarmingState(self.robot, self.globals, self.args) #DeposeState ou PotState ect ... 
     
     def leave(self, next_state: State):
         # les plantes sont rammasée, on peut l'oublier pour passer au suivant.
