@@ -85,8 +85,6 @@ class ValeurActionneur(Enum):
     DownAxBabord = 40
     DownAxTribord = 1010
 
-PANO_CONVERT = 90/105 # 2.5 cm
-PANO_OFFSET = 125 # mm
 
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
@@ -455,7 +453,7 @@ class Robot:
         self.aruco_theta = msg.theta
         # position du centre de rotation
         self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15 
-        self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
+        self.aruco_x = -(msg.z - self.solar_offset) - sin(np.deg2rad(self.aruco_theta)) * 15
         self.aruco_time = time.time()
         #print("aruco : ",self.aruco_x,self.aruco_y)
         commande_pano = self.aruco_theta + self.pano_angle
@@ -466,7 +464,7 @@ class Robot:
         if commande_pano < -180 : 
            commande_pano  = commande_pano + 360
 
-        self.commande_pano = commande_pano*PANO_CONVERT + ValeurActionneur.InitPano.value
+        self.commande_pano = commande_pano*self.solar_ratio + ValeurActionneur.InitPano.value
     
     def panoDo(self,commande):
         """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
