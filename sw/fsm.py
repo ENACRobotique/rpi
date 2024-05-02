@@ -25,6 +25,13 @@ class State:
     
     def loop(self) -> Generator[State | None, None, None]:
         yield None
+    
+    def on_obstacle(self):
+        last_target = self.robot.last_target
+        self.robot.setTargetPos(self.robot.pos)
+        while self.robot.obstacle_in_way(last_target):
+            time.sleep(0.1)
+        self.robot.setTargetPos(last_target)
 
 
 
@@ -45,6 +52,8 @@ class FSM:
                 if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch > 88:
                     if self.current_state.__class__ != self.end_state_cls:
                         next_state = self.end_state_cls(self.robot, self.globals, {})
+                if self.robot.obstacle_in_way(self.robot.last_target):
+                    self.current_state.on_obstacle()
                 if next_state is not None:
                     self.current_state.leave(next_state)
                     print("\nState : ",next_state.__class__.__name__)

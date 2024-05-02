@@ -74,6 +74,8 @@ class NavState(State):
     
 class EndState(State):
     def enter(self, prev_state: State | None):
+        for m in Moissonneuses:
+            self.robot.setActionneur(m.pince, m.openPince)
         x_end,y_end = self.robot.nav.getCoords(self.globals['end_pos'])
         x_alt,y_alt = self.robot.nav.getCoords(self.globals['alt_end'])
         if sqrt((x_end-self.robot.pos.x)**2+(y_end-self.robot.pos.y)**2) < XY_ACCURACY:
@@ -104,10 +106,8 @@ class PanosState(State):
         while True:
             if len(self.args["panos"]) == 0:
                 if self.robot.strat == Strat.Basique:
-                    self.args["destination"] = self.globals['end_pos']
-                    self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-                    yield NavState(self.robot, self.globals, self.args)
-                    
+                    yield FarmingState(self.robot, self.globals, self.args)
+
                 elif self.robot.strat == Strat.Audacieuse:
                     self.args["destination"] = self.globals['end_pos']
                     self.args['next_state'] = EndState(self.robot, self.globals, self.args)
@@ -182,17 +182,12 @@ class PlantesState(State):
     def enter(self, prev_state: State | None):
         print(f"Chercher plantes {self.args['plantes'][0].waypoint}...")
         self.prev_state = prev_state
-        self.Ms = Moissonneuses
 
     # Reminder : Plante  ['waypoint','azimut']
     # Reminder : Moissonneuse  ['pince','open','closed','orientation','ax','axUp','axDown']
     def loop(self):
-        self.robot.move(100, -self.Ms[0].orientation)
-        for M in self.Ms:
-            # if not len(self.Ms):
-            #     # self.args["destination"] = self.globals['depose']
-            #     # self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-            #     yield FarmingState(self.robot, self.globals, self.args) #DeposeState ou PotState ect ... 
+        self.robot.move(100, -Moissonneuses[0].orientation)
+        for M in Moissonneuses:
             # descend l'ax et ouvre la pince
             self.robot.setActionneur(M.ax,M.axDown)
             self.robot.setActionneur(M.pince,M.openPince)
@@ -241,7 +236,7 @@ class PlantesState(State):
             while not self.robot.hasReachedTarget():
                 yield None
             print("je reviens en place")
-        for M in self.Ms:
+        for M in Moissonneuses:
             self.robot.setActionneur(M.ax,M.axUp)
         yield FarmingState(self.robot, self.globals, self.args) #DeposeState ou PotState ect ... 
     
