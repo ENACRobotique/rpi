@@ -1,5 +1,5 @@
 from fsm import State
-from robot import Robot,Actionneur,ValeurActionneur,XY_ACCURACY,THETA_PINCES_BABORD,THETA_PINCES_TRIBORD
+from robot import Robot,Actionneur,ValeurActionneur,XY_ACCURACY,THETA_PINCES_BABORD,THETA_PINCES_TRIBORD, Strat
 from common import Pos
 import time
 from enum import Enum
@@ -76,10 +76,12 @@ class NavState(State):
     
 class EndState(State):
     def enter(self, prev_state: State | None):
-        x1,y1 = self.robot.nav.getCoords(self.globals['end_pos'])
-        if sqrt((x1-self.robot.pos.x)**2+(self.robot.pos.y)**2) < XY_ACCURACY:
+        x_end,y_end = self.robot.nav.getCoords(self.globals['end_pos'])
+        x_alt,y_alt = self.robot.nav.getCoords(self.globals['alt_end'])
+        if sqrt((x_end-self.robot.pos.x)**2+(y_end-self.robot.pos.y)**2) < XY_ACCURACY:
             self.robot.updateScore(10)
-        self.robot.buzz(ord('B'))
+        elif sqrt((x_alt-self.robot.pos.x)**2+(y_alt-self.robot.pos.y)**2) < XY_ACCURACY:
+            self.robot.updateScore(10)
         print("The End !")
         for i in range(4):
             self.robot.buzz(ord('B'))
@@ -106,9 +108,16 @@ class PanosState(State):
             return EndState(self.robot, self.globals, self.args)
         
         if len(self.args["panos"]) == 0:
-            self.args["destination"] = self.globals['end_pos']
-            self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-            return NavState(self.robot, self.globals, self.args)
+            
+            if self.robot.strat == Strat.Basique:
+                self.args["destination"] = self.globals['end_pos']
+                self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+                return NavState(self.robot, self.globals, self.args)
+                
+            elif self.robot.strat == Strat.Audacieuse:
+                self.args["destination"] = self.globals['end_pos']
+                self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+                return NavState(self.robot, self.globals, self.args)
 
         self.args["destination"] = self.args["panos"][0]
         self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
@@ -145,11 +154,6 @@ class PanoTurnState(State):
                 self.robot.command_sent = True
                 self.robot.panoDo(self.robot.commande_pano)
                 self.robot.updateScore(5)
-                self.robot.buzz(ord('D'))
-                time.sleep(0.1)
-                self.robot.buzz(ord('G'))
-                time.sleep(0.1)
-                self.robot.buzz(ord('0'))
                 return PanosState(self.robot, self.globals, self.args)
 
     def leave(self, next_state: State):

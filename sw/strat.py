@@ -68,6 +68,7 @@ STRAT_DATA = {
 globals = {
     "strat_name": "pano strat",
     "end_pos": None,
+    "alt_end":None,
     "data": None,
     "match_timeout":88
 }
@@ -102,11 +103,13 @@ class InitState(State):
             print(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
             self.globals["end_pos"] = END_POS[self.robot.color][self.robot.strat]
             self.globals["data"] = STRAT_DATA[self.robot.color]
+            self.globals["alt_end"] = ALT_END_POS[self.robot.color][self.robot.strat]
             start_pos = START_POS[self.robot.color][self.robot.strat]
             w, theta = start_pos
             wx, wy = self.robot.nav.getCoords(w)
             rp = Pos(wx, wy, theta)
             self.robot.resetPosFromNav(*start_pos)
+            #print("position robot", self.robot.pos.x, self.robot.pos.y, self.robot.pos.theta)
             args = {
                 "panos": self.globals["data"]["panos"],
                 "pano_angle": self.globals["data"]["pano_angle"],
@@ -119,7 +122,7 @@ class InitState(State):
             self.robot.updateScore(0)
  
             args_alt = {
-                "destination": ALT_END_POS[self.robot.color][self.robot.strat],
+                "destination": self.globals["alt_end"],
                 'next_state': EndState(self.robot, self.globals, args)
             }
             args["alternative"] = NavState(self.robot, self.globals, args_alt)

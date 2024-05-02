@@ -241,7 +241,6 @@ class Robot:
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
 
-        
         if frame == Frame.ROBOTCENTRIC:
             pos += self.pos
         elif frame == Frame.ROBOT:
@@ -274,22 +273,31 @@ class Robot:
          \nArgs, float:theta en radians """
         self.heading(self.pos.theta + angle)
     
-    def resetPos(self, pos: Pos, timeout=2):
-        self.reset_pos_pub.send(pos.to_proto())
+    def resetPos(self, position: Pos, timeout=2):
+        print(f"Pos to reset to : {position.x},\t{position.y}, \t{position.theta} ")
+        self.reset_pos_pub.send(position.to_proto())
         start_time = time.time()
+        #self.pos = position
         while time.time() - start_time < timeout:
-            if self.pos.distance(pos) < 1:
-                print(f"Pos reseted to : {pos.x},\t{pos.y}, \t{pos.theta} ")
+            
+            if self.pos.distance(position) < 1:
+                
                 time.sleep(0.1)
                 break
     
     def updateScore(self,points):
+        self.buzz(ord('D'))
+        time.sleep(0.1)
+        self.buzz(ord('G'))
+        time.sleep(0.1)
+        self.buzz(ord('0'))
         self.score += points
         self.score_page.set_text(f"Score",f"{self.score}")
         self.lcd.set_page(self.score_page)
     
     def buzz(self,tone):
-        """Args , string:tone"""
+        """Args , string:tone
+        \ntone : ['A'-'G'] + 7*octave : note à cette octave (0<=octave<=2)"""
         self.lcd.buzz = tone
         self.lcd.display()
 
