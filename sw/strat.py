@@ -3,7 +3,7 @@ from fsm import State, FSM
 from state_essentials import *
 import sys
 sys.path.append("../")
-from robot import Robot, Pos,Team, Tirette, Strat
+from robot import Robot, Pos,Team, Tirette, Strat, THETA_PINCES_BABORD, THETA_PINCES_TRIBORD
 import robot
 import time
 from math import pi
@@ -44,20 +44,23 @@ ALT_END_POS = {
     }
 }
 
+
+#Reminder : Plante params : ['waypoint','azimut']
+#Reminder : Depose params : ['waypoint','azimut']
 STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
         "pano_angle": 180,
-        "plantes":[("planteNE",45,-45,135)],
-        "pots":[("jardiPotJHaut",45,45)],
-        "depose":[("basJ",-90,90)]
+        "plantes":[Plante("planteNE",radians(60))], 
+        "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
+        "depose":[Depose("basJ",radians(-60))]
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
         "pano_angle": 0,
-        "plantes":[("planteNW",45,-45,270)],
-        "pots":[("jardiPotBHaut",135,225)],
-        "depose":[("basB",-90,90)]
+        "plantes":[Plante("planteNW",radians(-90-60))],
+        "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
+        "depose":[Depose("basB",radians(-150))]
     }
 }
 
@@ -73,12 +76,23 @@ class PreInit(State):
     def loop(self):
         if self.robot.tirette == Tirette.IN:
             return InitState(self.robot, self.globals, {})
+        self.robot.buzz(ord('E'))
+        time.sleep(0.2)
 
 class InitState(State):
     def enter(self, prev_state: State | None):
         print("Let's get it started in here !")
         print(f"strat name: {self.globals['strat_name']}")
         self.start_time = time.time()
+        for i in range(4):
+            self.robot.buzz(ord('E'))
+            time.sleep(0.1)
+            self.robot.buzz(ord('F'))
+            time.sleep(0.1)
+            self.robot.buzz(ord('G'))
+            time.sleep(0.1)
+        self.robot.buzz(ord('0'))
+
     
     def loop(self):
         # tester si tirette tirée
@@ -92,9 +106,7 @@ class InitState(State):
             w, theta = start_pos
             wx, wy = self.robot.nav.getCoords(w)
             rp = Pos(wx, wy, theta)
-            while self.robot.pos.distance(rp) > 5:
-                self.robot.resetPosFromNav(*start_pos)
-                time.sleep(0.1)
+            self.robot.resetPosFromNav(*start_pos)
             args = {
                 "panos": self.globals["data"]["panos"],
                 "pano_angle": self.globals["data"]["pano_angle"],
@@ -102,22 +114,37 @@ class InitState(State):
                 "pots": self.globals["data"]["pots"],
                 "depose": self.globals["data"]["depose"]
             }
-            #args["panos"] =  STRAT_DATA[self.robot.color]["panos"].copy()
-            #args["pano_angle"] =  STRAT_DATA[self.robot.color]["pano_angle"]
+            
             self.robot.pano_angle = args["pano_angle"]
             self.robot.updateScore(0)
-            
-            # args["destination"] = 'p1'
-            # args["next_state"] = PanosState(self.robot, self.globals, args)
-            
+ 
             args_alt = {
                 "destination": ALT_END_POS[self.robot.color][self.robot.strat],
                 'next_state': EndState(self.robot, self.globals, args)
             }
-
             args["alternative"] = NavState(self.robot, self.globals, args_alt)
+            
+            
+            if self.robot.strat == Strat.Basique:
+                return PanosState(self.robot, self.globals, args)
+            
+            if self.robot.strat == Strat.Audacieuse:
+                
+                #farming puis pano
+                #args['next_state'] = PanosState(self.robot, self.globals, args)
+                return FarmingState(self.robot, self.globals, args)
+            
+            #return TestState(self.robot, self.globals, args)
 
-            return PanosState(self.robot, self.globals, args)
+class TestState(State):
+    def enter(self, prev_state: State | None):
+        self.robot.resetPosFromNav('basB',radians(90))
+        self.args['destination'] = 'jardiSecureB'
+        self.args['orientation'] = radians(-90)
+    
+    def loop(self):
+        self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+        return NavState(self.robot, self.globals, self.args)
 
 
 

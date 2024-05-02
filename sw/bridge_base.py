@@ -16,7 +16,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
-plotjuggler_udp = ("10.42.0.101", 9870)
+plotjuggler_udp = ("192.168.42.119", 9870)
 
 
 class RxState(Enum):

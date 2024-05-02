@@ -3,7 +3,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher, StringPublisher
 from ecal.core.subscriber import ProtoSubscriber, StringSubscriber
 import time
-from math import sqrt, pi, cos, sin, atan2, radians
+from math import sqrt, pi, cos, sin, atan2, radians,degrees
 import sys
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
@@ -21,6 +21,9 @@ import lcd_client as lcd
 XY_ACCURACY = 8  # mm
 THETA_ACCURACY = radians(4) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
+
+THETA_PINCES_BABORD = radians(60)  #pinces babord
+THETA_PINCES_TRIBORD = radians(-60)
 
 # avoidance bounds 
 BOUNDS = (-100,400,-250,250)
@@ -54,33 +57,33 @@ class Actionneur(Enum):
     Pince4 = 6
     Bras   = 4
     Pano   = 1
-    AxL    = 7
-    AxR    = 8
+    AxBabord    = 7
+    AxTribord    = 8
 
 class ValeurActionneur(Enum):
     InitPano = 1500
 
-    OpenPince1 = 2150
-    OpenPince2 = 1400
-    OpenPince3 = 1700
-    OpenPince4 = 1400
+    OpenPince1 = 1130
+    OpenPince2 = 1800
+    OpenPince3 = 1600
+    OpenPince4 = 1600
     
-    ClosePince1 = 1800
-    ClosePince2 = 1000
-    ClosePince3 = 1700
-    ClosePince4 = 1400
+    ClosePince1 = 750
+    ClosePince2 = 1400
+    ClosePince3 = 1600
+    ClosePince4 = 1600
     
     DownBras = 1960
     UpBras = 950
     
-    UpAxL = 800
-    UpAxR = 200
+    UpAxBabord = 800
+    UpAxTribord = 200
 
-    MidAxL = 500
-    MidAxR = 640   
+    MidAxBabord = 500
+    MidAxTribord = 640   
 
-    DownAxL = 40
-    DownAxR = 1010
+    DownAxBabord = 40
+    DownAxTribord = 1010
 
 PANO_CONVERT = 90/105 # 2.5 cm
 PANO_OFFSET = 125 # mm
@@ -185,9 +188,7 @@ class Robot:
         self.debug_pub =StringPublisher("debug_msg")
         self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",robot_pb.Position) for i in range(3)]
         time.sleep(1)
-        self._plante = False
-        self._face_plante = False
-        self._depose =False
+
         self.nav.initialisation()
         self.initActionneur()
 
@@ -250,7 +251,8 @@ class Robot:
         #print(f"go to: {pos}")
         self.set_target_pos_pub.send(pb_pos)
         self.last_target = pos
-    
+
+
     def move(self, distance, direction):
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
@@ -263,12 +265,14 @@ class Robot:
             self.move(y,pi/2*np.sign(y))
     
     def heading(self,angle):
-        """ Angle en degré """ 
-        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle * pi/180))
+        """ S'oriente vers la direction donnée
+         \nArgs float:theta en radian""" 
+        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle))
     
     def rotate(self,angle):
-        """ angle en degré """
-        self.heading(self.pos.theta*180/pi + angle)
+        """ Rotation en relatif
+         \nArgs, float:theta en radians """
+        self.heading(self.pos.theta + angle)
     
     def resetPos(self, pos: Pos, timeout=2):
         self.reset_pos_pub.send(pos.to_proto())
@@ -283,6 +287,11 @@ class Robot:
         self.score += points
         self.score_page.set_text(f"Score",f"{self.score}")
         self.lcd.set_page(self.score_page)
+    
+    def buzz(self,tone):
+        """Args , string:tone"""
+        self.lcd.buzz = tone
+        self.lcd.display()
 
     def onSetTargetPostition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -309,7 +318,8 @@ class Robot:
         self.nav.initialisation()
 
     def goToWaypoint(self,waypoint, theta: None | float = None ):
-        """ Le robot va directement à un waypoint """
+        """ Le robot va directement à un waypoint avec ou sans angle donné
+        \nArgs, string:waypoint, float|None:theta"""
         if theta is None :
             theta = self.pos.theta
             #print(theta*180/pi)
@@ -319,42 +329,50 @@ class Robot:
         #self.pathFinder(closest,waypoint)
 
     def resetPosFromNav(self, waypoint, theta=None):
+        print("Reseted nav at :", waypoint)
         if theta is None:
             theta = self.pos.theta
         x,y = self.nav.getCoords(waypoint)
         self.resetPos(Pos(x, y, theta))
 
-    def pathFinder(self,dest):
-        """Recherche le plus court chemin entre deux points. 
+    def pathFinder(self,dest,orientation):
+        """Recherche le plus court chemin entre deux points.
         \nRetenu dans l'object self.nav.chemin
         \nUtiliser les noms des waypoints de graph.txt"""
 
         self.nav.entree = self.nav.closestWaypoint(self.pos.x,self.pos.y)
-        print(f"entree: {self.nav.entree}")
         self.nav.sortie = dest
-        self.nav.findPath()
+        nav_pos = self.nav.findPath(self.pos.theta,orientation)
 
         self.n_points = len(self.nav.chemin)
+        print(f"entree: {self.nav.entree}")
         self.current_point_index = 0
         self.nav.current = self.nav.chemin[self.current_point_index]
         print("Path found : ",self.nav.chemin)
+        self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
+        #print("Pos's are : ",self.nav_pos)
+
+        
     
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True"""
-        return self.nav.chemin == []
+        return self.nav_pos == []
     
     def onLidar (self, topic_name, msg, timestamp):
         self.lidar_pos = Pos.from_proto(msg)
     
     def recallageLidar (self):
-        self.pos = self.lidar_pos
+        self.pos.x = self.lidar_pos.x
+        self.pos.y = self.lidar_pos.y
+        
     
 
 
     ### Actionneur ###
     def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
         """ Définir en externe les valeurs à prendre 
-        \nFaire self.setActionneur(Actionneur.AxL,valeur) pour piloter l'ax de gauche !"""
+        \nArgs, Actionneur:actionneur, ValeurActionneur|int:valeur
+        \n Ex: Faire setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL) pour piloter l'ax de gauche !"""
         if type(val) == int :
             msg = robot_pb.IO(id = actionneur.value , val = val)    
         else :
@@ -363,6 +381,7 @@ class Robot:
         self.IO_pub.send(msg)
 
     def initActionneur(self):
+        """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
         time.sleep(0.1)
         self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
         time.sleep(0.1)
@@ -376,12 +395,13 @@ class Robot:
         time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
+        self.setActionneur(Actionneur.AxBabord,ValeurActionneur.UpAxBabord)
         time.sleep(0.1)
-        self.setActionneur(Actionneur.AxR,ValeurActionneur.UpAxR)
+        self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
         time.sleep(0.1)
 
     def aruco(self, topic_name, msg, timestamp):
+        """Callback Ecal du code getAruco, stocke la commande du panneau"""
         # print(msg)
         
         self.aruco_theta = msg.theta
@@ -390,11 +410,7 @@ class Robot:
         self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
         self.aruco_time = time.time()
         #print("aruco : ",self.aruco_x,self.aruco_y)
-        
-
         commande_pano = self.aruco_theta + self.pano_angle
-
-
         #print(f"aruco cmd : x = {self.aruco_x}\t y = {self.aruco_y}")
         if commande_pano > 180 : 
             commande_pano  = commande_pano - 360
@@ -405,16 +421,18 @@ class Robot:
         self.commande_pano = commande_pano*PANO_CONVERT + ValeurActionneur.InitPano.value
     
     def panoDo(self,commande):
-        time.sleep(1)
+        """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
+        \nArgs: int:consigne du servo"""
+        time.sleep(0.5)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
         time.sleep(1)
         self.setActionneur(Actionneur.Pano,int(commande))
-        print("commande: ",commande)
-        time.sleep(2)
+        #print("commande: ",commande)
+        time.sleep(1)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        time.sleep(0.5)
+        time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        time.sleep(2)
+        time.sleep(0.1)
     
     def set_strat(self, strat):
         self.strat = strat
@@ -459,6 +477,7 @@ class Robot:
                 return True
             
         return False
+    
 
 
 
