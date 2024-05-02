@@ -238,7 +238,7 @@ class Robot:
         return (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
     
 
-    def setTargetPos(self, pos: Pos, frame=Frame.TABLE):
+    def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
 
         if frame == Frame.ROBOTCENTRIC:
@@ -250,28 +250,42 @@ class Robot:
         #print(f"go to: {pos}")
         self.set_target_pos_pub.send(pb_pos)
         self.last_target = pos
+        
+        if blocking :
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                if self.hasReachedTarget():
+                    return True
+                time.sleep(0.1)
+            return False
+        
+            
+            
 
 
-    def move(self, distance, direction):
+
+
+    def move(self, distance, direction, blocking=False, timeout = 10):
+        
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
-        self.setTargetPos(target, Frame.ROBOT)
+        self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
-    def move_rel(self,x,y):
+    def move_rel(self,x,y,blocking=False, timeout = 10):
         if x : 
-            self.move(sqrt(x**2+y**2),atan2(y,x))
+            self.move(sqrt(x**2+y**2),atan2(y,x),blocking, timeout)
         else :
-            self.move(y,pi/2*np.sign(y))
+            self.move(y,pi/2*np.sign(y),blocking, timeout)
     
-    def heading(self,angle):
+    def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
          \nArgs float:theta en radian""" 
-        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle))
+        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle),Frame.TABLE, blocking, timeout)
     
-    def rotate(self,angle):
+    def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
          \nArgs, float:theta en radians """
-        self.heading(self.pos.theta + angle)
+        self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
     
     def resetPos(self, position: Pos, timeout=2):
         print(f"Pos to reset to : {position.x},\t{position.y}, \t{position.theta} ")
