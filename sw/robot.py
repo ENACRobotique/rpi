@@ -65,13 +65,13 @@ class ValeurActionneur(Enum):
 
     OpenPince1 = 1130
     OpenPince2 = 1800
-    OpenPince3 = 1600
-    OpenPince4 = 1600
+    OpenPince3 = 1120
+    OpenPince4 = 1120
     
     ClosePince1 = 750
     ClosePince2 = 1400
-    ClosePince3 = 1600
-    ClosePince4 = 1600
+    ClosePince3 = 1300
+    ClosePince4 = 1300
     
     DownBras = 1960
     UpBras = 950
