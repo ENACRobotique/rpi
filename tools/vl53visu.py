@@ -98,9 +98,9 @@ class RadarView(QtWidgets.QWidget):
 
         avr_x = sum(min_idxs) / len(min_idxs)
         avr_dist = sum(min_dists) / len(min_dists)
-        #if avr_dist < 200:
-        #    painter.setBrush(QtGui.QColor("#db34eb"))
-        #    painter.drawRect(QtCore.QRect(int((avr_x) * px_w), 0, px_w, rect.height()))
+        if avr_dist < 200:
+            painter.setBrush(QtGui.QColor("#db34eb"))
+            painter.drawRect(QtCore.QRect(int((avr_x) * px_w), 0, px_w, rect.height()))
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(400, 400)
@@ -120,6 +120,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 if __name__ == "__main__":
     qapp = QtWidgets.QApplication(sys.argv)
     app = ApplicationWindow()
+    app.setWindowTitle(f"VL53 visu {sys.argv[1]}")
     app.show()
     app.activateWindow()
     app.raise_()
