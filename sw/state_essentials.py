@@ -34,7 +34,7 @@ class NavState(State):
 
         if not 'orientation' in self.args:
             self.args['orientation'] = self.robot.pos.theta
-        print(f"Navigating to {self.args['destination'],degrees(self.args['orientation'])}.")
+        print(f"Navigating to {self.args['destination']} with heading {round(degrees(self.args['orientation']),2)}° .")
         self.dtheta= self.robot.pathFinder(self.args['destination'],self.args['orientation'])
         self.move_status = self.MoveStatus.STOPPED
         self.t_stop = time.time()
@@ -191,10 +191,12 @@ class FarmingState(State):
 class PlantesState(State):
 
     class PlanteStatus(Enum):
+        IDLE = 0
         ROTATING = 1
-        ALIGNING = 2
-        GRABING = 3
-        IDLE = 4
+        LISTENING = 2
+        ALIGNING = 3
+        GRABING = 4
+        GO_BACK = 5
 
     def __init__(self, robot: Robot, globals, args={}) -> None:
         super().__init__(robot, globals, args)
@@ -202,8 +204,9 @@ class PlantesState(State):
     def enter(self, prev_state: State | None):
         print(f"Chercher plantes {self.args['plantes'][0].waypoint}...")
         self.prev_state = prev_state
-        self.plante_status = self.PlanteStatus.ROTATING
+        self.plante_status = self.PlanteStatus.IDLE
         self.Ms = Moissonneuses
+        self.M = None
 
     # Reminder : Plante  ['waypoint','azimut']
     # Reminder : Moissonneuse  ['pince','open','closed','orientation','ax','axUp','axDown']
@@ -212,41 +215,54 @@ class PlantesState(State):
         if timeout(self.globals["match_start_time"],self.globals["match_timeout"]):
             return EndState(self.robot, self.globals, self.args)
         
-        if not len(self.Ms):
-            # self.args["destination"] = self.globals['depose']
-            # self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-            return FarmingState(self.robot, self.globals, self.args) #DeposeState ou PotState ect ...
-        
-        M  = self.Ms[0]
-        # descend l'ax et ouvre la pince
-        self.robot.setActionneur(M.ax,M.axDown)
-        time.sleep(0.1)
-        self.robot.setActionneur(M.pince,M.openPince)
+        if self.plante_status == self.PlanteStatus.IDLE:
+            if not len(self.Ms):
+                # self.args["destination"] = self.globals['depose']
+                # self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+                return FarmingState(self.robot, self.globals, self.args) #DeposeState ou PotState ect ... 
+            
+            self.M  = self.Ms[0]
+            # descend l'ax et ouvre la pince
+            self.robot.setActionneur(self.M.ax,self.M.axDown)
+            time.sleep(0.1)
+            self.robot.setActionneur(self.M.pince,self.M.openPince)
+            time.sleep(0.1)
+            self.plante_status = self.PlanteStatus.ROTATING
+            print("Je tourne")
+            self.robot.heading(self.M.orientation+self.args["orientation"]) #azimut des plantes + mettre les pince en face
+            
 
         if self.plante_status == self.PlanteStatus.ROTATING:
-            print("Je tourne")
-            self.robot.heading(M.orientation+self.args["orientation"]) #azimut des plantes + mettre les pince en face
             if self.robot.hasReachedTarget():
-                self.plante_status = self.PlanteStatus.ALIGNING
+                self.plante_status = self.PlanteStatus.LISTENING
                 print("Je suis en face")
         
-        if self.plante_status == self.PlanteStatus.ALIGNING:
+        if self.plante_status == self.PlanteStatus.LISTENING:
             # listen VL53 of the claw
-            x_vl, y_vl = 10,10 
-            self.robot.move_rel(x_vl,y_vl) ## + offsets
             print("I do what VL53 order")
+            self.robot.move(150,-self.M.orientation)
+            self.plante_status = self.PlanteStatus.ALIGNING
+
+        if self.plante_status == self.PlanteStatus.ALIGNING:    
             if self.robot.hasReachedTarget():
                 self.plante_status = self.PlanteStatus.GRABING
         
         if self.plante_status == self.PlanteStatus.GRABING:
-            self.robot.setActionneur(M.pince,M.closePince)
+            self.robot.setActionneur(self.M.pince,self.M.closePince)
+            time.sleep(0.1)
             print("Plante attrapée")
-            self.plante_status = self.PlanteStatus.IDLE
+            self.plante_status = self.PlanteStatus.GO_BACK
             del self.Ms[0]
-        
-        if self.plante_status == self.PlanteStatus.IDLE:
+            self.M = None
+            x, y = self.robot.nav.getCoords(self.args["destination"])
+            theta = self.robot.pos.theta
+            self.robot.setTargetPos(Pos(x=x, y=y, theta=theta))
             print("je reviens en place")
-            self.robot.setTargetPos(self.args["destination"])
+        
+        if self.plante_status == self.PlanteStatus.GO_BACK:
+            if self.robot.hasReachedTarget():
+                self.plante_status = self.PlanteStatus.IDLE
+
             
     def leave(self, next_state: State):
         # les plantes sont rammasée, on peut l'oublier pour passer au suivant.

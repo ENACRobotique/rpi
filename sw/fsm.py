@@ -43,9 +43,9 @@ class FSM:
             next_state = self.current_state.loop()
             if next_state is not None:
                 self.current_state.leave(next_state)
+                print("\nState : ",next_state.__class__.__name__)
                 next_state.enter(self.current_state)
                 self.current_state = next_state
-                print("\nState : ",self.current_state.__class__.__name__)
             time.sleep(self.dt)
 
 

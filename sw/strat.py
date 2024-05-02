@@ -51,16 +51,16 @@ STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
         "pano_angle": 180,
-        "plantes":[Plante("planteNE",radians(60))], 
+        "plantes":[Plante("planteNE",radians(-90-55))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
-        "depose":[Depose("basJ",radians(-60))]
+        "depose":[Depose("basJ",radians(-45))]
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
         "pano_angle": 0,
-        "plantes":[Plante("planteNW",radians(-90-60))],
+        "plantes":[Plante("planteNW",radians(-35))],
         "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
-        "depose":[Depose("basB",radians(-150))]
+        "depose":[Depose("basB",radians(-90-45))]
     }
 }
 
@@ -129,7 +129,8 @@ class InitState(State):
             
             
             if self.robot.strat == Strat.Basique:
-                return PanosState(self.robot, self.globals, args)
+                return TestState(self.robot, self.globals, args)
+                #return PanosState(self.robot, self.globals, args)
             
             if self.robot.strat == Strat.Audacieuse:
                 
@@ -137,17 +138,24 @@ class InitState(State):
                 #args['next_state'] = PanosState(self.robot, self.globals, args)
                 return FarmingState(self.robot, self.globals, args)
             
-            #return TestState(self.robot, self.globals, args)
+            return TestState(self.robot, self.globals, args)
 
 class TestState(State):
     def enter(self, prev_state: State | None):
-        self.robot.resetPosFromNav('basB',radians(90))
-        self.args['destination'] = 'jardiSecureB'
-        self.args['orientation'] = radians(-90)
+        self.robot.resetPosFromNav('secureB',-pi/2)
+        self.args['destination'] = self.args['plantes'][0].waypoint
+        self.args['orientation'] = self.args['plantes'][0].azimut
     
     def loop(self):
-        self.args['next_state'] = EndState(self.robot, self.globals, self.args)
-        return NavState(self.robot, self.globals, self.args)
+        self.robot.setActionneur(Actionneur.Pince3, ValeurActionneur.OpenPince3)
+        time.sleep(1)
+        self.robot.setActionneur(Actionneur.Pince3, ValeurActionneur.ClosePince3)
+        time.sleep(1)
+        
+        #print("test fini!")
+        #return NavState(self.robot, self.globals, self.args)
+        #self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+        #return NavState(self.robot, self.globals, self.args)
 
 
 
