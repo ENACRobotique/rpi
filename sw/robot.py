@@ -315,16 +315,17 @@ class Robot:
         self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
     
     def resetPos(self, position: Pos, timeout=2):
-        print(f"Pos to reset to : {position.x},\t{position.y}, \t{position.theta} ")
+        print(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
-        start_time = time.time()
-        #self.pos = position
-        while time.time() - start_time < timeout:
-            
-            if self.pos.distance(position) < 1:
-                
-                time.sleep(0.1)
+        last_time = time.time()
+        while True:
+            if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):
+                print(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
                 break
+            if time.time() - last_time > 1:
+                self.reset_pos_pub.send(position.to_proto())
+                last_time = time.time()
+            time.sleep(0.1)
     
     def updateScore(self,points):
         self.buzz(ord('D'))
