@@ -452,9 +452,7 @@ class Kalman:
         SigPts = eta * np.hstack((x_aug.reshape([n_aug, 1]), -S_aug.T, S_aug.T))
 
         chiAnt = self.chi  # Keep in mind anterior pose before propagation
-        self.chi = self.chi @ self.expSE2(
-            u * dt
-        )  # Perform the propagation of the mean from t-1 to t
+        self.chi = self.chi @ self.expSE2(u * dt)  # Perform the propagation of the mean from t-1 to t
         chi_inv = self.invSE2(self.chi)  # Compute the inverse of chi
 
         # Propagate each sigma-point through the nonlinear function
