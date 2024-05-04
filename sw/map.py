@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from math import sqrt
-import dijkstra
+#import dijkstra
 import random as rd 
 
 class Graph(object):  
@@ -50,6 +50,11 @@ class Graph(object):
 
 
 def read_graph(file):
+    """
+    Lis le fichier fournit en paramètre, écrit de la manière suivante :
+    NomPoint x y voisin1,voisin2,...
+    renvoi le graph associé
+    """
     g = Graph()
     neighbours = []
     points = []
@@ -67,6 +72,9 @@ def read_graph(file):
 
 
 def print_map(graph):
+    """
+    Affiche la map de la table avec les chemins du graph
+    """
     g = graph 
     for point in g.adj :
         plt.annotate(point, [g.coords[point][0] + rd.randint(-2,2)*0, g.coords[point][1]+ rd.randint(-2,2)/25 ])
@@ -90,13 +98,15 @@ def print_map(graph):
 
 
 def print_chemin(g,chemin):
+    """
+    Affiche le tracé du chemin donné en paramètre
+    """
     for i in range(len(chemin)-1):
         x1 = g.coords[chemin[i]][0]
         y1 = g.coords[chemin[i]][1]
         x2 = g.coords[chemin[i+1]][0]
         y2 = g.coords[chemin[i+1]][1]
         plt.plot([x1,x2],[y1,y2],color='r',linewidth=5)
-        
         
 
 if __name__ == "__main__" : 

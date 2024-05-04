@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Type
-from typing import Optional
+from typing import Optional, Generator
 import sys
 sys.path.append("../")
 from robot import Robot
@@ -23,30 +23,45 @@ class State:
         #raise NotImplementedError(f'"leave" not implemented "{name}"!')
         ...
     
-    def loop(self) -> State | None:
-        #name = self.__class__.__name__
-        #raise NotImplementedError(f'"loop" not implemented "{name}"!')
-        ...
+    def loop(self) -> Generator[State | None, None, None]:
+        yield None
+    
+    def on_obstacle(self):
+        last_target = self.robot.last_target
+        self.robot.setTargetPos(self.robot.pos)
+        while self.robot.obstacle_in_way(last_target):
+            time.sleep(0.1)
+        self.robot.setTargetPos(last_target)
 
 
 
 
 class FSM:
-    def __init__(self, robot: Robot, initStateCls: Type[State], globals={}, dt=0.05) -> None:
+    def __init__(self, robot: Robot, initStateCls: Type[State], end_state_cls:Type[State], globals={}, dt=0.05) -> None:
+        self.robot = robot
+        self.globals = globals
         self.current_state = initStateCls(robot, globals, {})
         self.dt = dt
+        self.end_state_cls = end_state_cls
 
     def run(self):
         self.current_state.enter(None)
         print("\nState : ",self.current_state.__class__.__name__)
         while True:
-            next_state = self.current_state.loop()
-            if next_state is not None:
-                self.current_state.leave(next_state)
-                print("\nState : ",next_state.__class__.__name__)
-                next_state.enter(self.current_state)
-                self.current_state = next_state
-            time.sleep(self.dt)
+            for next_state in self.current_state.loop():
+                if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch > 88:
+                    if self.current_state.__class__ != self.end_state_cls:
+                        print("fin du match!")
+                        next_state = self.end_state_cls(self.robot, self.globals, {})
+                if self.robot.obstacle_in_way(self.robot.last_target):
+                    self.current_state.on_obstacle()
+                if next_state is not None:
+                    self.current_state.leave(next_state)
+                    print("\nState : ",next_state.__class__.__name__)
+                    next_state.enter(self.current_state)
+                    self.current_state = next_state
+                    break
+                time.sleep(self.dt)
 
 
 

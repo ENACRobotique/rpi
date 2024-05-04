@@ -17,16 +17,21 @@ import numpy as np
 import nav 
 
 import lcd_client as lcd
-
+HEIGHT = 2000
+WIDTH = 3000
+DELTA = 40
 XY_ACCURACY = 8  # mm
-THETA_ACCURACY = radians(4) # radians
+THETA_ACCURACY = radians(10) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
-THETA_PINCES_BABORD = radians(60)  #pinces babord
+THETA_PINCES_BABORD = radians(60)  #pinces babord repère robot 
 THETA_PINCES_TRIBORD = radians(-60)
 
 # avoidance bounds 
-BOUNDS = (-100,400,-250,250)
+BOUNDS = (-100,350,-250,250)
+
+#timing for actionneur movements
+ACT_TIME = 0.5 # seconds
 
 class Team(Enum):
     BLEU = 1
@@ -63,16 +68,22 @@ class Actionneur(Enum):
 class ValeurActionneur(Enum):
     InitPano = 1500
 
-    OpenPince1 = 1130
-    OpenPince2 = 1800
-    OpenPince3 = 1600
-    OpenPince4 = 1600
+    OpenPince1 = 1120
+    OpenPince2 = 1900
+    OpenPince3 = 850
+    OpenPince4 = 1070
     
-    ClosePince1 = 750
-    ClosePince2 = 1400
-    ClosePince3 = 1600
-    ClosePince4 = 1600
+    ClosePince1 = 780
+    ClosePince2 = 1540
+    ClosePince3 = 1210
+    ClosePince4 = 1325
+
+    ClosePincePot1 = 830
+    ClosePincePot2 = 1590
+    ClosePincePot3 = 1150
+    ClosePincePot4 = 1260
     
+
     DownBras = 1960
     UpBras = 950
     
@@ -85,8 +96,6 @@ class ValeurActionneur(Enum):
     DownAxBabord = 40
     DownAxTribord = 1010
 
-PANO_CONVERT = 90/105 # 2.5 cm
-PANO_OFFSET = 125 # mm
 
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
@@ -104,6 +113,11 @@ class Robot:
         self.aruco_time = 0
         self.command_sent = False
         self.lidar_pos = Pos(0,0,0)
+        self.vl53_data: dict[Actionneur,None|tuple] = {Actionneur.Pince1: None,
+                           Actionneur.Pince2: None,
+                           Actionneur.Pince3: None,
+                           Actionneur.Pince4: None
+                           }
 
         self.aruco_y = 0
         self.aruco_x = 0
@@ -116,6 +130,9 @@ class Robot:
         self.obstacles = []
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
+
+        self.solar_offset = 115 # Basic solar offset
+        self.solar_ratio = 90/105
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -133,12 +150,18 @@ class Robot:
         self.pos_page = lcd.Text("Position", m, "---")
         self.score_page = lcd.Text("Score", m, "0")
         pid_page = lcd.Menu("PID", m)
-        m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page)
+        solar_page = lcd.Menu("Solar",m)
+        m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page, solar_page)
 
         kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
         ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
         kd_page = lcd.Number("Kd", pid_page, 0, 5, lambda x: self.set_pid_gain(2, x))
         pid_page.add_subpages(kp_page, ki_page, kd_page)
+
+        solar_offset_page = lcd.Number("Offset", solar_page, 100, 140, self.set_solar_offset)
+        solar_ratio_page = lcd.Number("Ratio", solar_page, 0, 2, self.set_solar_ratio)
+        solar_page.add_subpages(solar_offset_page, solar_ratio_page)
+
         self.lcd = lcd.LCDClient(m, self.on_lcd_event, self.on_lcd_state)
         self.lcd.start()
 
@@ -167,6 +190,15 @@ class Robot:
 
         #self.proximitySub = ProtoSubscriber("proximity_status",lidar_pb.Proximity)
         #self.proximitySub.set_callback(self.onProximityStatus)
+
+        self.vl53_1_sub = ProtoSubscriber("vl53_1",lidar_pb.Lidar)
+        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince1))
+        self.vl53_2_sub = ProtoSubscriber("vl53_2",lidar_pb.Lidar)
+        self.vl53_2_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince2))
+        self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
+        self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince3))
+        self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
+        self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
         
         ### PUB ECAL ###
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
@@ -266,10 +298,12 @@ class Robot:
 
 
     def move(self, distance, direction, blocking=False, timeout = 10):
-        
+        """
+        avance de distance dans la direction direction, repère robot 
+        """
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
-        self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
+        return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
     def move_rel(self,x,y,blocking=False, timeout = 10):
         if x : 
@@ -280,7 +314,7 @@ class Robot:
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
          \nArgs float:theta en radian""" 
-        self.setTargetPos(Pos(self.pos.x,self.pos.y,angle),Frame.TABLE, blocking, timeout)
+        return self.setTargetPos(Pos(self.pos.x,self.pos.y,angle),Frame.TABLE, blocking, timeout)
     
     def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
@@ -288,16 +322,18 @@ class Robot:
         self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
     
     def resetPos(self, position: Pos, timeout=2):
-        print(f"Pos to reset to : {position.x},\t{position.y}, \t{position.theta} ")
+        print(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
-        start_time = time.time()
-        #self.pos = position
-        while time.time() - start_time < timeout:
-            
-            if self.pos.distance(position) < 1:
-                
-                time.sleep(0.1)
+        last_time = time.time()
+        while True:
+            if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):
+                print(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
+                self.pos = position
                 break
+            if time.time() - last_time > 1:
+                self.reset_pos_pub.send(position.to_proto())
+                last_time = time.time()
+            time.sleep(0.1)
     
     def updateScore(self,points):
         self.buzz(ord('D'))
@@ -308,6 +344,10 @@ class Robot:
         self.score += points
         self.score_page.set_text(f"Score",f"{self.score}")
         self.lcd.set_page(self.score_page)
+
+    
+    
+        
     
     def buzz(self,tone):
         """Args , string:tone
@@ -346,7 +386,7 @@ class Robot:
             theta = self.pos.theta
             #print(theta*180/pi)
         x,y = self.nav.getCoords(waypoint)
-        self.setTargetPos(Pos(x,y,theta))
+        return self.setTargetPos(Pos(x,y,theta))
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         #self.pathFinder(closest,waypoint)
 
@@ -380,12 +420,16 @@ class Robot:
         """Si le dernier point de Nav est atteint renvoie True"""
         return self.nav_pos == []
     
-    def onLidar (self, topic_name, msg, timestamp):
+    def onLidar(self, topic_name, msg, timestamp):
         self.lidar_pos = Pos.from_proto(msg)
     
-    def recallageLidar (self):
-        self.pos.x = self.lidar_pos.x
-        self.pos.y = self.lidar_pos.y
+    def recallageLidar(self, using_theta : bool = False):
+        if using_theta:
+            theta = self.lidar_pos.theta
+        else:
+            theta = self.pos.theta
+
+        self.resetPos(Pos(self.lidar_pos.x,self.lidar_pos.y,theta))
         
     
 
@@ -401,26 +445,24 @@ class Robot:
             msg = robot_pb.IO(id = actionneur.value , val = val.value)
         
         self.IO_pub.send(msg)
+        time.sleep(0.15)
 
     def initActionneur(self):
         """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince3,ValeurActionneur.OpenPince3)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince4,ValeurActionneur.OpenPince4)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.AxBabord,ValeurActionneur.UpAxBabord)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
-        time.sleep(0.1)
+
+    def set_solar_offset(self, x):
+        self.solar_offset = x
+    
+    def set_solar_ratio(self,x):
+        self.solar_ratio = x
 
     def aruco(self, topic_name, msg, timestamp):
         """Callback Ecal du code getAruco, stocke la commande du panneau"""
@@ -429,7 +471,7 @@ class Robot:
         self.aruco_theta = msg.theta
         # position du centre de rotation
         self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15 
-        self.aruco_x = -(msg.z - PANO_OFFSET) - sin(np.deg2rad(self.aruco_theta)) * 15
+        self.aruco_x = -(msg.z - self.solar_offset) - sin(np.deg2rad(self.aruco_theta)) * 15
         self.aruco_time = time.time()
         #print("aruco : ",self.aruco_x,self.aruco_y)
         commande_pano = self.aruco_theta + self.pano_angle
@@ -440,7 +482,7 @@ class Robot:
         if commande_pano < -180 : 
            commande_pano  = commande_pano + 360
 
-        self.commande_pano = commande_pano*PANO_CONVERT + ValeurActionneur.InitPano.value
+        self.commande_pano = commande_pano*self.solar_ratio + ValeurActionneur.InitPano.value
     
     def panoDo(self,commande):
         """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
@@ -470,11 +512,15 @@ class Robot:
         """ Try to find ennemies 
         \nSend 3 detected object Pos on ecal to visualize but saves all of them """
         def filter_pos(pos_size):
+            
             pos, size = pos_size
-            if 0 < pos.x < 3000 and  0 < pos.y < 2000 :# exclude object out of the table
-                if sqrt(pos.x**2 + pos.y**2) < 1500 and size < 30 : # exclude close and tiny object ( test in conditions !)
+            if 0+DELTA < pos.x < WIDTH-DELTA and  0+DELTA < pos.y < HEIGHT-DELTA :# exclude object out of the table
+                if sqrt((self.pos.x-pos.x)**2 + (self.pos.y-pos.y)**2) < 1500 and size < 30 : # exclude close and tiny object ( test in conditions !)
+                    return False
+                if sqrt((self.pos.x-pos.x)**2 + (self.pos.y-pos.y)**2) < 150: # exclude object mixed up with the robot
                     return False
                 return True
+            return False
 
         amalgames = [(Pos(x,y,0).from_frame(self.pos), size) for x,y,size in zip(msg.x,msg.y,msg.size)]
         
@@ -500,6 +546,235 @@ class Robot:
             
         return False
     
+    def vl53_detect_plante(self, msg, id):
+        distances = list(msg.distances)
+        #distance_matrix = np.empty((8,8))
+
+        def idx(x, y):
+            return (7 - y) * 8 + (7 - x)
+        
+        self.vl53_data[id] = None
+
+        index_mins = []
+        for y in range(3, 6):
+            index_min = min(range(8), key=lambda x: distances[idx(x, y)])
+            index_mins.append(index_min)
+        index_min = sorted(index_mins)[len(index_mins)//2]
+        dist = distances[idx(index_min, index_mins.index(index_min))]
+        if dist < 290:
+            self.vl53_data[id] = ((index_min - 3.5) * 5.625, dist)
+        return
+
+        
+        for y in range(8):
+            for x in range(8):
+                distance_matrix[y,x] = distances[idx(x,y)]
+
+        x_mins_lines = []
+        ys = []
+        for y in range(1,6):
+            line = distance_matrix[y]
+            x_mins_before = set()
+            x_mins_after = {0,1,2,3,4,5,6,7}
+            while x_mins_after != x_mins_before:
+                x_mins_before = x_mins_after
+                x_mins_after = set()
+                for x in x_mins_before:
+                    if x == 0:
+                        x_mins_after.add(min([x,x+1], key = lambda a: line[a]))
+                    elif x == 7:
+                        x_mins_after.add(min([x-1,x], key = lambda a: line[a]))
+                    else:
+                        x_mins_after.add(min([x-1,x,x+1], key = lambda a: line[a]))
+            
+            to_remove = []
+            for x in x_mins_after:
+                if line[x] > 200:
+                    to_remove.append(x)
+            
+            for x in to_remove:
+                x_mins_after.remove(x)
+
+            if 0 < len(x_mins_after) <= 2:
+                ground = False
+                if y == 5:
+                    for x in x_mins_after:
+                        if line[x] > 90: ground = True
+
+                if ground == False:
+                    x_mins_lines.append(x_mins_after)
+                    ys.append(y)
+        
+        # print("#############")
+        # print(ys)
+        # print(x_mins_lines)
+        # for y,x in zip(ys,self.x_mins_lines) :
+        #     print(f"y={y} mins={x} val={[self.distance_matrix[y][a] for a in x]}")
+        # for y in ys:
+        #     print(f"y={y} distances= {self.distance_matrix[y]}")
+
+
+        if len(x_mins_lines) < 3:
+            self.vl53_angle[id] = []
+            self.vl53_distance[id] = []
+            return
+        
+        single = []
+        for i in range(len(x_mins_lines)):
+            x = x_mins_lines[i]
+            if len(x) == 1:
+                single = [i]
+        
+        if single:
+            # print("Single plant")
+            number_of_line = len(x_mins_lines)
+            x_moy = x_mins_lines[single[0]].pop()
+            distance_moy = distance_matrix[ys[single[0]]][x_moy]
+            for i in range(number_of_line):
+                if i != single[0]:
+                    if i in single:
+                        x = x_mins_lines[i].pop()
+                        x_moy += x
+                        distance_moy += distance_matrix[ys[i]][x]
+            x_moy = x_moy / len(single)
+            distance_moy = distance_moy / len(single)
+            # print(f"Position_x: {x_moy} Distance: {distance_moy}")
+            self.vl53_angle[id] = [(x_moy - 3.5) * 5.625]
+            self.vl53_distance[id] = [distance_moy]
+
+        else:
+            # print("Two plant")
+            number_of_line = len(x_mins_lines)
+            xs_0 = list(x_mins_lines[0])
+            xs_0.sort()
+            x_moy_0 = xs_0[0]
+            distance_moy_0 = distance_matrix[ys[0]][x_moy_0]
+            x_moy_1 = xs_0[1]
+            distance_moy_1 = distance_matrix[ys[0]][x_moy_1]
+            for i in range(1,number_of_line):
+                xs = list(x_mins_lines[i])
+                xs.sort()
+                x_moy_0 += xs[0]
+                distance_moy_0 += distance_matrix[ys[0]][xs[0]]
+                x_moy_1 += xs[1]
+                distance_moy_1 += distance_matrix[ys[0]][xs[1]]
+            x_moy_0 = x_moy_0 / number_of_line
+            x_moy_1 = x_moy_1 / number_of_line
+            distance_moy_0 = distance_moy_0 / number_of_line
+            distance_moy_1 = distance_moy_1 / number_of_line
+            # print(f"Position_x: {x_moy_0} Distance: {distance_moy_0}")
+            # print(f"Position_x: {x_moy_1} Distance: {distance_moy_1}")
+            if distance_moy_0 < distance_moy_1:
+                self.vl53_angle[id] = [(x_moy_0 - 3.5) * 5.625, (x_moy_1 - 3.5) * 5.625]
+                self.vl53_distance[id] = [distance_moy_0, distance_moy_1]
+            else:
+                self.vl53_angle[id] = [(x_moy_1 - 3.5) * 5.625, (x_moy_0 - 3.5) * 5.625]
+                self.vl53_distance[id] = [distance_moy_1, distance_moy_0]
+
+
+    def play_Space_oddity(self):
+        """Lance la musique de Bowie avant le lancement """
+        time.sleep(0.12)
+        self.buzz(ord('G')+7)
+        time.sleep(0.12)
+        self.buzz(ord('G')+7)
+        time.sleep(0.25)
+        self.buzz(ord('C')+7) #
+        time.sleep(0.2)
+        self.buzz(ord('D')+7)
+        time.sleep(0.1)
+        self.buzz(ord('F')+7)
+        time.sleep(0.22)
+        self.buzz(ord('E')+7)
+        time.sleep(0.23)
+        self.buzz(ord('D')+7)
+        time.sleep(0.23)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('B')+7)
+        self.buzz(ord('B')+7)
+        self.buzz(ord('B')+7)
+        time.sleep(0.5)
+        self.buzz(ord('B')+7)
+        time.sleep(0.23)
+        self.buzz(ord('E')+7)
+        time.sleep(0.23)
+        self.buzz(ord('D')+7)
+        time.sleep(0.23)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('B')+7)
+        time.sleep(0.23)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('D')+7)
+        time.sleep(0.115)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('A')+7)
+
+    
+    def play_Rick_Roll(self):
+        
+        time.sleep(0.12)
+        self.buzz(ord('A')) #Ne
+        time.sleep(0.2)
+        self.buzz(ord('B')) #Ver
+        time.sleep(0.2)
+        self.buzz(ord('D')) #Go
+        time.sleep(0.2)
+        self.buzz(ord('B')) #na
+        time.sleep(0.3)
+        self.buzz(ord('F')) #Give
+        time.sleep(0.3)
+        self.buzz(ord('F')) #You
+        time.sleep(0.3)
+        self.buzz(ord('E')) # Up
+        time.sleep(0.5)
+
+        self.buzz(ord('A')) #Ne 
+        time.sleep(0.2)
+        self.buzz(ord('B')) # Ver
+        time.sleep(0.2)
+        self.buzz(ord('C')) #Go
+        time.sleep(0.2)
+        self.buzz(ord('A')) # Na
+        time.sleep(0.3)
+        self.buzz(ord('E')) #Let
+        time.sleep(0.3)
+        self.buzz(ord('E')) #You
+        time.sleep(0.3)
+        self.buzz(ord('D')) # Do-
+        time.sleep(0.3)
+        self.buzz(ord('C')) # -oo-
+        time.sleep(0.2)
+        self.buzz(ord('B')) # -wn
+        time.sleep(0.5)
+
+        self.buzz(ord('A')) #Ne
+        time.sleep(0.2)
+        self.buzz(ord('B')) #Ver
+        time.sleep(0.2)
+        self.buzz(ord('D')) #Go
+        time.sleep(0.2)
+        self.buzz(ord('B')) #na
+        time.sleep(0.3)
+        self.buzz(ord('D')) #run 
+        time.sleep(0.3)
+        self.buzz(ord('E')) #arouund
+        time.sleep(0.3)
+        self.buzz(ord('C')) #
+        time.sleep(0.3)
+        self.buzz(ord('A')) # 
+        time.sleep(0.15)
+        self.buzz(ord('A')) #
+        time.sleep(0.3)
+        self.buzz(ord('E')) #
+        time.sleep(0.4)
+        self.buzz(ord('D')) #
+    
+
+
 
 
 
