@@ -3,7 +3,7 @@ from fsm import State, FSM
 from state_essentials import *
 import sys
 sys.path.append("../")
-from robot import Robot, Pos,Team, Tirette, Strat, THETA_PINCES_BABORD, THETA_PINCES_TRIBORD
+from robot import Robot, Pos, Team, Tirette, Strat, THETA_PINCES_BABORD, THETA_PINCES_TRIBORD
 import robot
 import time
 from math import pi
@@ -53,14 +53,16 @@ STRAT_DATA = {
         "pano_angle": 180,
         "plantes":[Plante("planteNE",radians(-90-55))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
-        "depose":[Depose("basJ",radians(-45))]
+        "depose":[Depose("basJ",radians(-45))],
+        "jardi":[("jardiSecureJ",DeposeState.Azimut.NORTH,THETA_PINCES_BABORD)]
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
         "pano_angle": 0,
         "plantes":[Plante("planteNW",radians(-35))],
         "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
-        "depose":[Depose("basB",radians(-90-45))]
+        "depose":[Depose("basB",radians(-90-45))],
+        "jardi":[Jardi("jardiSecureB",DeposeState.Azimut.NORTH)]
     }
 }
 
@@ -86,20 +88,13 @@ class InitState(State):
         print("Let's get it started in here !")
         print(f"strat name: {self.globals['strat_name']}")
         self.start_time = time.time()
-        for i in range(4):
-            self.robot.buzz(ord('E'))
-            time.sleep(0.1)
-            self.robot.buzz(ord('F'))
-            time.sleep(0.1)
-            self.robot.buzz(ord('G'))
-            time.sleep(0.1)
-        self.robot.buzz(ord('0'))
+        self.robot.play_Space_oddity()
 
     
     def loop(self):
         while True:
             # tester si tirette tirée
-            #self.robot.resetPosFromNav("basB")
+            
             if self.robot.tirette == Tirette.OUT:
                 self.robot.tempsDebutMatch = time.time()
                 print(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
@@ -111,13 +106,15 @@ class InitState(State):
                 wx, wy = self.robot.nav.getCoords(w)
                 rp = Pos(wx, wy, theta)
                 self.robot.resetPosFromNav(*start_pos)
+
                 #print("position robot", self.robot.pos.x, self.robot.pos.y, self.robot.pos.theta)
                 args = {
                     "panos": self.globals["data"]["panos"],
                     "pano_angle": self.globals["data"]["pano_angle"],
                     "plantes": self.globals["data"]["plantes"],
                     "pots": self.globals["data"]["pots"],
-                    "depose": self.globals["data"]["depose"]
+                    "depose": self.globals["data"]["depose"],
+                    "jardi": self.globals["data"]["jardi"]
                 }
                 
                 self.robot.pano_angle = args["pano_angle"]
@@ -132,7 +129,12 @@ class InitState(State):
                 
                 if self.robot.strat == Strat.Basique:
                     #yield TestState(self.robot, self.globals, args)
-                    yield PanosState(self.robot, self.globals, args)
+                    self.open_time = time.time()
+                    while time.time() - self.open_time <= 1:
+                        yield None
+                    self.robot.recallageLidar(True)
+                    
+                    yield FarmingState(self.robot, self.globals, args)#PanosState(self.robot, self.globals, args)
                 
                 if self.robot.strat == Strat.Audacieuse:
                     

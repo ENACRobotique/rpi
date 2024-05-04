@@ -51,6 +51,7 @@ class FSM:
             for next_state in self.current_state.loop():
                 if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch > 88:
                     if self.current_state.__class__ != self.end_state_cls:
+                        print("fin du match!")
                         next_state = self.end_state_cls(self.robot, self.globals, {})
                 if self.robot.obstacle_in_way(self.robot.last_target):
                     self.current_state.on_obstacle()
