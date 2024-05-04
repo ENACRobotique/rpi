@@ -75,7 +75,17 @@ def print_map(graph):
             y1 = g.coords[point][1]
             x2 = g.coords[voisin][0]
             y2 = g.coords[voisin][1]
-            plt.plot([x1,x2],[y1,y2])
+            plt.plot([x1,x2],[y1,y2],color='black')
+    #affichage des jardinières
+    plt.plot([0,0],[450,450+325],color='y')
+    plt.plot([0,0],[2000-450-325,2000-450],color='b')
+    plt.plot([600,925],[2000,2000],color='b')
+
+    plt.plot([3000,3000],[450,450+325],color='b')
+    plt.plot([3000,3000],[2000-450-325,2000-450],color='y')
+    plt.plot([3000-600,3000-925],[2000,2000],color='y')
+
+    
             
 
 
@@ -87,6 +97,7 @@ def print_chemin(g,chemin):
         y2 = g.coords[chemin[i+1]][1]
         plt.plot([x1,x2],[y1,y2],color='r',linewidth=5)
         
+        
 
 if __name__ == "__main__" : 
     ### test 
@@ -94,17 +105,19 @@ if __name__ == "__main__" :
     graph = read_graph(file) #map de la table
     graph.weight()
 
-    chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "potSE") #a liste des points parcourus,nd distance parcourue
-
+    #chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "potSE") #a liste des points parcourus,nd distance parcourue
+    
     print(graph.weights)
     plt.figure()
     print_map(graph)
 
-    print_chemin(graph,chemin)
+    #print_chemin(graph,chemin)
 
-    print(chemin)
-    print(distance_totale)
+    #print(chemin)
+    #print(distance_totale)
 
-    print(graph.coords[chemin[1]][0]) #coordonnes x du point 
+    #print(graph.coords[chemin[1]][0]) #coordonnes x du point 
     #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
+    plt.grid()
+    plt.axis('equal')
     plt.show()
