@@ -73,10 +73,10 @@ class ValeurActionneur(Enum):
     OpenPince3 = 850
     OpenPince4 = 1070
     
-    ClosePince1 = 780
-    ClosePince2 = 1540
-    ClosePince3 = 1210
-    ClosePince4 = 1325
+    ClosePince1 = 790
+    ClosePince2 = 1550
+    ClosePince3 = 1200
+    ClosePince4 = 1315
 
     ClosePincePot1 = 830
     ClosePincePot2 = 1590

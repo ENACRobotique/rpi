@@ -156,11 +156,10 @@ class FarmingState(State):
         if len(self.args["plantes"]) > 0:
             print(f"Farming now at {self.args['plantes'][0].waypoint}")
 
-        time.sleep(1)
-        # self.open_time = time.time()
-        # while time.time() - self.open_time <= 1:
-            # yield None
-        # self.robot.recallageLidar()
+        self.open_time = time.time()
+        while time.time() - self.open_time <= 2:
+            yield None
+        self.robot.recallageLidar()
 
     def loop(self):
         while True:
@@ -364,10 +363,12 @@ class DeposeState(State):
         while not self.robot.hasReachedTarget():
             yield None
 
-        print("j'aifini")
+        print("j'ai fini")
         #self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
-        self.args["destination"] = self.globals["end_pos"]
-        self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+        if self.robot.strat == Strat.Basique:
+            self.args["destination"] = self.globals["end_pos"]
+            self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+        
         yield NavState(self.robot, self.globals, self.args)
 
 # class PotState(State):

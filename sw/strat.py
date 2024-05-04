@@ -133,8 +133,7 @@ class InitState(State):
                     while time.time() - self.open_time <= 1:
                         yield None
                     self.robot.recallageLidar(True)
-                    
-                    yield FarmingState(self.robot, self.globals, args)#PanosState(self.robot, self.globals, args)
+                    yield PanosState(self.robot, self.globals, args)
                 
                 if self.robot.strat == Strat.Audacieuse:
                     
