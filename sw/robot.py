@@ -17,16 +17,21 @@ import numpy as np
 import nav 
 
 import lcd_client as lcd
-
+HEIGHT = 2000
+WIDTH = 3000
+DELTA = 40
 XY_ACCURACY = 8  # mm
 THETA_ACCURACY = radians(10) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
-THETA_PINCES_BABORD = radians(60)  #pinces babord
+THETA_PINCES_BABORD = radians(60)  #pinces babord repère robot 
 THETA_PINCES_TRIBORD = radians(-60)
 
 # avoidance bounds 
-BOUNDS = (-100,400,-250,250)
+BOUNDS = (-100,350,-250,250)
+
+#timing for actionneur movements
+ACT_TIME = 0.5 # seconds
 
 class Team(Enum):
     BLEU = 1
@@ -68,10 +73,10 @@ class ValeurActionneur(Enum):
     OpenPince3 = 850
     OpenPince4 = 1070
     
-    ClosePince1 = 800
-    ClosePince2 = 1560
-    ClosePince3 = 1190
-    ClosePince4 = 1305
+    ClosePince1 = 780
+    ClosePince2 = 1540
+    ClosePince3 = 1210
+    ClosePince4 = 1325
 
     ClosePincePot1 = 830
     ClosePincePot2 = 1590
@@ -293,7 +298,9 @@ class Robot:
 
 
     def move(self, distance, direction, blocking=False, timeout = 10):
-        
+        """
+        avance de distance dans la direction direction, repère robot 
+        """
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
@@ -321,6 +328,7 @@ class Robot:
         while True:
             if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):
                 print(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
+                self.pos = position
                 break
             if time.time() - last_time > 1:
                 self.reset_pos_pub.send(position.to_proto())
@@ -336,6 +344,10 @@ class Robot:
         self.score += points
         self.score_page.set_text(f"Score",f"{self.score}")
         self.lcd.set_page(self.score_page)
+
+    
+    
+        
     
     def buzz(self,tone):
         """Args , string:tone
@@ -408,12 +420,16 @@ class Robot:
         """Si le dernier point de Nav est atteint renvoie True"""
         return self.nav_pos == []
     
-    def onLidar (self, topic_name, msg, timestamp):
+    def onLidar(self, topic_name, msg, timestamp):
         self.lidar_pos = Pos.from_proto(msg)
     
-    def recallageLidar (self):
-        self.pos.x = self.lidar_pos.x
-        self.pos.y = self.lidar_pos.y
+    def recallageLidar(self, using_theta : bool = False):
+        if using_theta:
+            theta = self.lidar_pos.theta
+        else:
+            theta = self.pos.theta
+
+        self.resetPos(Pos(self.lidar_pos.x,self.lidar_pos.y,theta))
         
     
 
@@ -429,27 +445,18 @@ class Robot:
             msg = robot_pb.IO(id = actionneur.value , val = val.value)
         
         self.IO_pub.send(msg)
-        time.sleep(0.1)
+        time.sleep(0.15)
 
     def initActionneur(self):
         """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince3,ValeurActionneur.OpenPince3)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pince4,ValeurActionneur.OpenPince4)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.AxBabord,ValeurActionneur.UpAxBabord)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
-        time.sleep(0.1)
 
     def set_solar_offset(self, x):
         self.solar_offset = x
@@ -505,11 +512,15 @@ class Robot:
         """ Try to find ennemies 
         \nSend 3 detected object Pos on ecal to visualize but saves all of them """
         def filter_pos(pos_size):
+            
             pos, size = pos_size
-            if 0 < pos.x < 3000 and  0 < pos.y < 2000 :# exclude object out of the table
-                if sqrt(pos.x**2 + pos.y**2) < 1500 and size < 30 : # exclude close and tiny object ( test in conditions !)
+            if 0+DELTA < pos.x < WIDTH-DELTA and  0+DELTA < pos.y < HEIGHT-DELTA :# exclude object out of the table
+                if sqrt((self.pos.x-pos.x)**2 + (self.pos.y-pos.y)**2) < 1500 and size < 30 : # exclude close and tiny object ( test in conditions !)
+                    return False
+                if sqrt((self.pos.x-pos.x)**2 + (self.pos.y-pos.y)**2) < 150: # exclude object mixed up with the robot
                     return False
                 return True
+            return False
 
         amalgames = [(Pos(x,y,0).from_frame(self.pos), size) for x,y,size in zip(msg.x,msg.y,msg.size)]
         
@@ -550,7 +561,8 @@ class Robot:
             index_mins.append(index_min)
         index_min = sorted(index_mins)[len(index_mins)//2]
         dist = distances[idx(index_min, index_mins.index(index_min))]
-        self.vl53_data[id] = ((index_min - 3.5) * 5.625, dist)
+        if dist < 290:
+            self.vl53_data[id] = ((index_min - 3.5) * 5.625, dist)
         return
 
         
@@ -658,6 +670,111 @@ class Robot:
             else:
                 self.vl53_angle[id] = [(x_moy_1 - 3.5) * 5.625, (x_moy_0 - 3.5) * 5.625]
                 self.vl53_distance[id] = [distance_moy_1, distance_moy_0]
+
+
+    def play_Space_oddity(self):
+        """Lance la musique de Bowie avant le lancement """
+        time.sleep(0.12)
+        self.buzz(ord('G')+7)
+        time.sleep(0.12)
+        self.buzz(ord('G')+7)
+        time.sleep(0.25)
+        self.buzz(ord('C')+7) #
+        time.sleep(0.2)
+        self.buzz(ord('D')+7)
+        time.sleep(0.1)
+        self.buzz(ord('F')+7)
+        time.sleep(0.22)
+        self.buzz(ord('E')+7)
+        time.sleep(0.23)
+        self.buzz(ord('D')+7)
+        time.sleep(0.23)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('B')+7)
+        self.buzz(ord('B')+7)
+        self.buzz(ord('B')+7)
+        time.sleep(0.5)
+        self.buzz(ord('B')+7)
+        time.sleep(0.23)
+        self.buzz(ord('E')+7)
+        time.sleep(0.23)
+        self.buzz(ord('D')+7)
+        time.sleep(0.23)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('B')+7)
+        time.sleep(0.23)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('D')+7)
+        time.sleep(0.115)
+        self.buzz(ord('C')+7)
+        time.sleep(0.23)
+        self.buzz(ord('A')+7)
+
+    
+    def play_Rick_Roll(self):
+        
+        time.sleep(0.12)
+        self.buzz(ord('A')) #Ne
+        time.sleep(0.2)
+        self.buzz(ord('B')) #Ver
+        time.sleep(0.2)
+        self.buzz(ord('D')) #Go
+        time.sleep(0.2)
+        self.buzz(ord('B')) #na
+        time.sleep(0.3)
+        self.buzz(ord('F')) #Give
+        time.sleep(0.3)
+        self.buzz(ord('F')) #You
+        time.sleep(0.3)
+        self.buzz(ord('E')) # Up
+        time.sleep(0.5)
+
+        self.buzz(ord('A')) #Ne 
+        time.sleep(0.2)
+        self.buzz(ord('B')) # Ver
+        time.sleep(0.2)
+        self.buzz(ord('C')) #Go
+        time.sleep(0.2)
+        self.buzz(ord('A')) # Na
+        time.sleep(0.3)
+        self.buzz(ord('E')) #Let
+        time.sleep(0.3)
+        self.buzz(ord('E')) #You
+        time.sleep(0.3)
+        self.buzz(ord('D')) # Do-
+        time.sleep(0.3)
+        self.buzz(ord('C')) # -oo-
+        time.sleep(0.2)
+        self.buzz(ord('B')) # -wn
+        time.sleep(0.5)
+
+        self.buzz(ord('A')) #Ne
+        time.sleep(0.2)
+        self.buzz(ord('B')) #Ver
+        time.sleep(0.2)
+        self.buzz(ord('D')) #Go
+        time.sleep(0.2)
+        self.buzz(ord('B')) #na
+        time.sleep(0.3)
+        self.buzz(ord('D')) #run 
+        time.sleep(0.3)
+        self.buzz(ord('E')) #arouund
+        time.sleep(0.3)
+        self.buzz(ord('C')) #
+        time.sleep(0.3)
+        self.buzz(ord('A')) # 
+        time.sleep(0.15)
+        self.buzz(ord('A')) #
+        time.sleep(0.3)
+        self.buzz(ord('E')) #
+        time.sleep(0.4)
+        self.buzz(ord('D')) #
+    
+
+
 
 
 
