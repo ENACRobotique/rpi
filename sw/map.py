@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from math import sqrt
-import dijkstra
+#import dijkstra
 import random as rd 
 
 class Graph(object):  
@@ -50,6 +50,11 @@ class Graph(object):
 
 
 def read_graph(file):
+    """
+    Lis le fichier fournit en paramètre, écrit de la manière suivante :
+    NomPoint x y voisin1,voisin2,...
+    renvoi le graph associé
+    """
     g = Graph()
     neighbours = []
     points = []
@@ -67,6 +72,9 @@ def read_graph(file):
 
 
 def print_map(graph):
+    """
+    Affiche la map de la table avec les chemins du graph
+    """
     g = graph 
     for point in g.adj :
         plt.annotate(point, [g.coords[point][0] + rd.randint(-2,2)*0, g.coords[point][1]+ rd.randint(-2,2)/25 ])
@@ -76,10 +84,18 @@ def print_map(graph):
             x2 = g.coords[voisin][0]
             y2 = g.coords[voisin][1]
             plt.plot([x1,x2],[y1,y2])
+
+    plt.plot([0,0],[0,3000])
+    plt.plot([0,0],[2000,0])
+    plt.plot([2000,0],[2000,3000])
+    plt.plot([0,3000],[2000,3000])
             
 
 
 def print_chemin(g,chemin):
+    """
+    Affiche le tracé du chemin donné en paramètre
+    """
     for i in range(len(chemin)-1):
         x1 = g.coords[chemin[i]][0]
         y1 = g.coords[chemin[i]][1]
@@ -88,23 +104,23 @@ def print_chemin(g,chemin):
         plt.plot([x1,x2],[y1,y2],color='r',linewidth=5)
         
 
-if __name__ == "__main__" : 
-    ### test 
-    file = "sw/graph.txt"
-    graph = read_graph(file) #map de la table
-    graph.weight()
+# if __name__ == "__main__" : 
+#     ### test 
+#     file = "sw/graph.txt"
+#     graph = read_graph(file) #map de la table
+#     graph.weight()
 
-    chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "potSE") #a liste des points parcourus,nd distance parcourue
+#     chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "potSE") #a liste des points parcourus,nd distance parcourue
 
-    print(graph.weights)
-    plt.figure()
-    print_map(graph)
+#     print(graph.weights)
+#     plt.figure()
+#     print_map(graph)
 
-    print_chemin(graph,chemin)
+#     print_chemin(graph,chemin)
 
-    print(chemin)
-    print(distance_totale)
+#     print(chemin)
+#     print(distance_totale)
 
-    print(graph.coords[chemin[1]][0]) #coordonnes x du point 
-    #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
-    plt.show()
+#     print(graph.coords[chemin[1]][0]) #coordonnes x du point 
+#     #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
+#     plt.show()
