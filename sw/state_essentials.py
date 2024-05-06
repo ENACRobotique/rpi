@@ -10,10 +10,10 @@ Depose = namedtuple('zone_depose',['waypoint','azimut'])
 Jardi = namedtuple('jardiniere',['waypoint','azimut'])
 Moissonneuse = namedtuple('actionneur',['pince','openPince','closePince','orientation','ax','axUp','axDown', 'theta_inc'])
 # coté babord , pince 1 et 2 et ax babord - Coté tribord , pince 3 et 4 et ax tribord , theta pinces repère robot
-Moissonneuses = [Moissonneuse(Actionneur.Pince1,ValeurActionneur.OpenPince1,ValeurActionneur.ClosePince1,-THETA_PINCES_BABORD,Actionneur.AxBabord,ValeurActionneur.UpAxBabord,ValeurActionneur.DownAxBabord, radians(-5)),
-                 Moissonneuse(Actionneur.Pince2,ValeurActionneur.OpenPince2,ValeurActionneur.ClosePince2,-THETA_PINCES_BABORD,Actionneur.AxBabord,ValeurActionneur.UpAxBabord,ValeurActionneur.DownAxBabord, radians(5)),
-                 Moissonneuse(Actionneur.Pince3,ValeurActionneur.OpenPince3,ValeurActionneur.ClosePince3,-THETA_PINCES_TRIBORD,Actionneur.AxTribord,ValeurActionneur.UpAxTribord,ValeurActionneur.DownAxTribord, radians(5)),
-                 Moissonneuse(Actionneur.Pince4,ValeurActionneur.OpenPince4,ValeurActionneur.ClosePince4,-THETA_PINCES_TRIBORD,Actionneur.AxTribord,ValeurActionneur.UpAxTribord,ValeurActionneur.DownAxTribord, radians(-5)),
+Moissonneuses = [Moissonneuse(Actionneur.Pince1,ValeurActionneur.OpenPince1,ValeurActionneur.ClosePince1,-THETA_PINCES_BABORD,Actionneur.AxBabord,ValeurActionneur.UpAxBabord,ValeurActionneur.DownAxBabord, radians(-15)),
+                 Moissonneuse(Actionneur.Pince2,ValeurActionneur.OpenPince2,ValeurActionneur.ClosePince2,-THETA_PINCES_BABORD,Actionneur.AxBabord,ValeurActionneur.UpAxBabord,ValeurActionneur.DownAxBabord, radians(15)),
+                 Moissonneuse(Actionneur.Pince3,ValeurActionneur.OpenPince3,ValeurActionneur.ClosePince3,-THETA_PINCES_TRIBORD,Actionneur.AxTribord,ValeurActionneur.UpAxTribord,ValeurActionneur.DownAxTribord, radians(15)),
+                 Moissonneuse(Actionneur.Pince4,ValeurActionneur.OpenPince4,ValeurActionneur.ClosePince4,-THETA_PINCES_TRIBORD,Actionneur.AxTribord,ValeurActionneur.UpAxTribord,ValeurActionneur.DownAxTribord, radians(-15)),
                  ]
 
 def timeout(init_time,timeout):
@@ -87,7 +87,8 @@ class EndState(State):
         print("The End !")
 
         while True :
-            self.robot.play_Rick_Roll()
+            self.robot.shuffle_play()
+            time.sleep(10)
 
 
 class PanosState(State):
@@ -123,8 +124,15 @@ class PanoTurnState(State):
         self.prev_state = prev_state
         self.robot.heading(radians(90)) # bras // pano
         time.sleep(1)
-        if (time.time() - self.robot.aruco_time >= 1) or (abs(self.robot.aruco_y) > 100) or abs(self.robot.aruco_theta) < 40:
-            print("fffflllllllaaaaaaaaagggggggggg")
+        if (time.time() - self.robot.aruco_time >= 1) or (abs(self.robot.aruco_y) > 100):
+            if (time.time() - self.robot.aruco_time >= 1):
+                print("fffflllllllaaaaaaaaagggggggggg: time")
+            if (abs(self.robot.aruco_y) > 100):
+                print("fffflllllllaaaaaaaaagggggggggg: too far")
+            self.args['flag_bad_aruco'] = True
+            return
+        elif 0 + self.args["pano_angle"] < abs(self.robot.aruco_theta) < 40 + self.args["pano_angle"]:
+            print("fffflllllllaaaaaaaaagggggggggg: good already")
             self.args['flag_bad_aruco'] = True
             return
         else:
@@ -217,7 +225,7 @@ class PlantesState(State):
                     distance -= 10
                     break
                 else:
-                    # 2 rotation dans un sens 
+                    # 2 rotation dans un sens s'il n'a pas vu de plantes
                     if i == 0:
                         self.robot.heading(self.robot.pos.theta - M.theta_inc)
                     elif i == 1:
@@ -245,7 +253,7 @@ class PlantesState(State):
             else:
                 print("Pas de plante pas de tournante")
 
-            self.robot.move(-distance/2, -M.orientation)
+            self.robot.move(-distance*(2/3), -M.orientation)
             while not self.robot.hasReachedTarget():
                 yield None
             print("je reviens en place")
@@ -253,8 +261,8 @@ class PlantesState(State):
             self.robot.setActionneur(M.ax,M.axUp)
 
         #une fois que le robot a ramassé les plantes, on peut passer dessus
-        self.robot.nav.graph.weights[(self.args["plantes"][0].waypoint, 'mid')] -= 10000
-        self.robot.nav.graph.weights[('mid', self.args["plantes"][0].waypoint)] -= 10000
+        #self.robot.nav.graph.weights[(self.args["plantes"][0].waypoint, 'mid')] -= 10000
+        #self.robot.nav.graph.weights[('mid', self.args["plantes"][0].waypoint)] -= 10000
         self.open_time = time.time()
         while time.time() - self.open_time <= 3:
             yield None
@@ -284,6 +292,14 @@ class DeposeState(State):
     def __init__(self, robot: Robot, globals, args={}) -> None:
         super().__init__(robot, globals, args)
 
+    def validate_plante(self,pince):
+        data = self.robot.vl53_data[pince]
+        distance = 100
+        angle = 0
+        if data is not None:
+            angle, distance = data
+        if distance < 50:
+            self.robot.updateScore(4)
     
     def enter(self, prev_state: State | None):
         print(f" Déposer Butin {self.args['jardi'][0].waypoint}...")
@@ -298,7 +314,6 @@ class DeposeState(State):
     #Reminder : Plante  ['waypoint','azimut']
     #Reminder : Moissonneuse  ['pince','open','closed','orientation','ax','axUp','axDown']
 
-        
           
         self.robot.move(60, -Moissonneuses[0].orientation+pi/2) # decalle direction -x_table
         while not self.robot.hasReachedTarget():
@@ -308,6 +323,7 @@ class DeposeState(State):
             yield None
             
         print("prêt à lacher")
+        self.validate_plante(Moissonneuses[0].pince)
         self.robot.setActionneur(Moissonneuses[0].pince, Moissonneuses[0].openPince)# lache plante 1
         self.open_time = time.time()
         while time.time() - self.open_time <= ACT_TIME:
@@ -317,6 +333,8 @@ class DeposeState(State):
         self.robot.move(50, -Moissonneuses[0].orientation+pi/2) # decalle direction +x_table
         while not self.robot.hasReachedTarget():
             yield None
+
+        self.validate_plante(Moissonneuses[1].pince)
 
         self.robot.setActionneur(Moissonneuses[1].pince, Moissonneuses[1].openPince)# lache plante 2
         self.open_time = time.time()
@@ -332,6 +350,13 @@ class DeposeState(State):
         self.robot.goToWaypoint(self.args["destination"],self.args["jardi"][0].azimut.value + Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
+
+        # start_time = time.time()
+        # while start_time - time.time() < 2:
+        #     yield None
+
+        #self.robot.recallageLidar()
+        
         self.robot.heading(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
@@ -343,6 +368,9 @@ class DeposeState(State):
             yield None
             
         print("prêt à lacher")
+
+        self.validate_plante(Moissonneuses[3].pince)
+
         self.robot.setActionneur(Moissonneuses[3].pince, Moissonneuses[3].openPince)# lache plante 4
         self.open_time = time.time()
         while time.time() - self.open_time <= ACT_TIME:
@@ -351,6 +379,9 @@ class DeposeState(State):
         self.robot.move(50, -Moissonneuses[3].orientation-pi/2) # decalle direction -x_table
         while not self.robot.hasReachedTarget():
             yield None
+
+
+        self.validate_plante(Moissonneuses[2].pince)
 
         self.robot.setActionneur(Moissonneuses[2].pince, Moissonneuses[2].openPince)# lache plante 3
 

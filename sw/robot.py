@@ -11,6 +11,8 @@ import generated.messages_pb2 as base_pb
 import common
 from common import Pos, Speed, dist_to_line # tkt ça marche
 
+import random as rd
+
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
@@ -38,8 +40,8 @@ class Team(Enum):
     JAUNE = 2
 
 class Tirette(Enum):
-    IN = 0
-    OUT = 1
+    IN = 1
+    OUT = 0
 
 class Frame(Enum):
     TABLE = 0
@@ -132,7 +134,7 @@ class Robot:
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
         self.solar_offset = 115 # Basic solar offset
-        self.solar_ratio = 90/105
+        self.solar_ratio = 1
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -336,11 +338,11 @@ class Robot:
             time.sleep(0.1)
     
     def updateScore(self,points):
-        self.buzz(ord('D'))
+        self.buzz(ord('B'))
         time.sleep(0.1)
-        self.buzz(ord('G'))
+        self.buzz(ord('E')+7)
         time.sleep(0.1)
-        self.buzz(ord('0'))
+        #self.buzz(ord('0'))
         self.score += points
         self.score_page.set_text(f"Score",f"{self.score}")
         self.lcd.set_page(self.score_page)
@@ -487,16 +489,14 @@ class Robot:
     def panoDo(self,commande):
         """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
         \nArgs: int:consigne du servo"""
-        time.sleep(0.5)
         self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
         time.sleep(1)
         self.setActionneur(Actionneur.Pano,int(commande))
         #print("commande: ",commande)
         time.sleep(1)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        time.sleep(0.1)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        time.sleep(0.1)
+        
     
     def set_strat(self, strat):
         self.strat = strat
@@ -561,7 +561,7 @@ class Robot:
             index_mins.append(index_min)
         index_min = sorted(index_mins)[len(index_mins)//2]
         dist = distances[idx(index_min, index_mins.index(index_min))]
-        if dist < 290:
+        if dist < 300:
             self.vl53_data[id] = ((index_min - 3.5) * 5.625, dist)
         return
 
@@ -672,45 +672,53 @@ class Robot:
                 self.vl53_distance[id] = [distance_moy_1, distance_moy_0]
 
 
+    
+    def shuffle_play(self):
+        i = rd.randint(1,2)
+        if i==1:
+            self.play_Space_oddity()
+        elif i==2:
+            self.play_Rick_Roll()
+    
     def play_Space_oddity(self):
         """Lance la musique de Bowie avant le lancement """
-        time.sleep(0.12)
-        self.buzz(ord('G')+7)
-        time.sleep(0.12)
-        self.buzz(ord('G')+7)
-        time.sleep(0.25)
-        self.buzz(ord('C')+7) #
+        time.sleep(1)
+        self.buzz(ord('G'))
         time.sleep(0.2)
+        self.buzz(ord('G'))
+        time.sleep(0.2)
+        self.buzz(ord('C')+7) #
+        time.sleep(0.3)
         self.buzz(ord('D')+7)
-        time.sleep(0.1)
+        time.sleep(0.3)
         self.buzz(ord('F')+7)
-        time.sleep(0.22)
+        time.sleep(0.3)
         self.buzz(ord('E')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('D')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('C')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('B')+7)
         self.buzz(ord('B')+7)
         self.buzz(ord('B')+7)
-        time.sleep(0.5)
+        time.sleep(1)
         self.buzz(ord('B')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('E')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('D')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('C')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('B')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('C')+7)
-        time.sleep(0.23)
+        time.sleep(0.35)
         self.buzz(ord('D')+7)
-        time.sleep(0.115)
+        time.sleep(0.2)
         self.buzz(ord('C')+7)
-        time.sleep(0.23)
+        time.sleep(0.2)
         self.buzz(ord('A')+7)
 
     

@@ -54,7 +54,7 @@ STRAT_DATA = {
         "plantes":[Plante("planteNE",radians(-90-55))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
         "depose":[Depose("basJ",radians(-45))],
-        "jardi":[("jardiSecureJ",DeposeState.Azimut.NORTH,THETA_PINCES_BABORD)]
+        "jardi": [Jardi("jardiSecureJ",DeposeState.Azimut.NORTH)]
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
@@ -88,8 +88,10 @@ class InitState(State):
         print("Let's get it started in here !")
         print(f"strat name: {self.globals['strat_name']}")
         self.start_time = time.time()
-        self.robot.play_Space_oddity()
-
+        for i in range(4):
+            self.robot.buzz(ord('F'))
+            time.sleep(0.1)
+        
     
     def loop(self):
         while True:
