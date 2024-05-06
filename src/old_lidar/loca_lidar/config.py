@@ -52,14 +52,14 @@ yellow_points_in_mm = ( #(x,y) | Made from Eurobot2023_Rules_FR_FInale, Blue Sid
     (-90, 1000), #A (bottom left)     | (22+22+45+5) Bordure mur + Bordure Mur + Moitié + Moitié trou
     (3090, 50), #B (middle top)
     (3090, 1950), #C (bottom right)
-    (1725,2090)  #D (Center of Support de Balise | Top middle)
+    (1810,2140)  #D (Center of Support de Balise | Top middle)
     ) 
 
 blue_points_in_mm = ( #(x,y) | Made from Eurobot2023_Rules_FR_FInale, Green Side
     (3090, 1000), #A (top left)  
     (-90, 50), #B (middle bottom)
     (-90, 1950), #C (top right)
-    (1275, 2090), #D (Center of Support de Balise | Top middle)
+    (1360, 2140), #D (Center of Support de Balise | Top middle)
 )
 
 QUALITY_REJECTION_VAL = 160
