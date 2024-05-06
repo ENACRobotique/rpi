@@ -15,7 +15,7 @@ Moissonneuses = [Moissonneuse(Actionneur.Pince1,ValeurActionneur.OpenPince1,Vale
                  Moissonneuse(Actionneur.Pince3,ValeurActionneur.OpenPince3,ValeurActionneur.ClosePince3,-THETA_PINCES_TRIBORD,Actionneur.AxTribord,ValeurActionneur.UpAxTribord,ValeurActionneur.DownAxTribord, radians(15)),
                  Moissonneuse(Actionneur.Pince4,ValeurActionneur.OpenPince4,ValeurActionneur.ClosePince4,-THETA_PINCES_TRIBORD,Actionneur.AxTribord,ValeurActionneur.UpAxTribord,ValeurActionneur.DownAxTribord, radians(-15)),
                  ]
-
+LIDAR_TIME= 3 # sec
 def timeout(init_time,timeout):
     """Return True if timeout """
     return time.time() - init_time  >= timeout
@@ -72,6 +72,7 @@ class NavState(State):
                         if self.robot.isNavDestReached():
                             yield self.args['next_state']
                         self.robot.setTargetPos(self.robot.nav_pos[0])
+            yield None
 
     
 class EndState(State):
@@ -112,6 +113,7 @@ class PanosState(State):
                     yield NavState(self.robot, self.globals, self.args)
 
             self.args["destination"] = self.args["panos"][0]
+            self.args["orientation"] = radians(90)
             self.args['next_state'] = PanoTurnState(self.robot, self.globals, self.args)
             yield NavState(self.robot, self.globals, self.args)
         
@@ -122,7 +124,7 @@ class PanoTurnState(State):
     def enter(self, prev_state: State | None):
         print(f"tourner panneau {self.args['panos'][0]}...")
         self.prev_state = prev_state
-        self.robot.heading(radians(90)) # bras // pano
+        #self.robot.heading(radians(90)) # bras // pano
         time.sleep(1)
         if (time.time() - self.robot.aruco_time >= 1) or (abs(self.robot.aruco_y) > 100):
             if (time.time() - self.robot.aruco_time >= 1):
@@ -164,10 +166,10 @@ class FarmingState(State):
         if len(self.args["plantes"]) > 0:
             print(f"Farming now at {self.args['plantes'][0].waypoint}")
 
-        self.open_time = time.time()
-        while time.time() - self.open_time <= 2:
+        self.lidar_time = time.time()
+        while time.time() - self.lidar_time <= LIDAR_TIME:
             yield None
-        self.robot.recallageLidar()
+        self.robot.recallageLidar(100)
 
     def loop(self):
         while True:
@@ -263,10 +265,13 @@ class PlantesState(State):
         #une fois que le robot a ramassé les plantes, on peut passer dessus
         #self.robot.nav.graph.weights[(self.args["plantes"][0].waypoint, 'mid')] -= 10000
         #self.robot.nav.graph.weights[('mid', self.args["plantes"][0].waypoint)] -= 10000
-        self.open_time = time.time()
-        while time.time() - self.open_time <= 3:
+        
+        #petit recallage lidar des familes
+        self.lidar_time = time.time()
+        while time.time() - self.lidar_time <= LIDAR_TIME:
             yield None
-        self.robot.recallageLidar()
+        self.robot.recallageLidar(100)
+
         self.args["destination"] = self.args["jardi"][0].waypoint
         self.args["orientation"] = self.args["jardi"][0].azimut.value + Moissonneuses[0].orientation
         self.args['next_state'] = DeposeState(self.robot, self.globals, self.args)
@@ -294,12 +299,12 @@ class DeposeState(State):
 
     def validate_plante(self,pince):
         data = self.robot.vl53_data[pince]
-        distance = 100
-        angle = 0
         if data is not None:
             angle, distance = data
-        if distance < 50:
-            self.robot.updateScore(4)
+            if distance < 50:
+                self.robot.updateScore(4)
+                return True
+        return False
     
     def enter(self, prev_state: State | None):
         print(f" Déposer Butin {self.args['jardi'][0].waypoint}...")
@@ -323,77 +328,83 @@ class DeposeState(State):
             yield None
             
         print("prêt à lacher")
-        self.validate_plante(Moissonneuses[0].pince)
-        self.robot.setActionneur(Moissonneuses[0].pince, Moissonneuses[0].openPince)# lache plante 1
-        self.open_time = time.time()
-        while time.time() - self.open_time <= ACT_TIME:
-            yield None
-        print("pinces 1 lachés")
+        if self.validate_plante(Moissonneuses[0].pince):
+            self.robot.setActionneur(Moissonneuses[0].pince, Moissonneuses[0].openPince)# lache plante 1
+            self.open_time = time.time()
+            while time.time() - self.open_time <= ACT_TIME:
+                yield None
+            print("pinces 1 lachés")
+        else:
+            print("pinces 1 vide")
 
-        self.robot.move(50, -Moissonneuses[0].orientation+pi/2) # decalle direction +x_table
-        while not self.robot.hasReachedTarget():
-            yield None
+        if self.validate_plante(Moissonneuses[1].pince):
+            self.robot.move(50, -Moissonneuses[0].orientation+pi/2) # decalle direction +x_table
+            while not self.robot.hasReachedTarget():
+                yield None
 
-        self.validate_plante(Moissonneuses[1].pince)
-
-        self.robot.setActionneur(Moissonneuses[1].pince, Moissonneuses[1].openPince)# lache plante 2
-        self.open_time = time.time()
-        while time.time() - self.open_time <= ACT_TIME:
-            yield None
-        print("pinces 2 lachés")
+            self.robot.setActionneur(Moissonneuses[1].pince, Moissonneuses[1].openPince)# lache plante 2
+            self.open_time = time.time()
+            while time.time() - self.open_time <= ACT_TIME:
+                yield None
+            print("pinces 2 lachés")
+        else:
+            print("pinces 2 vide")
 
         self.robot.move(-100, -Moissonneuses[0].orientation)# recule
         while not self.robot.hasReachedTarget():
             yield None
+        self.back = False
+        
         # tourne l'autre face et reviens au waypoint
         print("je me tourne à ", degrees(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation))
         self.robot.goToWaypoint(self.args["destination"],self.args["jardi"][0].azimut.value + Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
 
-        # start_time = time.time()
-        # while start_time - time.time() < 2:
+        # #petit recallage lidar des familles
+        # self.lidar_time = time.time()
+        # while self.lidar_time - time.time() < LIDAR_TIME:
         #     yield None
 
-        #self.robot.recallageLidar()
+        # self.robot.recallageLidar(100)
         
         self.robot.heading(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
-        self.robot.move(60, -Moissonneuses[2].orientation-pi/2) # decalle direction +x_table
-        while not self.robot.hasReachedTarget():
-            yield None   
-        self.robot.move(95, -Moissonneuses[2].orientation)# avance vers le bord
-        while not self.robot.hasReachedTarget():
-            yield None
+            self.robot.move(60, -Moissonneuses[2].orientation-pi/2) # decalle direction +x_table
+            while not self.robot.hasReachedTarget():
+                yield None   
+            self.robot.move(95, -Moissonneuses[2].orientation)# avance vers le bord
+            while not self.robot.hasReachedTarget():
+                yield None
+
+        if self.validate_plante(Moissonneuses[3].pince):
+            self.robot.setActionneur(Moissonneuses[3].pince, Moissonneuses[3].openPince)# lache plante 4
+            self.open_time = time.time()
+            while time.time() - self.open_time <= ACT_TIME:
+                yield None
+            print("pinces 4 lachés")
+        else:
+            print("pinces 4 vide")
             
-        print("prêt à lacher")
 
-        self.validate_plante(Moissonneuses[3].pince)
+        if self.validate_plante(Moissonneuses[2].pince):
+            self.robot.move(50, -Moissonneuses[3].orientation-pi/2) # decalle direction -x_table
+            while not self.robot.hasReachedTarget():
+                yield None
+            self.robot.setActionneur(Moissonneuses[2].pince, Moissonneuses[2].openPince)# lache plante 3
+            self.open_time = time.time()
+            while time.time() - self.open_time <= ACT_TIME:
+                yield None
+            print("pinces 3 lachés")
+        else:
+            print("pinces 3 vide")
 
-        self.robot.setActionneur(Moissonneuses[3].pince, Moissonneuses[3].openPince)# lache plante 4
-        self.open_time = time.time()
-        while time.time() - self.open_time <= ACT_TIME:
-            yield None
-        print("pinces 4 lachés")
-        self.robot.move(50, -Moissonneuses[3].orientation-pi/2) # decalle direction -x_table
+        #recule
+        self.robot.move(-100, -Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
-
-
-        self.validate_plante(Moissonneuses[2].pince)
-
-        self.robot.setActionneur(Moissonneuses[2].pince, Moissonneuses[2].openPince)# lache plante 3
-
-        self.open_time = time.time()
-        while time.time() - self.open_time <= ACT_TIME:
-            yield None
-        print("pinces 3 lachés")
-
-        self.robot.move(-100, -Moissonneuses[2].orientation)# recule
-        while not self.robot.hasReachedTarget():
-            yield None
-
+    
         print("j'ai fini")
         #self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
         if self.robot.strat == Strat.Basique:

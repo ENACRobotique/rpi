@@ -6,6 +6,7 @@ sys.path.append("../")
 from robot import Robot
 import time
 
+MATCH_TIMEOUT = 88
 
 class State:
     def __init__(self, robot: Robot, globals: dict, args: dict) -> None:
@@ -49,7 +50,8 @@ class FSM:
         print("\nState : ",self.current_state.__class__.__name__)
         while True:
             for next_state in self.current_state.loop():
-                if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch > 88:
+                if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch > MATCH_TIMEOUT:
+                    print("\nTIMEOUT FIN DE MATCH\n")
                     if self.current_state.__class__ != self.end_state_cls:
                         print("fin du match!")
                         next_state = self.end_state_cls(self.robot, self.globals, {})

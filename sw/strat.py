@@ -72,7 +72,6 @@ globals = {
     "end_pos": None,
     "alt_end":None,
     "data": None,
-    "match_timeout":88
 }
 
 class PreInit(State):
@@ -131,10 +130,10 @@ class InitState(State):
                 
                 if self.robot.strat == Strat.Basique:
                     #yield TestState(self.robot, self.globals, args)
-                    self.open_time = time.time()
-                    while time.time() - self.open_time <= 1:
-                        yield None
-                    self.robot.recallageLidar(True)
+                    self.lidar_time = time.time()
+                    while time.time() - self.lidar_time <= 1:
+                       yield None
+                    self.robot.recallageLidar(4000,True)
                     yield PanosState(self.robot, self.globals, args)
                 
                 if self.robot.strat == Strat.Audacieuse:
