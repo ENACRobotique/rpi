@@ -66,6 +66,7 @@ def init_sensor(s: VL53):
             if b'VL53L5CX Ready !' in line:
                 print(f"sensor {s.nb} INITIALIZED!")
                 s.status = SensorStatus.OK
+                s.pub = ProtoPublisher(f"vl53_{s.nb}", lidar_pb.Lidar)
                 return
         ret = p.poll()
         if ret is not None:
@@ -94,7 +95,7 @@ if __name__ == '__main__':
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         port = BASE_PORT + i
         sock.bind((UDP_IP, port))
-        pub = ProtoPublisher(f"vl53_{i}", lidar_pb.Lidar)
+        pub = None #ProtoPublisher(f"vl53_{i}", lidar_pb.Lidar)
         sensors.append(VL53(i, rst, SensorStatus.UNINIT, port, sock, pub, False))
 
 

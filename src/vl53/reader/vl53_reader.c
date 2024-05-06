@@ -143,7 +143,7 @@ int example2(VL53L5CX_Configuration *p_dev)
 	 * Using 4x4, min frequency is 1Hz and max is 60Hz
 	 * Using 8x8, min frequency is 1Hz and max is 15Hz
 	 */
-	status = vl53l5cx_set_ranging_frequency_hz(p_dev, 4);
+	status = vl53l5cx_set_ranging_frequency_hz(p_dev, 2);
 	if(status)
 	{
 		printf("vl53l5cx_set_ranging_frequency_hz failed, status %u\n", status);
