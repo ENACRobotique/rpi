@@ -136,10 +136,7 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
     r_x = R[1, 1]
 
     for i in range(angle_dist_est.shape[1]):
-        error_angle = np.arctan2(
-            np.sin(data_inliers[0] - angle_dist_est[0, i]),
-            np.cos(data_inliers[0] - angle_dist_est[0, i]),
-        )
+        error_angle = np.arctan2(np.sin(data_inliers[0] - angle_dist_est[0, i]),np.cos(data_inliers[0] - angle_dist_est[0, i]),)
         error_dist = data_inliers[1] - angle_dist_est[1, i]
         # print("error", error_angle)
         # print("error", error_dist)
@@ -156,17 +153,12 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
         )
         neighbors_dist = data_inliers[1] - data_inliers[1, idx_pivot]
         neighbors_cost = np.vstack((neighbors_angle, neighbors_dist))
-        nns = np.where(np.linalg.norm(neighbors_cost, axis=0) <= 0.1)[
-            0
-        ]  # 0.1 is a tuning parameter, it is up to you to tune it, in function of your intuition
+        nns = np.where(np.linalg.norm(neighbors_cost, axis=0) <= 0.1)[0]  # 0.1 is a tuning parameter, it is up to you to tune it, in function of your intuition
 
         # Get candidate based on the mean of the nearest neighbors
         candidate_angle = np.mean(data_inliers[0, nns])
         candidate_dist = np.mean(data_inliers[1, nns])
-        min_error = np.abs(
-            np.vstack((candidate_angle, candidate_dist)).squeeze()
-            - angle_dist_est[:, i]
-        )
+        min_error = np.abs(np.vstack((candidate_angle, candidate_dist)).squeeze()- angle_dist_est[:, i])
 
         # Keep candidate if the error is "low enough", otherwise consider it as lost
         if min_error[0] <= 30 * np.pi / 180 and min_error[1] <= 1:
@@ -382,6 +374,13 @@ class Kalman:
             ksi = np.concatenate(([theta], V_inv.dot(X)))
         return ksi
 
+    def h_fullvec(self, chi, r):
+        #theta = np.arctan2(chi[1,0], chi[0,0]) + r[0]
+        tmp_y = chi @ np.array([0,0,1]) + np.array([r[0],r[1],0])
+        y = tmp_y[:2]
+        Y = y#np.array([theta, *y])
+        return Y
+
     def h_lm_pos(self, chi, landmarks, index_visible_lm, r):
         """
         Output/Observation model. Computes an estimation of the position of all visible landmarks in the body frame, knowing the estimated body pose chi
@@ -520,8 +519,8 @@ class Kalman:
         # Propagate each sigma-point through the nonlinear function
         Y = np.zeros((dimy, 2 * n_aug + 1))
         for j in range(2 * n_aug + 1):
-            ksi_j = SigPts[: self.dimx, j]
-            rj = SigPts[self.dimx :, j]
+            ksi_j = SigPts[:self.dimx, j]
+            rj = SigPts[self.dimx:, j]
             chi_j = self.chi @ self.expSE2(ksi_j)
             Y[:, j] = self.h_lm_pos(chi_j, landmarks, index_visible_lm, rj)
 
@@ -555,6 +554,43 @@ class Kalman:
 
         self.P = self.S.T @ self.S
 
+        return self.chi, self.S, self.P
+    
+    def corr_h_fullvec(self, ymeas, dimy, sqrtR):
+        S_aug = np.block(
+            [
+                [self.S, np.zeros((self.S.shape[0], sqrtR.shape[1]))],
+                [np.zeros((sqrtR.shape[0], self.S.shape[1])), sqrtR],
+            ]
+        )
+        n_aug = S_aug.shape[0]
+        x_aug = np.zeros(n_aug)
+        Wm, Wc, lambda_ = self.compute_weights(n_aug)
+        eta = np.sqrt(n_aug + lambda_)
+        SigPts = eta * np.hstack((x_aug.reshape([n_aug, 1]), -S_aug.T, S_aug.T))
+        Y = np.zeros((dimy, 2 * n_aug + 1))
+        for j in range(2 * n_aug + 1):
+            ksi_j = SigPts[:self.dimx, j]
+            rj = SigPts[self.dimx:, j]
+            chi_j = self.chi @ self.expSE2(ksi_j)
+            Y[:, j] = self.h_fullvec(chi_j, rj)
+        ypred = np.sum(Wm * Y, axis=1)
+        WY = np.sqrt(Wc[1:]) * (Y[:, 1:] - ypred[:, np.newaxis])
+        _, RSy = np.linalg.qr(WY.T)
+        Sy = RSy[:dimy, :dimy]
+        Uy = np.sqrt(abs(Wc[0])) * (Y[:, 0] - ypred)
+        Sy = sp.linalg.cholesky(Sy.T @ Sy - np.outer(Uy, Uy))
+        Py = Sy.T @ Sy
+        Pxy = np.zeros((self.dimx, dimy))
+        for j in range(1, 2 * n_aug + 1):
+            Pxy += Wc[j] * np.outer(SigPts[: self.dimx, j], Y[:, j] - ypred)
+        K = np.dot(Pxy, np.linalg.inv(Py))
+        ksi_bar = K @ (ymeas - ypred)
+        self.chi = self.chi @ self.expSE2(ksi_bar[: self.dimx])
+        U = K @ Sy.T
+        for j in range(dimy):
+            self.S = sp.linalg.cholesky(self.S.T @ self.S - np.outer(U[:, j], U[:, j]))
+        self.P = self.S.T @ self.S
         return self.chi, self.S, self.P
 
 
