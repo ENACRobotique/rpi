@@ -30,7 +30,7 @@ THETA_PINCES_BABORD = radians(60)  #pinces babord repère robot
 THETA_PINCES_TRIBORD = radians(-60)
 
 # avoidance bounds 
-BOUNDS = (-100,350,-250,250)
+BOUNDS = (-100,400,-250,250)
 
 #timing for actionneur movements
 ACT_TIME = 0.5 # seconds
@@ -95,7 +95,7 @@ class ValeurActionneur(Enum):
     MidAxBabord = 500
     MidAxTribord = 640   
 
-    DownAxBabord = 40
+    DownAxBabord = 35
     DownAxTribord = 1010
 
 
@@ -330,9 +330,10 @@ class Robot:
         while True:
             if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):
                 print(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
-                self.pos = position
+                #self.pos = position
                 break
             if time.time() - last_time > 1:
+                print("reset_again")
                 self.reset_pos_pub.send(position.to_proto())
                 last_time = time.time()
             time.sleep(0.1)
@@ -425,13 +426,13 @@ class Robot:
     def onLidar(self, topic_name, msg, timestamp):
         self.lidar_pos = Pos.from_proto(msg)
     
-    def recallageLidar(self, using_theta : bool = False):
+    def recallageLidar(self,tolerance, using_theta : bool = False):
         if using_theta:
             theta = self.lidar_pos.theta
         else:
             theta = self.pos.theta
-
-        self.resetPos(Pos(self.lidar_pos.x,self.lidar_pos.y,theta))
+        if self.pos.distance(self.lidar_pos) < tolerance :
+            self.resetPos(Pos(self.lidar_pos.x,self.lidar_pos.y,theta))
         
     
 
