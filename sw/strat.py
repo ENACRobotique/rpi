@@ -7,6 +7,7 @@ from robot import Robot, Pos, Team, Tirette, Strat, THETA_PINCES_BABORD, THETA_P
 import robot
 import time
 from math import pi
+import subprocess
 
 VL53_TIMEOUT = 40
 
@@ -115,6 +116,7 @@ class InitState(State):
         self.robot.logger.info("Let's get it started in here !")
         self.robot.logger.info(f"strat name: {self.globals['strat_name']}")
         self.start_time = time.time()
+        self.robot.initActionneur()
         for i in range(4):
             self.robot.buzz(ord('F'))
             time.sleep(0.1)
@@ -126,6 +128,8 @@ class InitState(State):
             
             if self.robot.tirette == Tirette.OUT:
                 self.robot.tempsDebutMatch = time.time()
+                # launch ecal recording
+                subprocess.Popen(['ecal_rec', '-r', '110', '--activate'])
                 self.robot.logger.info(f"start with color {self.robot.color} and strat {self.robot.strat}!")
                 self.globals["end_pos"] = END_POS[self.robot.color][self.robot.strat]
                 self.globals["data"] = STRAT_DATA[self.robot.color]
