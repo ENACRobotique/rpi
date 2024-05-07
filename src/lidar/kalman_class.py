@@ -84,7 +84,7 @@ def predict_angle_dist(chi, landmarks, ldr_offset):
     return angle_dist_est
 
 
-def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
+def get_points_of_interest(data_inliers, angle_dist_est, landmarks, ldr_offset, chi, R):
     """
     Computes the landmarks points-of-interest (poi) w.r.t the body frame as a vector ymeas of size (2xNvlm,) where Nvlm is the number of visible landmarks.
 
@@ -96,6 +96,7 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
                       Estimation of the polar coordinates of all landmarks w.r.t the lidar frame where Nlm is the total number of landmarks (Nlm >= Nvlm)
     ldr_offset     : (3,) Array of float
                       Heading (degree) and positions (meter) offsets of the lidar w.r.t the body frame
+    landmarks : (3,)
     chi            : (3,3) Array of float
                       Transformation matrix in SE(2) representing the robot pose
     R              : (2,2) Array of float
@@ -120,7 +121,6 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
     """
     pos_poi_b = []
     pos_poi_w = []
-
 
     #print("data_inliers",data_inliers)
     offset_th = ldr_offset[0] * np.pi / 180
@@ -153,30 +153,34 @@ def get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R):
         )
         neighbors_dist = data_inliers[1] - data_inliers[1, idx_pivot]
         neighbors_cost = np.vstack((neighbors_angle, neighbors_dist))
-        nns = np.where(np.linalg.norm(neighbors_cost, axis=0) <= 0.1)[0]  # 0.1 is a tuning parameter, it is up to you to tune it, in function of your intuition
+        nns = np.where(np.linalg.norm(neighbors_cost, axis=0) <= 0.2)[0]  # 0.1 is a tuning parameter, it is up to you to tune it, in function of your intuition
 
         # Get candidate based on the mean of the nearest neighbors
         candidate_angle = np.mean(data_inliers[0, nns])
         candidate_dist = np.mean(data_inliers[1, nns])
+
+        a = candidate_angle
+        d = candidate_dist
+        pos_poi_l = np.array([d * np.cos(a), d * np.sin(a)])
         min_error = np.abs(np.vstack((candidate_angle, candidate_dist)).squeeze()- angle_dist_est[:, i])
+        tmp_b = np.array(
+            [
+                [np.cos(offset_th), -np.sin(offset_th), offset_x],
+                [np.sin(offset_th), np.cos(offset_th), offset_y],
+                [0, 0, 1],
+            ]
+        ) @ np.hstack((pos_poi_l, 1))
+        tmp_r = chi @ np.hstack((tmp_b[:2], 1))
+
+        landmark_error_r = tmp_b[:2] - landmarks[:,i]
 
         # Keep candidate if the error is "low enough", otherwise consider it as lost
-        if min_error[0] <= 30 * np.pi / 180 and min_error[1] <= 1:
-            a = candidate_angle
-            d = candidate_dist
+        #if min_error[0] <= 30 * np.pi / 180 and min_error[1] <= 0.1:
+        if np.linalg.norm(landmark_error_r) <= 10:
             angle_dist_meas.append([a, d])
             index_visible_lm.append(i)
-            pos_poi_l = np.array([d * np.cos(a), d * np.sin(a)])
-            tmp_b = np.array(
-                [
-                    [np.cos(offset_th), -np.sin(offset_th), offset_x],
-                    [np.sin(offset_th), np.cos(offset_th), offset_y],
-                    [0, 0, 1],
-                ]
-            ) @ np.hstack((pos_poi_l, 1))
             ymeas.append(tmp_b[:2])
             pos_poi_b.append(tmp_b[:2])
-            tmp_r = chi @ np.hstack((tmp_b[:2], 1))
             pos_poi_w.append(tmp_r[:2])
             diag_sqrtR.append([np.sqrt(r_th), np.sqrt(r_x)])
 
@@ -686,7 +690,7 @@ if __name__ == "__main__":
     # Ce point pivot cherchera ses plus proches voisins (avec un critère à choisir selon nos intuitions)
     # Cette procédure est faite avec la fonction suivante:
     ymeas, pos_poi_b, pos_poi_w, angle_dist_meas, index_visible_lm, dimy, sqrtR = (
-        get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R)
+        get_points_of_interest(data_inliers, angle_dist_est, landmarks, ldr_offset, chi, R)
     )
     # La plupart des choses retournées par la fonction est inutile pour le Kalman mais utile pour de l'affichage (donc je laisse au cas où).
     # Les plus importants pour le Kalman sont 'ymeas','index_visible_lm','dimy','sqrtR'

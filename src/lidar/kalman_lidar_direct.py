@@ -19,7 +19,7 @@ from ecal.core.subscriber import ProtoSubscriber
 import generated.robot_state_pb2 as hgpb
 
 
-global filter
+global filter, u
 
 def prediction(dt, u):
     """
@@ -36,9 +36,25 @@ def prediction(dt, u):
 
 def callback_odom_pos(topic_name, msg:hgpb.Position, timestamp):
     #print(msg)
-    global theta_odom, X_odom
-    theta_odom, x, y = msg.theta, msg.x*10**(-3), msg.y*10**(-3)
-    X_odom = np.array([x,y])
+    from datetime import datetime
+    global last_t
+    global last_x_odom, last_y_odom
+    global theta_odom, X_odom, u, dt
+    theta_odom, x_odom, y_odom = msg.theta, msg.x*10**(-3), msg.y*10**(-3)
+    X_odom = np.array([x_odom,y_odom])
+
+    if last_t is not None:
+        dt = (timestamp-last_t)*10**(-6)
+        vx = (x_odom-last_x_odom)/dt
+        vy = (y_odom-last_y_odom)/dt
+        #u[1], u[2] = vx, vy
+        prediction(dt,u)
+
+    last_x_odom = x_odom
+    last_y_odom = y_odom
+    last_t = timestamp
+
+    
 
 def callback_speed(topic_name, msg:hgpb.Speed, timestamp):
     #print(msg)
@@ -47,7 +63,7 @@ def callback_speed(topic_name, msg:hgpb.Speed, timestamp):
 
 def callback_gyro(topic_name, msg:hgpb.Ins, timestamp):
     #print(msg)
-    u[0] =  msg.vtheta
+    u[0] =  msg.vtheta # rad/s
 
     
 
@@ -55,7 +71,7 @@ def callback_gyro(topic_name, msg:hgpb.Ins, timestamp):
 def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
     #angles: list[float], distances: list[float], _: list[float]
     
-    global u, filter, chi, S, P, ymeas, landmarks, index_visible_lm, dimy, sqrtR
+    global u, filter, chi, S, P, ymeas, landmarks, index_visible_lm, dimy, sqrtR, R
 
     #garder mesures de bonne qualité avant tout traitement
     index_to_keep = np.where(np.array(msg.quality) > 160)[0]
@@ -76,10 +92,10 @@ def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
 
     data_inliers = kalman_class.get_inliers(lidar_angles_mpipi, lidar_distances, d_min, d_max)
     angle_dist_est = kalman_class.predict_angle_dist(chi, landmarks, ldr_offset)
-    ymeas, pos_poi_b, pos_poi_w, angle_dist_meas, index_visible_lm, dimy, sqrtR = kalman_class.get_points_of_interest(data_inliers, angle_dist_est, ldr_offset, chi, R)
+    ymeas, pos_poi_b, pos_poi_w, angle_dist_meas, index_visible_lm, dimy, sqrtR = kalman_class.get_points_of_interest(data_inliers, angle_dist_est, landmarks, ldr_offset, chi, R)
 
     n = len(pos_poi_w)
-    #print(pos_poi_b)
+    print(pos_poi_w)
     if n >= 1:    
         b1.send(hgpb.Position(x = (pos_poi_w[0][0])*1000,y =  (pos_poi_w[0][1])*1000 , theta = 0))
         if n >=2:
@@ -89,11 +105,11 @@ def callback_lidar(topic_name, msg:lidar_data.Lidar, timestamp):
 
     chi, S, P = filter.corr(ymeas, landmarks, index_visible_lm, dimy, sqrtR)
 
-#def callback_lidar_pos(topic_name, msg:hgpb.Position, timestamp):
-#    global chi, S, P
-#    #ymeas = np.array([msg.theta,msg.x*10**(-3),msg.y*10**(-3)])
-#    ymeas = np.array([msg.x*10**(-3),msg.y*10**(-3)])
-#    chi, S, P = filter.corr_h_fullvec(ymeas, dimy, sqrtR)
+def callback_smooth_pos(topic_name, msg:hgpb.Position, timestamp):
+    global chi, S, P
+    #ymeas = np.array([msg.theta,msg.x*10**(-3),msg.y*10**(-3)])
+    ymeas = np.array([msg.x*10**(-3),msg.y*10**(-3)])
+    chi, S, P = filter.corr_h_fullvec(ymeas, dimy, sqrtR)
     
 
     # print("chi", chi)
@@ -118,19 +134,20 @@ if __name__ == '__main__':
     odom_pos_sub = ProtoSubscriber("odom_pos", hgpb.Position)
     speed_sub = ProtoSubscriber("odom_speed", hgpb.Speed)
     gyro_sub = ProtoSubscriber("ins", hgpb.Ins)
-    lidar_pos_sub = ProtoSubscriber("lidar_pos", hgpb.Position)
+    smooth_pos_sub = ProtoSubscriber("smooth_pos", hgpb.Position)
 
-    theta0 = np.pi/180 * 45  # doit être en radian
-    x0 = 1.5  # en mètre
-    y0 =  1.# en mètre
-    X0 = np.array([x0, y0])  # Array (2,) contenant les deux positions initiales x et y
+# initialisation
+    theta = np.pi/180 * 90  # doit être en radian
+    x = 0.5  # en mètre
+    y = 0.5 # en mètre
+    X = np.array([x, y])  # Array (2,) contenant les deux positions initiales x et y
     # 1.2) Donner une estimée de notre incertitude sur l'état initiale (caractérisée par une matrice de covariance)
-    p0theta = (60 * np.pi / 180) ** 2  # variance sur le cap initiale (ici on a par exemple ~10° d'incertitude sur le cap initiale)
-    p0x = (0.5) ** 2  # variance sur la position x initiale (ici on a par exemple 5cm d'incertitude)
-    p0y = (0.5) ** 2
+    p0theta = (30 * np.pi / 180) ** 2  # variance sur le cap initiale (ici on a par exemple ~10° d'incertitude sur le cap initiale)
+    p0x = (0.2) ** 2  # variance sur la position x initiale (ici on a par exemple 5cm d'incertitude)
+    p0y = (0.2) ** 2
     P0 = np.array([[p0theta, 0, 0], [0, p0x, 0], [0, 0, p0y]])
     # 1.3) Régler les paramètres de bruit Q et R (caractérisant notre incertitude sur le modèle d'évolution et sur le modèle d'observation resp.)
-    q_theta = (1 * np.pi / 180) ** 2  # variance sur la vitesse angulaire
+    q_theta = (0.1 * np.pi / 180) ** 2  # variance sur la vitesse angulaire
     q_x = (0.1) ** 2  # variance sur la vitesse longitudinale
     q_y = (0.1) ** 2  # variance sur la vitesse transversale
     Q = np.array([[q_theta, 0, 0], [0, q_x, 0], [0, 0, q_y]])
@@ -139,7 +156,7 @@ if __name__ == '__main__':
     R = np.array([[r_1, 0], [0, r_2]])  # attention ! R est est de taille 2x2 ici mais cela va être amené à changer selon le nombre de balise qu'on décide de rejeter ou pas
     sqrtR = np.array([[np.sqrt(r_1), 0], [0, np.sqrt(r_2)]])
     dimy = 2
-    # 1.4) Régler les paramètres de l'Unscented transformation (faire des recherche sur l'UKF pour + de détails)
+    # 1.4) Unscented Transformation parameters
     alpha = 1
     beta = 0
     kappa = 0
@@ -149,10 +166,16 @@ if __name__ == '__main__':
     #    #[1 * np.pi / 180, 0.1, 0.1]
     #) # vecteur d'entrée u = [vitesse angulaire, vitesse longitudinale, vitesse transversale]
     # à actualiser quand le robot sera en mouvement
-
-    filter = kalman_class.Kalman(theta0=theta0, X0=X0, P0=P0, Q=Q, R=R, alpha=alpha, beta=beta, kappa=kappa)
-    chi = filter.state2chi(theta0,X0)
+    theta_odom = theta
+    X_odom = X
+    filter = kalman_class.Kalman(theta0=theta, X0=X, P0=P0, Q=Q, R=R, alpha=alpha, beta=beta, kappa=kappa)
+    chi = filter.state2chi(theta,X)
     state = filter.chi2state(chi)
+
+    last_x_odom = None
+    last_y_odom = None
+    last_t = None
+    dt = 0.1
 
     u = np.zeros(3)
     ymeas = np.array([])
@@ -160,30 +183,27 @@ if __name__ == '__main__':
     balise1 = np.array([3.09 , 1])
     balise2 = np.array([-0.09, 0.05])
     balise3 = np.array([-0.09, 1.95])
-    balise4 = np.array([1.36, 2.14])
+    balise4 = np.array([1.275, 2.090])
     landmarks = np.transpose(np.array([balise1, balise2, balise3, balise4]))
     index_visible_lm = np.array([])
 
     odom_pos_sub.set_callback(callback_odom_pos)
     speed_sub.set_callback(callback_speed)
     gyro_sub.set_callback(callback_gyro)
+
     lidar_data_sub.set_callback(callback_lidar)
-    #lidar_pos_sub.set_callback(callback_lidar_pos)
+    #smooth_pos_sub.set_callback(callback_smooth_pos)
 
     sleep(1)
-   
-    while(1):
-        dt = 0.1
-        #u = np.zeros(3)    
-        prediction(dt,u)
-        #chi = filter.state2chi(theta_odom,X_odom)
+
+    while(1):  
         state = filter.chi2state(chi)
         lidar_pos.x = state[2][0]*1000
         lidar_pos.y = state[2][1]*1000
         lidar_pos.theta = state[1]
         print("pos :",int(lidar_pos.x),int(lidar_pos.y),int(lidar_pos.theta*180/np.pi))
         lidar_pos_pub.send(lidar_pos)
-        sleep(dt)
+        sleep(0.1)
 
 
     #driver = lidar.Driver(callback_lidar)
