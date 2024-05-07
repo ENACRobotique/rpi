@@ -159,10 +159,10 @@ class InitState(State):
                 
                 if self.robot.strat == Strat.Basique:
                     #yield TestState(self.robot, self.globals, args)
-                    self.lidar_time = time.time()
-                    while time.time() - self.lidar_time <= 1:
-                       yield None
-                    self.robot.recallageLidar(4000,True)
+                    #self.lidar_time = time.time()
+                    #while time.time() - self.lidar_time <= LIDAR_TIME:
+                    #   yield None
+                    #self.robot.recallageLidar(4000,True)
                     yield PanosState(self.robot, self.globals, args)
                 
                 if self.robot.strat == Strat.Audacieuse:

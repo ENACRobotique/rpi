@@ -166,10 +166,10 @@ class FarmingState(State):
         if len(self.args["plantes"]) > 0:
             self.robot.logger.info(f"Farming now at {self.args['plantes'][0].waypoint}")
 
-        self.lidar_time = time.time()
-        while time.time() - self.lidar_time <= LIDAR_TIME:
-            yield None
-        self.robot.recallageLidar(100)
+        #self.lidar_time = time.time()
+        #while time.time() - self.lidar_time <= LIDAR_TIME:
+        #    yield None
+        #self.robot.recallageLidar(100)
 
     def loop(self):
         while True:
@@ -267,10 +267,10 @@ class PlantesState(State):
         #self.robot.nav.graph.weights[('mid', self.args["plantes"][0].waypoint)] -= 10000
         
         #petit recallage lidar des familes
-        self.lidar_time = time.time()
-        while time.time() - self.lidar_time <= LIDAR_TIME:
-            yield None
-        self.robot.recallageLidar(100)
+        #self.lidar_time = time.time()
+        #while time.time() - self.lidar_time <= LIDAR_TIME:
+        #    yield None
+        #self.robot.recallageLidar(100)
 
         self.args["destination"] = self.args["jardi"][0].waypoint
         self.args["orientation"] = self.args["jardi"][0].azimut.value + Moissonneuses[0].orientation
