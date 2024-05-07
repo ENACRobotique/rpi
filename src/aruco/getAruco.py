@@ -9,11 +9,6 @@ from ecal.core.publisher import ProtoPublisher
 import sys
 import generated.robot_state_pb2 as hlm
 
-ROUE = 3 # Numéro du servo de la roue
-BRAS = 1 # identique pour le bras
-BRAS_BAS = 1960
-BRAS_HAUT = 900
-
 # load the ArUCo dictionary and grab the ArUCo parameters
 arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_1000)
 arucoParams = cv2.aruco.DetectorParameters()
@@ -109,7 +104,7 @@ if __name__ == "__main__":
     
     vs.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    vs.set(cv2.CAP_PROP_FPS, 5)
+    vs.set(cv2.CAP_PROP_FPS, 3)
     w, h = vs.get(cv2.CAP_PROP_FRAME_WIDTH), vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
     print(f"Opened camera with resolution {w}x{h}!")
 
@@ -147,33 +142,4 @@ if __name__ == "__main__":
             
 
     vs.release()
-
-
-    # commande_angle = yaw + 68 # 104 = - valeur de l'angle par la camera
-    # if commande_angle > 180:
-    #     commande_angle = commande_angle - 360
-    # if commande_angle < -180:
-    #     commande_angle = commande_angle + 360
-    # print(f"Deg_difference: {commande_angle}")
-
-    
-
-    # # Initialisation du servo roue
-
-    # ser.write(f'servo {ROUE} 1500\r\n'.encode())
-    # time.sleep(2)
-
-    # # Descente du bras
-    # ser.write(f'servo {BRAS} {BRAS_BAS}\r\n'.encode())
-    # time.sleep(1)
-
-    # # Tourne le panneau
-    # print(f"commande: {convert_deg_to_servo(commande_angle)}")
-    # ser.write(f'servo {ROUE} {1500 + convert_deg_to_servo(commande_angle)}\r\n'.encode())
-    # time.sleep(3)
-
-    # # Remonte le bras
-
-    # ser.write(f'servo {BRAS} {BRAS_HAUT}\r\n'.encode())
-
 
