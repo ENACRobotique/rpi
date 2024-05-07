@@ -134,14 +134,14 @@ class Robot:
 
         self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
-        self.strat = Strat.Audacieuse
+        self.strat = Strat.Basique
         self.score = 0
         self.obstacles = []
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
-        self.solar_offset = 115 # Basic solar offset
-        self.solar_ratio = 0.94
+        self.solar_offset = 125 # Basic solar offset
+        self.solar_ratio = 1
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE

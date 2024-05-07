@@ -54,6 +54,7 @@ ALT_END_POS = {
 STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
+        #"panos": ["p9", "p8", "p7"],
         "pano_angle": 180,
         "plantes":[Plante("planteNE",radians(-90-60))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
@@ -62,6 +63,7 @@ STRAT_DATA = {
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
+        #"panos": ["p1", "p2", "p3"],
         "pano_angle": 0,
         "plantes":[Plante("planteNW",radians(-35))],
         "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
