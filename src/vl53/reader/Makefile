@@ -21,8 +21,10 @@ INCLUDE_PATH = $(CORE_INCLUDE_PATHS) $(PLATFORM_INCLUDE_PATHS)
 
 CFLAGS = $(BASE_CFLAGS) $(CFLAGS_RELEASE) $(INCLUDE_PATH)
 
+LIB_FLAGS = -lpigpiod_if2 -lrt
+
 all:
-	$(CC) $(CFLAGS) $(LIB_FLAGS) -o vl53_reader ./vl53_reader.c $(LIB_SOURCES)
+	$(CC) $(CFLAGS) -o reader ./reader.c $(LIB_SOURCES) $(LIB_FLAGS)
 
 clean:
 	rm -f vl53_reader

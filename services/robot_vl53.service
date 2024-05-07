@@ -1,6 +1,7 @@
 [Unit]
 Description=eCal comm Bridge
 After=network.target network-online.target
+Wants=pigpiod.service
 
 [Service]
 Type=simple
