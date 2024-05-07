@@ -113,8 +113,8 @@ class PreInit(State):
 
 class InitState(State):
     def enter(self, prev_state: State | None):
-        print("Let's get it started in here !")
-        print(f"strat name: {self.globals['strat_name']}")
+        self.robot.logger.info("Let's get it started in here !")
+        self.robot.logger.info(f"strat name: {self.globals['strat_name']}")
         self.start_time = time.time()
         for i in range(4):
             self.robot.buzz(ord('F'))
@@ -127,7 +127,7 @@ class InitState(State):
             
             if self.robot.tirette == Tirette.OUT:
                 self.robot.tempsDebutMatch = time.time()
-                print(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
+                self.robot.logger.info(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
                 self.globals["end_pos"] = END_POS[self.robot.color][self.robot.strat]
                 self.globals["data"] = STRAT_DATA[self.robot.color]
                 self.globals["alt_end"] = ALT_END_POS[self.robot.color][self.robot.strat]
@@ -137,7 +137,7 @@ class InitState(State):
                 rp = Pos(wx, wy, theta)
                 self.robot.resetPosFromNav(*start_pos)
 
-                #print("position robot", self.robot.pos.x, self.robot.pos.y, self.robot.pos.theta)
+                #self.robot.logger.info("position robot", self.robot.pos.x, self.robot.pos.y, self.robot.pos.theta)
                 args = {
                     "panos": self.globals["data"]["panos"],
                     "pano_angle": self.globals["data"]["pano_angle"],
@@ -186,7 +186,7 @@ class TestState(State):
         time.sleep(1)
         yield None
         
-        #print("test fini!")
+        #self.robot.logger.info("test fini!")
         #return NavState(self.robot, self.globals, self.args)
         #self.args['next_state'] = EndState(self.robot, self.globals, self.args)
         #return NavState(self.robot, self.globals, self.args)

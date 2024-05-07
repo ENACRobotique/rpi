@@ -35,8 +35,8 @@ class NavState(State):
 
         if not 'orientation' in self.args:
             self.args['orientation'] = self.robot.pos.theta
-            print(f"pos: {self.robot.pos}")
-        print(f"Navigating to {self.args['destination']} with heading {degrees(self.args['orientation'])}° .")
+            self.robot.logger.info(f"pos: {self.robot.pos}")
+        self.robot.logger.info(f"Navigating to {self.args['destination']} with heading {degrees(self.args['orientation'])}° .")
         self.dtheta= self.robot.pathFinder(self.args['destination'],self.args['orientation'])
         self.move_status = self.MoveStatus.STOPPED
         self.t_stop = time.time()
@@ -50,14 +50,14 @@ class NavState(State):
             
             if self.robot.obstacle_in_way(Pos(x=x,y=y,theta=0)) :
                 if self.move_status == self.MoveStatus.STOPPED:# wait timeout before doing other planned action
-                    #print(f"obstacle in the way to '{self.robot.nav.chemin[0]}'")
+                    #self.robot.logger.info(f"obstacle in the way to '{self.robot.nav.chemin[0]}'")
                     #self.robot.setTargetPos(self.robot.pos)
                     if time.time() - self.t_stop > self.args["timeout"] and "alternative" in self.args:
-                        print("\nalternative way\n")
+                        self.robot.logger.info("\nalternative way\n")
                         yield self.args["alternative"]
                     
                 elif self.move_status == self.MoveStatus.MOVING: # Stop the robot and start timeout timer
-                    #print(f"STOPPING started timer")
+                    #self.robot.logger.info(f"STOPPING started timer")
                     self.t_stop = time.time()
                     self.robot.setTargetPos(self.robot.pos)
                     self.move_status = self.MoveStatus.STOPPED
@@ -85,7 +85,7 @@ class EndState(State):
             self.robot.updateScore(10)
         elif sqrt((x_alt-self.robot.pos.x)**2+(y_alt-self.robot.pos.y)**2) < XY_ACCURACY:
             self.robot.updateScore(10)
-        print("The End !")
+        self.robot.logger.info("The End !")
 
         while True :
             self.robot.shuffle_play()
@@ -99,7 +99,7 @@ class PanosState(State):
     def enter(self, prev_state: State | None):
         # s'il reste des panneaux à tourner, y aller
         if len(self.args["panos"]) > 0:
-            print(f"Go to {self.args['panos'][0]}")
+            self.robot.logger.info(f"Go to {self.args['panos'][0]}")
 
     def loop(self):
         while True:
@@ -122,24 +122,24 @@ class PanoTurnState(State):
         super().__init__(robot, globals, args)
     
     def enter(self, prev_state: State | None):
-        print(f"tourner panneau {self.args['panos'][0]}...")
+        self.robot.logger.info(f"tourner panneau {self.args['panos'][0]}...")
         self.prev_state = prev_state
         #self.robot.heading(radians(90)) # bras // pano
         time.sleep(1)
         if (time.time() - self.robot.aruco_time >= 1) or (abs(self.robot.aruco_y) > 100):
             if (time.time() - self.robot.aruco_time >= 1):
-                print("fffflllllllaaaaaaaaagggggggggg: time")
+                self.robot.logger.info("fffflllllllaaaaaaaaagggggggggg: time")
             if (abs(self.robot.aruco_y) > 100):
-                print("fffflllllllaaaaaaaaagggggggggg: too far")
+                self.robot.logger.info("fffflllllllaaaaaaaaagggggggggg: too far")
             self.args['flag_bad_aruco'] = True
             return
         elif 0 + self.args["pano_angle"] < abs(self.robot.aruco_theta) < 40 + self.args["pano_angle"]:
-            print("fffflllllllaaaaaaaaagggggggggg: good already")
+            self.robot.logger.info("fffflllllllaaaaaaaaagggggggggg: good already")
             self.args['flag_bad_aruco'] = True
             return
         else:
             self.args['flag_bad_aruco']  = False
-        #print(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
+        #self.robot.logger.info(f"aruco cmd used: x = {self.robot.aruco_x}\t y = {self.robot.aruco_y}")
         self.robot.move_rel(self.robot.aruco_x,self.robot.aruco_y) # on se rapproche du pano
     
     def loop(self):
@@ -164,7 +164,7 @@ class FarmingState(State):
         super().__init__(robot, globals, args)
     def enter(self, prev_state: State | None):
         if len(self.args["plantes"]) > 0:
-            print(f"Farming now at {self.args['plantes'][0].waypoint}")
+            self.robot.logger.info(f"Farming now at {self.args['plantes'][0].waypoint}")
 
         self.lidar_time = time.time()
         while time.time() - self.lidar_time <= LIDAR_TIME:
@@ -189,7 +189,7 @@ class PlantesState(State):
         super().__init__(robot, globals, args)
     
     def enter(self, prev_state: State | None):
-        print(f"Chercher plantes {self.args['plantes'][0].waypoint}...")
+        self.robot.logger.info(f"Chercher plantes {self.args['plantes'][0].waypoint}...")
         self.prev_state = prev_state
 
     # Reminder : Plante  ['waypoint','azimut']
@@ -199,17 +199,17 @@ class PlantesState(State):
         while not self.robot.hasReachedTarget():
                 yield None
         for M in Moissonneuses:
-            print("Using :", M.pince)
+            self.robot.logger.info("Using :", M.pince)
             self.robot.setActionneur(M.ax,M.axDown)
             self.robot.setActionneur(M.pince,M.openPince)
             # descend l'ax et ouvre la pince
             
-            print("Je tourne")
+            self.robot.logger.info("Je tourne")
             #azimut des plantes + mettre les pince en face
             self.robot.heading(M.orientation+self.args["orientation"])
             while not self.robot.hasReachedTarget():
                 yield None
-            print("Je suis en face")
+            self.robot.logger.info("Je suis en face")
             
             # DETECTION VL53
             time.sleep(1)
@@ -219,10 +219,10 @@ class PlantesState(State):
             for i in range(2):
                 data = self.robot.vl53_data[M.pince]
                 self.robot.vl53_data[M.pince] = None
-                print(self.robot.vl53_data)
+                self.robot.logger.info(self.robot.vl53_data)
                 if data is not None:
                     angle, distance = data
-                    print(f"vl53{M.pince} detected plante at {angle}°")
+                    self.robot.logger.info(f"vl53{M.pince} detected plante at {angle}°")
                     self.plant = True
                     distance -= 10
                     break
@@ -234,7 +234,7 @@ class PlantesState(State):
                         self.robot.heading(self.robot.pos.theta + M.theta_inc)
                     while not self.robot.hasReachedTarget():
                         yield None
-                    print("no plant detected")
+                    self.robot.logger.info("no plant detected")
                 time.sleep(1)
             else:
                 yield None
@@ -243,22 +243,22 @@ class PlantesState(State):
             # essaie de choper une plante si il en a vu une
             if self.plant :
                 self.robot.heading(self.robot.pos.theta - radians(angle))
-                print(f"heading {self.robot.pos.theta - radians(angle)}")
+                self.robot.logger.info(f"heading {self.robot.pos.theta - radians(angle)}")
                 while not self.robot.hasReachedTarget():
                     yield None
-                print("ok")
+                self.robot.logger.info("ok")
                 self.robot.move(distance,-M.orientation)
                 while not self.robot.hasReachedTarget():
                     yield None
                 self.robot.setActionneur(M.pince,M.closePince)
-                print("Plante attrapée")
+                self.robot.logger.info("Plante attrapée")
             else:
-                print("Pas de plante pas de tournante")
+                self.robot.logger.info("Pas de plante pas de tournante")
 
             self.robot.move(-distance*(2/3), -M.orientation)
             while not self.robot.hasReachedTarget():
                 yield None
-            print("je reviens en place")
+            self.robot.logger.info("je reviens en place")
         for M in Moissonneuses:
             self.robot.setActionneur(M.ax,M.axUp)
 
@@ -307,7 +307,7 @@ class DeposeState(State):
         return False
     
     def enter(self, prev_state: State | None):
-        print(f" Déposer Butin {self.args['jardi'][0].waypoint}...")
+        self.robot.logger.info(f" Déposer Butin {self.args['jardi'][0].waypoint}...")
         self.prev_state = prev_state
         #self.heeee = self.args['jardi'][0][1].value - self.args['jardi'][0][2]
         #self.robot.heading(self.args['jardi'][0].azimut.value - Moissonneuses[0].orientation)
@@ -327,15 +327,15 @@ class DeposeState(State):
         while not self.robot.hasReachedTarget():
             yield None
             
-        print("prêt à lacher")
+        self.robot.logger.info("prêt à lacher")
         if self.validate_plante(Moissonneuses[0].pince):
             self.robot.setActionneur(Moissonneuses[0].pince, Moissonneuses[0].openPince)# lache plante 1
             self.open_time = time.time()
             while time.time() - self.open_time <= ACT_TIME:
                 yield None
-            print("pinces 1 lachés")
+            self.robot.logger.info("pinces 1 lachés")
         else:
-            print("pinces 1 vide")
+            self.robot.logger.info("pinces 1 vide")
 
         if self.validate_plante(Moissonneuses[1].pince):
             self.robot.move(50, -Moissonneuses[0].orientation+pi/2) # decalle direction +x_table
@@ -346,9 +346,9 @@ class DeposeState(State):
             self.open_time = time.time()
             while time.time() - self.open_time <= ACT_TIME:
                 yield None
-            print("pinces 2 lachés")
+            self.robot.logger.info("pinces 2 lachés")
         else:
-            print("pinces 2 vide")
+            self.robot.logger.info("pinces 2 vide")
 
         self.robot.move(-100, -Moissonneuses[0].orientation)# recule
         while not self.robot.hasReachedTarget():
@@ -356,7 +356,7 @@ class DeposeState(State):
         self.back = False
         
         # tourne l'autre face et reviens au waypoint
-        print("je me tourne à ", degrees(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation))
+        self.robot.logger.info("je me tourne à {}".format(degrees(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)))
         self.robot.goToWaypoint(self.args["destination"],self.args["jardi"][0].azimut.value + Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
@@ -385,9 +385,9 @@ class DeposeState(State):
             self.open_time = time.time()
             while time.time() - self.open_time <= ACT_TIME:
                 yield None
-            print("pinces 4 lachés")
+            self.robot.logger.info("pinces 4 lachés")
         else:
-            print("pinces 4 vide")
+            self.robot.logger.info("pinces 4 vide")
             
 
         if self.validate_plante(Moissonneuses[2].pince):
@@ -398,16 +398,16 @@ class DeposeState(State):
             self.open_time = time.time()
             while time.time() - self.open_time <= ACT_TIME:
                 yield None
-            print("pinces 3 lachés")
+            self.robot.logger.info("pinces 3 lachés")
         else:
-            print("pinces 3 vide")
+            self.robot.logger.info("pinces 3 vide")
 
         #recule
         self.robot.move(-100, -Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
     
-        print("j'ai fini")
+        self.robot.logger.info("j'ai fini la dépose")
         #self.robot.setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL)
         if self.robot.strat == Strat.Basique:
             self.args["destination"] = self.globals["end_pos"]
@@ -421,7 +421,7 @@ class DeposeState(State):
 #         super().__init__(robot, globals, args)
     
 #     def enter(self, prev_state: State | None):
-#         print(f"Chercher pot {self.args['pots'][0][0]}...")
+#         self.robot.logger.info(f"Chercher pot {self.args['pots'][0][0]}...")
 #         self.prev_state = prev_state
 #         self.robot.heading(self.args['pots'][0][1])
     

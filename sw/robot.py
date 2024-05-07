@@ -10,7 +10,7 @@ import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
 import common
-from common import Pos, Speed, dist_to_line # tkt ça marche
+from common import Pos, Speed, dist_to_line, next_path # tkt ça marche
 
 import random as rd
 
@@ -247,7 +247,7 @@ class Robot:
             self.lcd.red = False
             self.lcd.green = False
             self.lcd.blue = True
-        print("Equipe : ",c)
+        self.logger.info("Equipe : ",c)
         self.color_pub.send(msg)
 
     def __repr__(self) -> str:
@@ -289,7 +289,7 @@ class Robot:
             pos = pos.from_frame(self.pos)
         pos.theta = Robot.normalize(pos.theta)
         pb_pos = pos.to_proto()
-        #print(f"go to: {pos}")
+        #self.logger.info(f"go to: {pos}")
         self.set_target_pos_pub.send(pb_pos)
         self.last_target = pos
         
@@ -332,16 +332,16 @@ class Robot:
         self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
     
     def resetPos(self, position: Pos, timeout=2):
-        print(f"Reseting position to: {position} ")
+        self.logger.info(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
         last_time = time.time()
         while True:
             if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):
-                print(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
+                self.logger.info(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
                 #self.pos = position
                 break
             if time.time() - last_time > 1:
-                print("reset_again")
+                self.logger.info("reset_again")
                 self.reset_pos_pub.send(position.to_proto())
                 last_time = time.time()
             time.sleep(0.1)
@@ -396,14 +396,14 @@ class Robot:
         \nArgs, string:waypoint, float|None:theta"""
         if theta is None :
             theta = self.pos.theta
-            #print(theta*180/pi)
+            #self.logger.info(theta*180/pi)
         x,y = self.nav.getCoords(waypoint)
         return self.setTargetPos(Pos(x,y,theta))
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         #self.pathFinder(closest,waypoint)
 
     def resetPosFromNav(self, waypoint, theta=None):
-        print("Reseted nav at :", waypoint)
+        self.logger.info("Reseted nav at :", waypoint)
         if theta is None:
             theta = self.pos.theta
         x,y = self.nav.getCoords(waypoint)
@@ -419,12 +419,12 @@ class Robot:
         nav_pos = self.nav.findPath(self.pos.theta,orientation)
 
         self.n_points = len(self.nav.chemin)
-        print(f"entree: {self.nav.entree}")
+        self.logger.info(f"entree: {self.nav.entree}")
         self.current_point_index = 0
         self.nav.current = self.nav.chemin[self.current_point_index]
-        print("Path found : ",self.nav.chemin)
+        self.logger.info("Path found : ",self.nav.chemin)
         self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
-        #print("Pos's are : ",self.nav_pos)
+        #self.logger.info("Pos's are : ",self.nav_pos)
 
         
     
@@ -478,16 +478,16 @@ class Robot:
 
     def aruco(self, topic_name, msg, timestamp):
         """Callback Ecal du code getAruco, stocke la commande du panneau"""
-        # print(msg)
+        # self.logger.info(msg)
         
         self.aruco_theta = msg.theta
         # position du centre de rotation
         self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15 
         self.aruco_x = -(msg.z - self.solar_offset) - sin(np.deg2rad(self.aruco_theta)) * 15
         self.aruco_time = time.time()
-        #print("aruco : ",self.aruco_x,self.aruco_y)
+        #self.logger.info("aruco : ",self.aruco_x,self.aruco_y)
         commande_pano = self.aruco_theta + self.pano_angle
-        #print(f"aruco cmd : x = {self.aruco_x}\t y = {self.aruco_y}")
+        #self.logger.info(f"aruco cmd : x = {self.aruco_x}\t y = {self.aruco_y}")
         if commande_pano > 180 : 
             commande_pano  = commande_pano - 360
 
@@ -502,7 +502,7 @@ class Robot:
         self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
         time.sleep(1)
         self.setActionneur(Actionneur.Pano,int(commande))
-        #print("commande: ",commande)
+        #self.logger.info("commande: ",commande)
         time.sleep(1)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
@@ -616,13 +616,13 @@ class Robot:
                     x_mins_lines.append(x_mins_after)
                     ys.append(y)
         
-        # print("#############")
-        # print(ys)
-        # print(x_mins_lines)
+        # self.logger.info("#############")
+        # self.logger.info(ys)
+        # self.logger.info(x_mins_lines)
         # for y,x in zip(ys,self.x_mins_lines) :
-        #     print(f"y={y} mins={x} val={[self.distance_matrix[y][a] for a in x]}")
+        #     self.logger.info(f"y={y} mins={x} val={[self.distance_matrix[y][a] for a in x]}")
         # for y in ys:
-        #     print(f"y={y} distances= {self.distance_matrix[y]}")
+        #     self.logger.info(f"y={y} distances= {self.distance_matrix[y]}")
 
 
         if len(x_mins_lines) < 3:
@@ -637,7 +637,7 @@ class Robot:
                 single = [i]
         
         if single:
-            # print("Single plant")
+            # self.logger.info("Single plant")
             number_of_line = len(x_mins_lines)
             x_moy = x_mins_lines[single[0]].pop()
             distance_moy = distance_matrix[ys[single[0]]][x_moy]
@@ -649,12 +649,12 @@ class Robot:
                         distance_moy += distance_matrix[ys[i]][x]
             x_moy = x_moy / len(single)
             distance_moy = distance_moy / len(single)
-            # print(f"Position_x: {x_moy} Distance: {distance_moy}")
+            # self.logger.info(f"Position_x: {x_moy} Distance: {distance_moy}")
             self.vl53_angle[id] = [(x_moy - 3.5) * 5.625]
             self.vl53_distance[id] = [distance_moy]
 
         else:
-            # print("Two plant")
+            # self.logger.info("Two plant")
             number_of_line = len(x_mins_lines)
             xs_0 = list(x_mins_lines[0])
             xs_0.sort()
@@ -673,8 +673,8 @@ class Robot:
             x_moy_1 = x_moy_1 / number_of_line
             distance_moy_0 = distance_moy_0 / number_of_line
             distance_moy_1 = distance_moy_1 / number_of_line
-            # print(f"Position_x: {x_moy_0} Distance: {distance_moy_0}")
-            # print(f"Position_x: {x_moy_1} Distance: {distance_moy_1}")
+            # self.logger.info(f"Position_x: {x_moy_0} Distance: {distance_moy_0}")
+            # self.logger.info(f"Position_x: {x_moy_1} Distance: {distance_moy_1}")
             if distance_moy_0 < distance_moy_1:
                 self.vl53_angle[id] = [(x_moy_0 - 3.5) * 5.625, (x_moy_1 - 3.5) * 5.625]
                 self.vl53_distance[id] = [distance_moy_0, distance_moy_1]
@@ -821,6 +821,6 @@ class Robot:
 if __name__ == "__main__":
     r = Robot()
     while(True):
-        print(r.pos)
+        self.logger.info(r.pos)
         time.sleep(0.5)
         
