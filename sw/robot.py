@@ -5,6 +5,7 @@ from ecal.core.subscriber import ProtoSubscriber, StringSubscriber
 import time
 from math import sqrt, pi, cos, sin, atan2, radians,degrees
 import sys
+import logging
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
@@ -107,7 +108,9 @@ class Robot:
         """x et y sont en mètres
         theta est en radian"""
         ecal_core.initialize(sys.argv, "robotStateHolder")
+        self.logger = logging.getLogger(__name__)
         self.pos = Pos(0, 0, 0)
+        self.nb_pos_received = 0
         self.speed = Speed(0, 0, 0)
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav()
@@ -148,12 +151,13 @@ class Robot:
 
         m=lcd.Menu("Robot", None)
         strat_choices_page = lcd.Choice("Strat", m, [s for s in Strat], self.set_strat)
-        detect_range_page = lcd.Number("Dist detection", m, 20, 150, None)
+        #detect_range_page = lcd.Number("Dist detection", m, 20, 150, None)
         self.pos_page = lcd.Text("Position", m, "---")
+        self.status_page = lcd.Text("Status", m, "---")
         self.score_page = lcd.Text("Score", m, "0")
         pid_page = lcd.Menu("PID", m)
         solar_page = lcd.Menu("Solar",m)
-        m.add_subpages(strat_choices_page, detect_range_page, self.pos_page, self.score_page, pid_page, solar_page)
+        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page, solar_page)
 
         kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
         ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
@@ -193,6 +197,8 @@ class Robot:
         #self.proximitySub = ProtoSubscriber("proximity_status",lidar_pb.Proximity)
         #self.proximitySub.set_callback(self.onProximityStatus)
 
+
+        self.vl53_started = {Actionneur.Pince1: False, Actionneur.Pince2: False, Actionneur.Pince3: False, Actionneur.Pince4: False}
         self.vl53_1_sub = ProtoSubscriber("vl53_1",lidar_pb.Lidar)
         self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince1))
         self.vl53_2_sub = ProtoSubscriber("vl53_2",lidar_pb.Lidar)
@@ -365,6 +371,7 @@ class Robot:
     def onReceivePosition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
         self.pos = Pos.from_proto(msg)
+        self.nb_pos_received += 1
         self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 
     def onReceiveSpeed(self, topic_name, msg, timestamp):
@@ -548,6 +555,7 @@ class Robot:
         return False
     
     def vl53_detect_plante(self, msg, id):
+        self.vl53_started[id] = True
         distances = list(msg.distances)
         #distance_matrix = np.empty((8,8))
 

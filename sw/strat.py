@@ -8,8 +8,11 @@ import robot
 import time
 from math import pi
 
+VL53_TIMEOUT = 40
+
 BLUE_SPOT = {'Safe': 'secureB', 'Ennemy' : 'midB' , 'Down' : 'basB'}
 YELLOW_SPOT = {'Safe': 'secureJ', 'Ennemy' : 'midJ' , 'Down' : 'basJ'}
+
 
 START_POS = {
     Team.JAUNE: {
@@ -75,12 +78,38 @@ globals = {
 }
 
 class PreInit(State):
+    def enter(self, prev_state):
+        self.start_time = time.time()
+        self.robot.lcd.set_page(self.robot.status_page)
+
     def loop(self):
         while True:
+            if all(self.robot.vl53_started.values()):
+                note = ord('E')
+                period = 0.5
+                vl53_status = "VL OK"
+            elif time.time() - self.start_time > VL53_TIMEOUT:
+                note = ord('B')
+                period = 1
+                vl53_status = "VL TO"
+            else:
+                note = ord('C')
+                period = 1.5
+                vl53_status = "VL WA"
+            
+            if self.robot.nb_pos_received < 10:
+                note += 7
+                period *= 2
+                base_status = "BASE WA"
+            else:
+                base_status = "BASE OK"
+            
+            self.robot.status_page.set_text(f"{vl53_status} | {base_status}")
+            self.robot.buzz(note)
+            time.sleep(period)
             if self.robot.tirette == Tirette.IN:
                 yield InitState(self.robot, self.globals, {})
-            self.robot.buzz(ord('E'))
-            time.sleep(0.5)
+        yield None
 
 class InitState(State):
     def enter(self, prev_state: State | None):
