@@ -26,7 +26,7 @@ class RxState(Enum):
     
 
 class Duckoder(Protocol):
-    def __init__(self, plotjuggler=True):
+    def __init__(self, plotjuggler=False):
         Protocol.__init__(self)
         self.transport = None
         self._buffer = b'  '
