@@ -39,6 +39,7 @@ ACT_TIME = 0.5 # seconds
 class Team(Enum):
     BLEU = 1
     JAUNE = 2
+    AUCUNE = 10
 
 class Tirette(Enum):
     IN = 1
@@ -131,7 +132,7 @@ class Robot:
         self.aruco_x = 0
         self.aruco_theta = 0
 
-        self.color = Team.BLEU
+        self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
         self.strat = Strat.Audacieuse
         self.score = 0

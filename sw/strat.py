@@ -103,13 +103,12 @@ class PreInit(State):
                 base_status = "BASE WA"
             else:
                 base_status = "BASE OK"
-            
-            self.robot.status_page.set_text(f"{vl53_status} | {base_status}")
+            self.robot.status_page.set_text(f"Status  C:{self.robot.color.name}", f"{vl53_status} | {base_status}")
             self.robot.buzz(note)
             time.sleep(period)
-            if self.robot.tirette == Tirette.IN:
+            if self.robot.tirette == Tirette.IN and self.robot.color != Team.AUCUNE:
                 yield InitState(self.robot, self.globals, {})
-        yield None
+            yield None
 
 class InitState(State):
     def enter(self, prev_state: State | None):
@@ -127,7 +126,7 @@ class InitState(State):
             
             if self.robot.tirette == Tirette.OUT:
                 self.robot.tempsDebutMatch = time.time()
-                self.robot.logger.info(f"start with color {self.robot.color} ans strat {self.robot.strat}!")
+                self.robot.logger.info(f"start with color {self.robot.color} and strat {self.robot.strat}!")
                 self.globals["end_pos"] = END_POS[self.robot.color][self.robot.strat]
                 self.globals["data"] = STRAT_DATA[self.robot.color]
                 self.globals["alt_end"] = ALT_END_POS[self.robot.color][self.robot.strat]
