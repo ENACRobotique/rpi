@@ -136,6 +136,7 @@ class PanoTurnState(State):
         elif 0 + self.args["pano_angle"] < abs(self.robot.aruco_theta) < 40 + self.args["pano_angle"]:
             self.robot.logger.info("fffflllllllaaaaaaaaagggggggggg: good already")
             self.args['flag_bad_aruco'] = True
+            self.robot.updateScore(5)
             return
         else:
             self.args['flag_bad_aruco']  = False
@@ -199,7 +200,7 @@ class PlantesState(State):
         while not self.robot.hasReachedTarget():
                 yield None
         for M in Moissonneuses:
-            self.robot.logger.info("Using :", M.pince)
+            self.robot.logger.info(f"Using :{M.pince}")
             self.robot.setActionneur(M.ax,M.axDown)
             self.robot.setActionneur(M.pince,M.openPince)
             # descend l'ax et ouvre la pince
@@ -301,7 +302,7 @@ class DeposeState(State):
         data = self.robot.vl53_data[pince]
         if data is not None:
             angle, distance = data
-            if distance < 50:
+            if distance < 35:
                 self.robot.updateScore(4)
                 return True
         return False
@@ -412,6 +413,11 @@ class DeposeState(State):
         if self.robot.strat == Strat.Basique:
             self.args["destination"] = self.globals["end_pos"]
             self.args['next_state'] = EndState(self.robot, self.globals, self.args)
+
+        if self.robot.strat == Strat.Audacieuse :
+            self.args["destination"] = self.args["panos"][0]
+            self.args["orientation"] = radians(90)
+            self.args['next_state'] = PanosState(self.robot, self.globals, self.args)
         
         yield NavState(self.robot, self.globals, self.args)
 

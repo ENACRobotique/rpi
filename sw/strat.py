@@ -54,7 +54,7 @@ STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
         "pano_angle": 180,
-        "plantes":[Plante("planteNE",radians(-90-55))], 
+        "plantes":[Plante("planteNE",radians(-90-60))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
         "depose":[Depose("basJ",radians(-45))],
         "jardi": [Jardi("jardiSecureJ",DeposeState.Azimut.NORTH)]

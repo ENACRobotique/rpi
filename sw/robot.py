@@ -23,7 +23,7 @@ import lcd_client as lcd
 HEIGHT = 2000
 WIDTH = 3000
 DELTA = 40
-XY_ACCURACY = 8  # mm
+XY_ACCURACY = 15  # mm
 THETA_ACCURACY = radians(10) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
@@ -88,16 +88,16 @@ class ValeurActionneur(Enum):
     
 
     DownBras = 1960
-    UpBras = 950
+    UpBras = 970
     
-    UpAxBabord = 800
-    UpAxTribord = 200
+    UpAxBabord = 1020
+    UpAxTribord = 140
 
     MidAxBabord = 500
     MidAxTribord = 640   
 
-    DownAxBabord = 35
-    DownAxTribord = 1010
+    DownAxBabord = 90
+    DownAxTribord = 1020
 
 
 class Robot:
@@ -110,6 +110,7 @@ class Robot:
         ecal_core.initialize(sys.argv, name)
         self.logger = logging.getLogger(name)
         logging.basicConfig(filename=next_path("/home/pi/logs/strat_log_{}.log"), level=logging.INFO)
+        logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
         self.pos = Pos(0, 0, 0)
         self.nb_pos_received = 0
@@ -132,14 +133,14 @@ class Robot:
 
         self.color = Team.BLEU
         self.tirette = Tirette.OUT
-        self.strat = Strat.Basique
+        self.strat = Strat.Audacieuse
         self.score = 0
         self.obstacles = []
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
         self.solar_offset = 115 # Basic solar offset
-        self.solar_ratio = 1
+        self.solar_ratio = 0.94
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -247,7 +248,7 @@ class Robot:
             self.lcd.red = False
             self.lcd.green = False
             self.lcd.blue = True
-        self.logger.info("Equipe : ",c)
+        self.logger.info(f"Equipe : {c}")
         self.color_pub.send(msg)
 
     def __repr__(self) -> str:
@@ -403,7 +404,7 @@ class Robot:
         #self.pathFinder(closest,waypoint)
 
     def resetPosFromNav(self, waypoint, theta=None):
-        self.logger.info("Reseted nav at :", waypoint)
+        self.logger.info("Reseted nav at : {waypoint}")
         if theta is None:
             theta = self.pos.theta
         x,y = self.nav.getCoords(waypoint)
@@ -422,7 +423,7 @@ class Robot:
         self.logger.info(f"entree: {self.nav.entree}")
         self.current_point_index = 0
         self.nav.current = self.nav.chemin[self.current_point_index]
-        self.logger.info("Path found : ",self.nav.chemin)
+        self.logger.info(f"Path found : {self.nav.chemin}")
         self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
         #self.logger.info("Pos's are : ",self.nav_pos)
 
