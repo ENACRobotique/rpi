@@ -141,6 +141,7 @@ class InitState(State):
                     #farming puis pano
                     #args['next_state'] = PanosState(self.robot, self.globals, args)
                     yield FarmingState(self.robot, self.globals, args)
+            yield None
             
 
 class TestState(State):
