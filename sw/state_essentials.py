@@ -319,7 +319,7 @@ class DeposeState(State):
     #Reminder : Plante  ['waypoint','azimut']
     #Reminder : Moissonneuse  ['pince','open','closed','orientation','ax','axUp','axDown']
 
-          
+        #aligne le robot pour poser coté babord  
         self.robot.move(60, -Moissonneuses[0].orientation+pi/2) # decalle direction -x_table
         while not self.robot.hasReachedTarget():
             yield None   
@@ -371,12 +371,14 @@ class DeposeState(State):
         self.robot.heading(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
-            self.robot.move(60, -Moissonneuses[2].orientation-pi/2) # decalle direction +x_table
-            while not self.robot.hasReachedTarget():
-                yield None   
-            self.robot.move(95, -Moissonneuses[2].orientation)# avance vers le bord
-            while not self.robot.hasReachedTarget():
-                yield None
+        
+        #aligne le robot pour poser coté tribord
+        self.robot.move(60, -Moissonneuses[2].orientation-pi/2) # decalle direction +x_table
+        while not self.robot.hasReachedTarget():
+            yield None   
+        self.robot.move(95, -Moissonneuses[2].orientation)# avance vers le bord
+        while not self.robot.hasReachedTarget():
+            yield None
 
         if self.validate_plante(Moissonneuses[3].pince):
             self.robot.setActionneur(Moissonneuses[3].pince, Moissonneuses[3].openPince)# lache plante 4
