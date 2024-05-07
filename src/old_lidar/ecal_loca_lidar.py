@@ -188,8 +188,8 @@ def calculate_lidar_pose(amalgame_scan, robot_pose = (0.0, 0.0, 0.0), corr_out =
             closest_pt_index = poses_in_table.index(best_pose)
             corr_out.update(list(lidar2table_set)[closest_pt_index])
             #print("multiple poses found : best one is : ", best_pose)
-    best_pose[0] = best_pose[0]
-    best_pose[1] = best_pose[1]
+    #best_pose[0] = best_pose[0]
+    #best_pose[1] = best_pose[1]
     return best_pose
    
 
