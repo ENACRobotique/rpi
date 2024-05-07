@@ -4,6 +4,7 @@ import numpy as np
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
+import os
 
 @dataclass
 class Pos:
@@ -145,3 +146,13 @@ def dist_to_line(pos_pnt:Pos, pos_start:Pos, pos_end:Pos):
     pos_nearest = Pos(x=nearest[0],y=nearest[1],theta=0)
     return (dist, pos_nearest)
 
+
+def next_path(path_pattern):
+    """
+    search next available file matching the pattern.
+    path_pattern must have one integer format argument: ".*{}.*"
+    """
+    i = 1
+    while os.path.exists(path_pattern.format(i)):
+        i += 1
+    return path_pattern.format(i)

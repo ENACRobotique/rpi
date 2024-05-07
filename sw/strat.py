@@ -194,7 +194,7 @@ class TestState(State):
 
 
 if __name__ == "__main__":
-    robot = Robot()
+    robot = Robot("strat")
     robot.initNav()
     fsm = FSM(robot, PreInit, EndState, globals)
     fsm.run()

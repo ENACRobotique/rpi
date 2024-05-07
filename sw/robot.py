@@ -104,11 +104,13 @@ class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
     
     Créez un objet de cette classe si vous avez besoin de connaître l'état du robot."""
-    def __init__(self):
+    def __init__(self, name="robotStateHolder"):
         """x et y sont en mètres
         theta est en radian"""
-        ecal_core.initialize(sys.argv, "robotStateHolder")
-        self.logger = logging.getLogger(__name__)
+        ecal_core.initialize(sys.argv, name)
+        self.logger = logging.getLogger(name)
+        logging.basicConfig(filename=next_path("/home/pi/logs/strat_log_{}.log"), level=logging.INFO)
+
         self.pos = Pos(0, 0, 0)
         self.nb_pos_received = 0
         self.speed = Speed(0, 0, 0)
