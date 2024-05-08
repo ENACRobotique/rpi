@@ -283,12 +283,11 @@ class Robot:
         d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
         
         # Le robot peut pas se TP quand même ...
-        if abs(self.last_d - d ) > 200 :
+        if d > 2000 :
             self.logger.info(f"\n\n\n######## BACKUP SCHRODINGBOT ########\n\n\n")
             self.resetPos(self.pos_backup)
-            self.setTargetPos(self.last_target)
+            #self.setTargetPos(self.last_target)
 
-        self.last_d = d
         hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
         print(f"dist = {d} \t dtheta = {degrees(self.pos.theta - self.last_target.theta)} \t Reached = {hrt}")
         return hrt 
@@ -387,7 +386,7 @@ class Robot:
     def onReceivePosition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
         self.pos = Pos.from_proto(msg)
-        if self.pos.x < 10 or self.pos.y <= 10 : # the robot can't be in the wall
+        if self.pos.x > 10 or self.pos.y > 10 : # the robot can't be in the wall
             self.pos_backup = self.pos
             self.logger.info(f"\n\n ########## \n ULTIMATE BACKUP GAME CHANGER PTN LE BAS NIVO DE SES MORTS \n ########## \n\n")
         self.nb_pos_received += 1
