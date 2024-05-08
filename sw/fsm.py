@@ -32,7 +32,9 @@ class State:
         self.robot.setTargetPos(self.robot.pos)
         while self.robot.obstacle_in_way(last_target):
             time.sleep(0.1)
-        self.robot.setTargetPos(last_target)
+        if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch < MATCH_TIMEOUT:
+            self.robot.setTargetPos(last_target)
+            print("no more obstacles, resuming move")
 
 
 
@@ -56,6 +58,7 @@ class FSM:
                         print("fin du match!")
                         next_state = self.end_state_cls(self.robot, self.globals, {})
                 if self.robot.obstacle_in_way(self.robot.last_target):
+                    print("on obstacle")
                     self.current_state.on_obstacle()
                 if next_state is not None:
                     self.current_state.leave(next_state)

@@ -42,6 +42,9 @@ class NavState(State):
         self.t_stop = time.time()
         if "timeout" not in self.args:
             self.args["timeout"] = 5 # default timeout
+
+    def on_obstacle(self):
+        ...
     
     def loop(self):
         while True:
@@ -57,12 +60,13 @@ class NavState(State):
                         yield self.args["alternative"]
                     
                 elif self.move_status == self.MoveStatus.MOVING: # Stop the robot and start timeout timer
-                    #self.robot.logger.info(f"STOPPING started timer")
+                    self.robot.logger.info(f"NavState STOPPING started timer")
                     self.t_stop = time.time()
                     self.robot.setTargetPos(self.robot.pos)
                     self.move_status = self.MoveStatus.STOPPED
             else:
                 if self.move_status == self.MoveStatus.STOPPED:
+                    self.robot.logger.info("resume navigation")
                     self.robot.setTargetPos(self.robot.nav_pos[0])
                     self.move_status = self.MoveStatus.MOVING
 
@@ -182,7 +186,9 @@ class FarmingState(State):
             self.args["destination"] = self.args["plantes"][0].waypoint
             self.args["orientation"] = self.args["plantes"][0].azimut 
             self.args['next_state'] = PlantesState(self.robot, self.globals, self.args)
-
+            print("FARMINGSTATE NAVSTATE args:", self.args)
+            if "alternative" in self.args:
+                print("alt args:", self.args["alternative"].args)
             yield NavState(self.robot, self.globals, self.args)
 
 class PlantesState(State):
