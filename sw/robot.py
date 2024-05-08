@@ -496,7 +496,7 @@ class Robot:
         if commande_pano < -180 : 
            commande_pano  = commande_pano + 360
 
-        self.commande_pano = commande_pano*self.solar_ratio
+        self.commande_pano = -commande_pano*self.solar_ratio
 
     def commandeRoueSolaire(self,commande):
         self.setActionneur(Actionneur.Pano, int(commande))

@@ -257,6 +257,7 @@ class PlantesState(State):
             while not self.robot.hasReachedTarget():
                 yield None
             self.robot.logger.info("Je suis en face")
+            self.robot.setActionneur(M.ax,M.axDown)# redondance voulue
             
             # DETECTION VL53
             time.sleep(1)
@@ -306,9 +307,10 @@ class PlantesState(State):
                 if M == Moissonneuses[0]: ## Si en même temps qu'il a chopé une plante avec la pince 1, il voit une dans l'autre, il ferme ses 2 pinces en mëme temps
                     data = self.robot.vl53_data[Moissonneuses[1].pince]
                     self.robot.logger.info(self.robot.vl53_data)
+                    self.robot.vl53_data[M.pince] = None
                     if data is not None:
-                        distance_vlsuivant = data[1]
-                    if distance_vlsuivant <=5:
+                        a, distance_vlsuivant = data
+                    if distance_vlsuivant <=50:
 
                         self.robot.logger.info(f"vl53{M.pince} detected in M2")
                         self.robot.setActionneur(Moissonneuses[1].pince,Moissonneuses[1].closePince)
@@ -318,8 +320,8 @@ class PlantesState(State):
                     data = self.robot.vl53_data[Moissonneuses[3].pince]
                     self.robot.logger.info(self.robot.vl53_data)
                     if data is not None:
-                        distance_vlsuivant = data[1]
-                    if distance_vlsuivant <=5:
+                        a, distance_vlsuivant = data
+                    if distance_vlsuivant <=50:
 
                         self.robot.logger.info(f"vl53{M.pince} detected in M4")
                         self.robot.setActionneur(Moissonneuses[4].pince,Moissonneuses[4].closePince)
@@ -399,6 +401,8 @@ class DeposeState(State):
         self.substate = 0
         self.start_time = 0
         self.open_time = 0
+        for M in Moissonneuses:
+            self.robot.setActionneur(M.ax,M.axUp)
     
     def loop(self):
     #Reminder : Plante  ['waypoint','azimut']
