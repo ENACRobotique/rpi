@@ -1,6 +1,6 @@
 secureB 220 1800 jardiPotBHaut,planteNW
 jardiSecureB 800 1810 secureB,planteNW
-jardiSecureJ 2260 1810 secureJ,planteNE
+jardiSecureJ 2240 1810 secureJ,planteNE
 jardiPotBHaut 380 1387.5 secureB,planteNW,navMidW,midJ
 planteNW 620 1460 secureB,jardiSecureB,jardiPotBHaut,navMidW,mid
 midJ 225 1000 navMidW,jardiPotBHaut,jardiPotJBas
