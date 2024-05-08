@@ -4,6 +4,7 @@ from typing import Optional, Generator
 import sys
 sys.path.append("../")
 from robot import Robot
+from common import Pos
 import time
 
 MATCH_TIMEOUT = 88
@@ -13,7 +14,6 @@ class State:
         self.robot = robot
         self.globals = globals
         self.args = args
-        self.args['backup'] = []
 
     def enter(self, prev_state: State | None):
         #name = self.__class__.__name__
@@ -38,7 +38,7 @@ class State:
             print("no more obstacles, resuming move")
 
     def ultimate_backup_pos(self):
-        if self.robot.pos == (0.0,0.0,0.0):
+        if self.robot.pos == Pos(x=0.0, y=0.0, theta=0.0):
             self.robot.logger.info(f"\n\n ########## \n ULTIMATE BACKUP GAME CHANGER PTN LE BAS NIVO DE SES MORTS \n ########## \n\n")
             self.robot.resetPos(self.robot.pos_backup)
 
