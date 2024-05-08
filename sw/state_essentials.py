@@ -490,7 +490,10 @@ class DeposeState(State):
             yield None
 
         # shoot dans les pot
-        self.robot.move(400, -Moissonneuses[2].orientation-pi/2) # decalle direction -y_table jusqu'a la jardinière
+        u =1
+        if self.robot.color == Team.BLEU : 
+            u = -1
+        self.robot.move(u*400, -Moissonneuses[2].orientation-pi/2) # decalle direction -y_table jusqu'a la jardinière
         while not self.robot.hasReachedTarget():
             yield None 
 
