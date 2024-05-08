@@ -791,10 +791,73 @@ class Robot:
         self.buzz(ord('A')) #
         time.sleep(0.3)
         self.buzz(ord('E')) #
-        time.sleep(0.4)
+        time.sleep(0.45)
         self.buzz(ord('D')) #
     
 
+def play_rocket_man(self):
+        
+        time.sleep(1)
+        self.buzz(ord('F')) #and
+        time.sleep(0.4)
+        self.buzz(ord('F')) #I 
+
+        self.buzz(ord('B')) #think  Bbemol normalement 
+        time.sleep(0.4)
+        self.buzz(ord('B')) #it's
+        
+        self.buzz(ord('D')) #go-
+        time.sleep(0.4)
+        self.buzz(ord('D')) #na 
+
+        self.buzz(ord('E')) #Be 
+        time.sleep(0.8)
+
+        self.buzz(ord('D')) #a
+        time.sleep(0.4)
+
+        self.buzz(ord('C')) #long
+        time.sleep(0.8)
+
+        self.buzz(ord('D')) #long
+        time.sleep(0.8)
+
+        self.buzz(ord('B')) #time  Bbemol
+        time.sleep(1.2)
+
+        self.buzz(ord('G')) #l
+        time.sleep(0.4)
+
+        self.buzz(ord('B')) #   Bbemol
+        time.sleep(0.8)
+
+        self.buzz(ord('C')) #   
+        time.sleep(0.8)
+
+        self.buzz(ord('E'))  #  Ebemol normalement   
+        time.sleep(0.8)
+
+        self.buzz(ord('D'))  #  Ebemol normalement   
+        time.sleep(0.4)
+
+        self.buzz(ord('B'))  #  Bbemol normalement   
+        time.sleep(0.4)
+
+        self.buzz(ord('B'))  #  Bbemol normalement   
+        time.sleep(0.4)
+
+        self.buzz(ord('C'))  #  
+        time.sleep(0.4)
+
+        self.buzz(ord('D'))  #   
+        time.sleep(0.4)
+
+        self.buzz(ord('B'))  #  Bbemol normalement   
+        time.sleep(0.4)
+
+        
+
+        
 
 
 
