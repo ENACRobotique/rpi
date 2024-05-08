@@ -70,7 +70,7 @@ class Actionneur(Enum):
     AxTribord    = 8
 
 class ValeurActionneur(Enum):
-    InitPano = 1500
+    InitPano = 1400
 
     OpenPince1 = 1120
     OpenPince2 = 1900
@@ -496,14 +496,18 @@ class Robot:
         if commande_pano < -180 : 
            commande_pano  = commande_pano + 360
 
-        self.commande_pano = commande_pano*self.solar_ratio + ValeurActionneur.InitPano.value
+        self.commande_pano = commande_pano*self.solar_ratio
+
+    def commandeRoueSolaire(self,commande):
+        self.setActionneur(Actionneur.Pano, int(commande))
+        time.sleep(1)
     
-    def panoDo(self,commande):
+    def panoDo(self,commande, precommande):
         """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
         \nArgs: int:consigne du servo"""
         self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
         time.sleep(1)
-        self.setActionneur(Actionneur.Pano,int(commande))
+        self.setActionneur(Actionneur.Pano,int(commande + ValeurActionneur.InitPano.value - precommande))
         #self.logger.info("commande: ",commande)
         time.sleep(1)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)

@@ -28,7 +28,7 @@ class RadarDetect():
         self.distance_matrix = distance_matrix
         
         self.x_mins_lines = []
-        ys = [] # à enlever
+        ys = []
         for y in range(1,6):
             line = self.distance_matrix[y]
             x_mins_before = set()
@@ -46,7 +46,7 @@ class RadarDetect():
             
             to_remove = []
             for x in x_mins_after:
-                if line[x] > 130:
+                if line[x] > 200:
                     to_remove.append(x)
             
             for x in to_remove:
@@ -57,9 +57,6 @@ class RadarDetect():
                 if y == 5:
                     for x in x_mins_after:
                         if line[x] > 90: ground = True
-                if y == 4:
-                    for x in x_mins_after:
-                        if line[x] > 120: ground = True
 
                 if ground == False:
                     self.x_mins_lines.append(x_mins_after)
