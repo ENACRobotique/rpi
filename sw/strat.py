@@ -54,7 +54,7 @@ ALT_END_POS = {
 STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
-        "wipe": Wipe("navMidW",radians(30)),
+        "wipe": Wipe("midJ",radians(30)),
         #"panos": ["p9", "p8", "p7"],
         "pano_angle": 180,
         "plantes":[Plante("planteNE",radians(-90-60))], 
@@ -64,7 +64,7 @@ STRAT_DATA = {
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
-        "wipe": Wipe("navMidE",radians(-30)),
+        "wipe": Wipe("midB",radians(-30)),
         #"panos": ["p1", "p2", "p3"],
         "pano_angle": 0,
         "plantes":[Plante("planteNW",radians(-35))],

@@ -82,6 +82,7 @@ class NavState(State):
     
 class EndState(State):
     def enter(self, prev_state: State | None):
+        self.robot.updateScore(3)
         for m in Moissonneuses:
             self.robot.setActionneur(m.pince, m.openPince)
         x_end,y_end = self.robot.nav.getCoords(self.globals['end_pos'])
@@ -131,9 +132,11 @@ class PanosState(State):
                     #on s'aligne
                     u =-1
                     if self.robot.color == Team.BLEU : 
-                        u = 1
+                        self.robot.goToWaypoint("potSW")
+                    else: 
+                        self.robot.goToWaypoint("potSE")
+
                     self.robot.logger.info(f"Alignement")
-                    self.robot.move(150,u*pi/2)
                     while not self.robot.hasReachedTarget():
                         yield None
                     
@@ -144,7 +147,7 @@ class PanosState(State):
                         yield None
                     
                     self.args["destination"] = self.globals['end_pos']
-                    self.args["orientation"] = pi/2 + self.args["wipe"].azimut
+                    #self.args["orientation"] = pi/2 + self.args["wipe"].azimut
                     self.args['next_state'] = EndState(self.robot, self.globals, self.args)
                     yield NavState(self.robot, self.globals, self.args)
 
@@ -438,7 +441,7 @@ class DeposeState(State):
             yield None
         
         # avance jusqu'au mur
-        u = 20
+        u = 60
         if self.robot.color == Team.BLEU:
             u = 0
         self.robot.move(110+u, -Moissonneuses[2].orientation)# avance vers le bord

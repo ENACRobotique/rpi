@@ -388,7 +388,6 @@ class Robot:
         self.pos = Pos.from_proto(msg)
         if self.pos.x > 10 or self.pos.y > 10 : # the robot can't be in the wall
             self.pos_backup = self.pos
-            self.logger.info(f"\n\n ########## \n ULTIMATE BACKUP GAME CHANGER PTN LE BAS NIVO DE SES MORTS \n ########## \n\n")
         self.nb_pos_received += 1
         self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 
@@ -814,7 +813,7 @@ class Robot:
         self.buzz(ord('D')) #
     
 
-def play_rocket_man(self):
+    def play_rocket_man(self):
         
         time.sleep(1)
         self.buzz(ord('F')) #and
