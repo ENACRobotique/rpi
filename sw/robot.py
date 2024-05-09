@@ -687,11 +687,13 @@ class Robot:
 
     
     def shuffle_play(self):
-        i = rd.randint(1,2)
+        i = rd.randint(1,3)
         if i==1:
             self.play_Space_oddity()
         elif i==2:
             self.play_Rick_Roll()
+        elif i==3:
+            self.play_rocket_man()
     
     def play_Space_oddity(self):
         """Lance la musique de Bowie avant le lancement """
