@@ -1,5 +1,5 @@
 from fsm import State
-from robot import Robot,Actionneur,ValeurActionneur,XY_ACCURACY,THETA_PINCES_BABORD,THETA_PINCES_TRIBORD, Strat, ACT_TIME
+from robot import Robot,Actionneur,ValeurActionneur,XY_ACCURACY,THETA_PINCES_BABORD,THETA_PINCES_TRIBORD, Strat, ACT_TIME,Team
 from common import Pos
 import time
 from enum import Enum
@@ -8,6 +8,7 @@ from collections import namedtuple
 Plante = namedtuple('plante',['waypoint','azimut'])
 Depose = namedtuple('zone_depose',['waypoint','azimut'])
 Jardi = namedtuple('jardiniere',['waypoint','azimut'])
+Wipe = namedtuple('wipe',['waypoint','azimut'])
 Moissonneuse = namedtuple('actionneur',['pince','openPince','closePince','orientation','ax','axUp','axDown', 'theta_inc'])
 # coté babord , pince 1 et 2 et ax babord - Coté tribord , pince 3 et 4 et ax tribord , theta pinces repère robot
 Moissonneuses = [Moissonneuse(Actionneur.Pince1,ValeurActionneur.OpenPince1,ValeurActionneur.ClosePince1,-THETA_PINCES_BABORD,Actionneur.AxBabord,ValeurActionneur.UpAxBabord,ValeurActionneur.DownAxBabord, radians(-15)),
@@ -104,6 +105,13 @@ class PanosState(State):
         # s'il reste des panneaux à tourner, y aller
         if len(self.args["panos"]) > 0:
             self.robot.logger.info(f"Go to {self.args['panos'][0]}")
+        
+        if self.robot.strat == Strat.Audacieuse:
+            self.robot.nav.graph.weights[('midJ', 'jardiPotBHaut')] -= 10000
+            self.robot.nav.graph.weights[('jardiPotBHaut', 'midJ')] -= 10000
+            self.robot.nav.graph.weights[('midB', 'jardiPotJHaut')] -= 10000
+            self.robot.nav.graph.weights[('jardiPotJHaut', 'midB')] -= 10000
+
 
     def loop(self):
         while True:
@@ -112,7 +120,31 @@ class PanosState(State):
                     yield FarmingState(self.robot, self.globals, self.args)
 
                 elif self.robot.strat == Strat.Audacieuse:
+                    # on va balayer pour essayer de choper des plantes avant le end pos
+                    self.robot.logger.info(f"Balayage vers {self.args['wipe'].waypoint}")
+
+                    # on ouvre les pinces
+                    for M in Moissonneuses:
+                        self.robot.setActionneur(M.ax, M.axDown)
+                        self.robot.setActionneur(M.pince, M.openPince)
+
+                    #on s'aligne
+                    u =-1
+                    if self.robot.color == Team.BLEU : 
+                        u = 1
+                    self.robot.logger.info(f"Alignement")
+                    self.robot.move(150,u*pi/2)
+                    while not self.robot.hasReachedTarget():
+                        yield None
+                    
+                    #on va tout droit pour chopper des plantes
+                    self.robot.logger.info(f"Wiping")
+                    self.robot.goToWaypoint(self.args["wipe"].waypoint)
+                    while not self.robot.hasReachedTarget():
+                        yield None
+                    
                     self.args["destination"] = self.globals['end_pos']
+                    self.args["orientation"] = pi/2 + self.args["wipe"].azimut
                     self.args['next_state'] = EndState(self.robot, self.globals, self.args)
                     yield NavState(self.robot, self.globals, self.args)
 
@@ -364,12 +396,12 @@ class DeposeState(State):
             yield None
         
         # avance jusqu'au mur
-        self.robot.move(30, -Moissonneuses[2].orientation)# avance vers le bord
+        self.robot.move(100, -Moissonneuses[2].orientation)# avance vers le bord
         while not self.robot.hasReachedTarget():
             yield None
 
         # shoot dans les pot
-        self.robot.move(-400, -Moissonneuses[2].orientation-pi/2) # decalle direction -y_table jusqu'a la jardinière
+        self.robot.move(400, -Moissonneuses[2].orientation-pi/2) # decalle direction -y_table jusqu'a la jardinière
         while not self.robot.hasReachedTarget():
             yield None 
 
@@ -405,6 +437,12 @@ class DeposeState(State):
             self.args['next_state'] = EndState(self.robot, self.globals, self.args)
 
         if self.robot.strat == Strat.Audacieuse :
+
+            self.robot.nav.graph.weights[('midJ', 'jardiPotBHaut')] += 10000
+            self.robot.nav.graph.weights[('jardiPotBHaut', 'midJ')] += 10000
+            self.robot.nav.graph.weights[('midB', 'jardiPotJHaut')] += 10000
+            self.robot.nav.graph.weights[('jardiPotJHaut', 'midB')] += 10000
+
             self.args["destination"] = self.args["panos"][0]
             self.args["orientation"] = radians(90)
             self.args['next_state'] = PanosState(self.robot, self.globals, self.args)
