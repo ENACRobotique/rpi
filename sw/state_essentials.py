@@ -160,11 +160,11 @@ class PanoTurnState(State):
                     precommande = - commande/2
                     # # Fin Dumb version
                     # # Smart version v1
-                    # if commande > (90 * self.robot.solar_ratio):
-                    #     precommande = commande - (90 * self.robot.solar_ratio)
+                    # if commande > 900:
+                    #     precommande = commande - 900
                     #     self.robot.commandeRoueSolaire(-precommande)
-                    # elif commande < (90 * self.robot.solar_ratio):
-                    #     precommande = commande + (90 * self.robot.solar_ratio)
+                    # elif commande < -900:
+                    #     precommande = commande + 900
                     #     self.robot.commandeRoueSolaire(-precommande)
                     # # Fin Smart version v1
                     # # Smart version v2
@@ -174,11 +174,11 @@ class PanoTurnState(State):
                     # elif commande < (delta_optimal * self.robot.solar_ratio):
                     #     commande = commande + (delta_optimal * self.robot.solar_ratio)
 
-                    # if commande > (90 * self.robot.solar_ratio):
-                    #     precommande = commande - (90 * self.robot.solar_ratio)
+                    # if commande > 900:
+                    #     precommande = commande - 900
                     #     self.robot.commandeRoueSolaire(-precommande)
-                    # elif commande < (90 * self.robot.solar_ratio):
-                    #     precommande = commande + (90 * self.robot.solar_ratio)
+                    # elif commande < - 900:
+                    #     precommande = commande + 900
                     #     self.robot.commandeRoueSolaire(-precommande)
                     # # Fin Smart version v2
 

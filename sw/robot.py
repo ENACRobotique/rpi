@@ -140,8 +140,8 @@ class Robot:
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
-        self.solar_offset = 115 # Basic solar offset
-        self.solar_ratio = 0.94
+        self.solar_offset = 125 # Basic solar offset
+        self.solar_ratio = 10
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -496,10 +496,10 @@ class Robot:
         if commande_pano < -180 : 
            commande_pano  = commande_pano + 360
 
-        self.commande_pano = commande_pano*self.solar_ratio
+        self.commande_pano = - commande_pano*self.solar_ratio
 
     def commandeRoueSolaire(self,commande):
-        self.setActionneur(Actionneur.Pano, int(commande))
+        self.setActionneur(Actionneur.Pano, int(commande + ValeurActionneur.InitPano.value))
         time.sleep(1)
     
     def panoDo(self,commande, precommande):
