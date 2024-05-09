@@ -396,7 +396,7 @@ class DeposeState(State):
             yield None
         
         # avance jusqu'au mur
-        self.robot.move(100, -Moissonneuses[2].orientation)# avance vers le bord
+        self.robot.move(110, -Moissonneuses[2].orientation)# avance vers le bord
         while not self.robot.hasReachedTarget():
             yield None
 
