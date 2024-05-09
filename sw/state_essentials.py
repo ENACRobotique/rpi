@@ -138,6 +138,7 @@ class PanoTurnState(State):
             self.args['flag_bad_aruco'] = True
             return
         elif 0 + self.args["pano_angle"] < abs(self.robot.aruco_theta) < 40 + self.args["pano_angle"]:
+
             self.robot.logger.info("fffflllllllaaaaaaaaagggggggggg: good already")
             self.args['flag_bad_aruco'] = True
             self.robot.updateScore(5)
@@ -155,7 +156,37 @@ class PanoTurnState(State):
             if self.robot.hasReachedTarget():
                 if not self.robot.command_sent :
                     self.robot.command_sent = True
-                    self.robot.panoDo(self.robot.commande_pano)
+                    commande = self.robot.commande_pano
+                    # Pour toute les versions
+                    precommande = 0
+                    # # Dumb version [Deprecated]
+                    # self.robot.commandeRoueSolaire(- commande/2)
+                    # precommande = - commande/2
+                    # # Fin Dumb version
+                    # Smart version v1
+                    if commande > 900:
+                        precommande = commande - 900
+                        self.robot.commandeRoueSolaire(-precommande)
+                    elif commande < -900:
+                        precommande = commande + 900
+                        self.robot.commandeRoueSolaire(-precommande)
+                    # Fin Smart version v1
+                    # # Smart version v2 [NON TESTER CAR POTENTIELLEMENT DANGEUREUX AVEC LA PRECISION QUE L'ON A + IL EST TARD]
+                    # delta_optimal = 20 # Maximum du maximum : 40°
+                    # if commande > (delta_optimal * self.robot.solar_ratio):
+                    #     commande = commande - (delta_optimal * self.robot.solar_ratio)
+                    # elif commande < (delta_optimal * self.robot.solar_ratio):
+                    #     commande = commande + (delta_optimal * self.robot.solar_ratio)
+
+                    # if commande > 900:
+                    #     precommande = commande - 900
+                    #     self.robot.commandeRoueSolaire(-precommande)
+                    # elif commande < - 900:
+                    #     precommande = commande + 900
+                    #     self.robot.commandeRoueSolaire(-precommande)
+                    # # Fin Smart version v2
+
+                    self.robot.panoDo(commande,precommande)
                     self.robot.updateScore(5)
                     yield PanosState(self.robot, self.globals, self.args)
 
@@ -205,7 +236,23 @@ class PlantesState(State):
         self.robot.move(100, -Moissonneuses[0].orientation)
         while not self.robot.hasReachedTarget():
                 yield None
+
+        self.M1 = False
+        self.M2 = False
+        self.M3 = False
+        self.M4 = False
+
         for M in Moissonneuses:
+
+            if M == Moissonneuses[0]:
+                Mcontains = self.M1
+            elif M == Moissonneuses[1]:
+                Mcontains = self.M2
+            elif M == Moissonneuses[2]:
+                Mcontains = self.M3
+            elif M == Moissonneuses[3]:
+                Mcontains = self.M4
+
             self.robot.logger.info(f"Using :{M.pince}")
             self.robot.setActionneur(M.ax,M.axDown)
             self.robot.setActionneur(M.pince,M.openPince)
@@ -217,36 +264,42 @@ class PlantesState(State):
             while not self.robot.hasReachedTarget():
                 yield None
             self.robot.logger.info("Je suis en face")
+            self.robot.setActionneur(M.ax,M.axDown)# redondance voulue
             
             # DETECTION VL53
             time.sleep(1)
             angle = 0
             distance = 0
             self.plant = False
-            for i in range(2):
-                data = self.robot.vl53_data[M.pince]
-                self.robot.vl53_data[M.pince] = None
-                self.robot.logger.info(self.robot.vl53_data)
-                if data is not None:
-                    angle, distance = data
-                    self.robot.logger.info(f"vl53{M.pince} detected plante at {angle}°")
-                    self.plant = True
-                    distance -= 10
-                    break
+
+            distance_vlsuivant = 0
+            #angle_vlsuivant = 0
+
+            if not Mcontains:
+                for i in range(2):
+                    data = self.robot.vl53_data[M.pince]
+                    self.robot.vl53_data[M.pince] = None
+                    self.robot.logger.info(self.robot.vl53_data)
+                    if data is not None:
+                        angle, distance = data
+                        self.robot.logger.info(f"vl53{M.pince} detected plante at {angle}°")
+                        self.plant = True
+                        distance -= 10
+                        break
+                    else:
+                        # 2 rotation dans un sens s'il n'a pas vu de plantes
+                        if i == 0:
+                            self.robot.heading(self.robot.pos.theta - M.theta_inc)
+                        elif i == 1:
+                            self.robot.heading(self.robot.pos.theta + M.theta_inc)
+                        while not self.robot.hasReachedTarget():
+                            yield None
+                        self.robot.logger.info("no plant detected")
+                    time.sleep(1)
                 else:
-                    # 2 rotation dans un sens s'il n'a pas vu de plantes
-                    if i == 0:
-                        self.robot.heading(self.robot.pos.theta - M.theta_inc)
-                    elif i == 1:
-                        self.robot.heading(self.robot.pos.theta + M.theta_inc)
-                    while not self.robot.hasReachedTarget():
-                        yield None
-                    self.robot.logger.info("no plant detected")
-                time.sleep(1)
-            else:
-                yield None
-                continue
-            
+                    yield None
+                    continue
+                
             # essaie de choper une plante si il en a vu une
             if self.plant :
                 self.robot.heading(self.robot.pos.theta - radians(angle))
@@ -257,8 +310,42 @@ class PlantesState(State):
                 self.robot.move(distance,-M.orientation)
                 while not self.robot.hasReachedTarget():
                     yield None
+
+                if M == Moissonneuses[0]: ## Si en même temps qu'il a chopé une plante avec la pince 1, il voit une dans l'autre, il ferme ses 2 pinces en mëme temps
+                    data = self.robot.vl53_data[Moissonneuses[1].pince]
+                    self.robot.logger.info(self.robot.vl53_data)
+                    self.robot.vl53_data[M.pince] = None
+                    if data is not None:
+                        a, distance_vlsuivant = data
+                    if distance_vlsuivant <=50:
+
+                        self.robot.logger.info(f"vl53{M.pince} detected in M2")
+                        self.robot.setActionneur(Moissonneuses[1].pince,Moissonneuses[1].closePince)
+                        self.M2=True
+                
+                if M == Moissonneuses[2]: ## Si en même temps qu'il a chopé une plante avec la pince 1, il voit une dans l'autre, il ferme ses 2 pinces en mëme temps
+                    data = self.robot.vl53_data[Moissonneuses[3].pince]
+                    self.robot.logger.info(self.robot.vl53_data)
+                    if data is not None:
+                        a, distance_vlsuivant = data
+                    if distance_vlsuivant <=50:
+
+                        self.robot.logger.info(f"vl53{M.pince} detected in M4")
+                        self.robot.setActionneur(Moissonneuses[4].pince,Moissonneuses[4].closePince)
+                        self.M4=True
+
+                
                 self.robot.setActionneur(M.pince,M.closePince)
+                if M == Moissonneuses[0]:
+                    self.M1 = True
+                elif M == Moissonneuses[1]:
+                    self.M2 = True
+                elif M == Moissonneuses[2]:
+                    self.M3 = True
+                elif M == Moissonneuses[3]:
+                    self.M4 = True
                 self.robot.logger.info("Plante attrapée")
+
             else:
                 self.robot.logger.info("Pas de plante pas de tournante")
 
@@ -308,7 +395,7 @@ class DeposeState(State):
         data = self.robot.vl53_data[pince]
         if data is not None:
             angle, distance = data
-            if distance < 35:
+            if distance < 40:
                 self.robot.updateScore(4)
                 return True
         return False
@@ -321,6 +408,8 @@ class DeposeState(State):
         self.substate = 0
         self.start_time = 0
         self.open_time = 0
+        for M in Moissonneuses:
+            self.robot.setActionneur(M.ax,M.axUp)
     
     def loop(self):
     #Reminder : Plante  ['waypoint','azimut']
