@@ -334,75 +334,64 @@ class DeposeState(State):
         self.robot.logger.info("prêt à lacher")
         if self.validate_plante(Moissonneuses[0].pince):
             self.robot.setActionneur(Moissonneuses[0].pince, Moissonneuses[0].openPince)# lache plante 1
-            self.open_time = time.time()
-            while time.time() - self.open_time <= ACT_TIME:
-                yield None
             self.robot.logger.info("pinces 1 lachés")
         else:
             self.robot.logger.info("pinces 1 vide")
 
         if self.validate_plante(Moissonneuses[1].pince):
             self.robot.setActionneur(Moissonneuses[1].pince, Moissonneuses[1].openPince)# lache plante 2
-            self.open_time = time.time()
-            while time.time() - self.open_time <= ACT_TIME:
-                yield None
             self.robot.logger.info("pinces 2 lachés")
         else:
             self.robot.logger.info("pinces 2 vide")
+        # laisse les pinces s'ouvrir
+        self.open_time = time.time()
+        while time.time() - self.open_time <= ACT_TIME:
+            yield None
 
         self.robot.move(-100, -Moissonneuses[0].orientation)# recule
         while not self.robot.hasReachedTarget():
             yield None
         self.back = False
         
-        #Retourne en secure B et se prépare à pousser les pots pour larguer en jardi
+        #on passe a la jardinière latérale
 
-        # tourne l'autre face et reviens au waypoint
-        self.robot.logger.info("je me tourne à {}".format(degrees(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)))
-        self.robot.goToWaypoint(self.args["destination"],self.args["jardi"][0].azimut.value + Moissonneuses[2].orientation)
-        while not self.robot.hasReachedTarget():
-            yield None
+        del self.args["jardi"][0]
 
-        # #petit recallage lidar des familles
-        # self.lidar_time = time.time()
-        # while self.lidar_time - time.time() < LIDAR_TIME:
-        #     yield None
-
-        # self.robot.recallageLidar(100)
-        
-        self.robot.heading(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)
+        # se prépare a shooter dans les pots 
+        self.robot.logger.info("jJe me prépare a shooter{}".format(degrees(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)))
+        self.robot.goToWaypoint(self.args["jardi"][0].waypoint ,self.args["jardi"][0].azimut.value + Moissonneuses[2].orientation)
         while not self.robot.hasReachedTarget():
             yield None
         
-        #aligne le robot pour poser coté tribord
-        self.robot.move(60, -Moissonneuses[2].orientation-pi/2) # decalle direction +x_table
-        while not self.robot.hasReachedTarget():
-            yield None   
-        self.robot.move(95, -Moissonneuses[2].orientation)# avance vers le bord
+        # avance jusqu'au mur
+        self.robot.move(30, -Moissonneuses[2].orientation)# avance vers le bord
         while not self.robot.hasReachedTarget():
             yield None
+
+        # shoot dans les pot
+        self.robot.move(-400, -Moissonneuses[2].orientation-pi/2) # decalle direction -y_table jusqu'a la jardinière
+        while not self.robot.hasReachedTarget():
+            yield None 
 
         if self.validate_plante(Moissonneuses[3].pince):
             self.robot.setActionneur(Moissonneuses[3].pince, Moissonneuses[3].openPince)# lache plante 4
-            self.open_time = time.time()
-            while time.time() - self.open_time <= ACT_TIME:
-                yield None
             self.robot.logger.info("pinces 4 lachés")
         else:
             self.robot.logger.info("pinces 4 vide")
             
 
         if self.validate_plante(Moissonneuses[2].pince):
-            self.robot.move(50, -Moissonneuses[3].orientation-pi/2) # decalle direction -x_table
             while not self.robot.hasReachedTarget():
                 yield None
             self.robot.setActionneur(Moissonneuses[2].pince, Moissonneuses[2].openPince)# lache plante 3
-            self.open_time = time.time()
-            while time.time() - self.open_time <= ACT_TIME:
-                yield None
             self.robot.logger.info("pinces 3 lachés")
         else:
             self.robot.logger.info("pinces 3 vide")
+        
+        # laisse les pinces s'ouvrir
+        self.open_time = time.time()
+        while time.time() - self.open_time <= ACT_TIME:
+            yield None
 
         #recule
         self.robot.move(-100, -Moissonneuses[2].orientation)

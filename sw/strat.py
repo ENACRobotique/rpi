@@ -59,7 +59,7 @@ STRAT_DATA = {
         "plantes":[Plante("planteNE",radians(-90-60))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
         "depose":[Depose("basJ",radians(-45))],
-        "jardi": [Jardi("jardiSecureJ",DeposeState.Azimut.NORTH)]
+        "jardi": [Jardi("jardiSecureJ",DeposeState.Azimut.NORTH),Jardi("secureJ",DeposeState.Azimut.EAST)] ## tktk si c'est un esecure et apas un jardi. cf : depose state
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
@@ -68,7 +68,7 @@ STRAT_DATA = {
         "plantes":[Plante("planteNW",radians(-35))],
         "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
         "depose":[Depose("basB",radians(-90-45))],
-        "jardi":[Jardi("jardiSecureB",DeposeState.Azimut.NORTH)]
+        "jardi":[Jardi("jardiSecureB",DeposeState.Azimut.NORTH),Jardi("secureB",DeposeState.Azimut.WEST)]
     }
 }
 
@@ -164,17 +164,12 @@ class InitState(State):
                 
                 if self.robot.strat == Strat.Basique:
                     #yield TestState(self.robot, self.globals, args)
-                    #self.lidar_time = time.time()
-                    #while time.time() - self.lidar_time <= LIDAR_TIME:
-                    #   yield None
-                    #self.robot.recallageLidar(4000,True)
-                    #yield PanosState(self.robot, self.globals, args)
-                    yield TestState(self.robot,self.globals, self.args)
+                   
+                    yield PanosState(self.robot, self.globals, args)
+                    #yield TestState(self.robot,self.globals, self.args)
                 
                 if self.robot.strat == Strat.Audacieuse:
-                    
                     #farming puis pano
-                    #args['next_state'] = PanosState(self.robot, self.globals, args)
                     yield FarmingState(self.robot, self.globals, args)
             yield None
             
