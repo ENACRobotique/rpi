@@ -168,7 +168,8 @@ class InitState(State):
                     #while time.time() - self.lidar_time <= LIDAR_TIME:
                     #   yield None
                     #self.robot.recallageLidar(4000,True)
-                    yield PanosState(self.robot, self.globals, args)
+                    #yield PanosState(self.robot, self.globals, args)
+                    yield TestState(self.robot,self.globals, self.args)
                 
                 if self.robot.strat == Strat.Audacieuse:
                     
@@ -180,9 +181,9 @@ class InitState(State):
 
 class TestState(State):
     def enter(self, prev_state: State | None):
-        self.robot.resetPosFromNav('secureB',-pi/2)
-        self.args['destination'] = self.args['plantes'][0].waypoint
-        self.args['orientation'] = self.args['plantes'][0].azimut
+        self.robot.resetPosFromNav('secureB',pi/2)
+        self.robot.goToWaypoint("midJ")
+
     
     def loop(self):
         self.robot.setActionneur(Actionneur.Pince3, ValeurActionneur.OpenPince3)

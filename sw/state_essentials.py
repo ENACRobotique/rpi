@@ -326,10 +326,7 @@ class DeposeState(State):
     #Reminder : Plante  ['waypoint','azimut']
     #Reminder : Moissonneuse  ['pince','open','closed','orientation','ax','axUp','axDown']
 
-        #aligne le robot pour poser coté babord  
-        self.robot.move(60, -Moissonneuses[0].orientation+pi/2) # decalle direction -x_table
-        while not self.robot.hasReachedTarget():
-            yield None   
+        #aligne le robot pour poser coté babord   
         self.robot.move(95, -Moissonneuses[0].orientation)# avance vers le bord
         while not self.robot.hasReachedTarget():
             yield None
@@ -345,10 +342,6 @@ class DeposeState(State):
             self.robot.logger.info("pinces 1 vide")
 
         if self.validate_plante(Moissonneuses[1].pince):
-            self.robot.move(50, -Moissonneuses[0].orientation+pi/2) # decalle direction +x_table
-            while not self.robot.hasReachedTarget():
-                yield None
-
             self.robot.setActionneur(Moissonneuses[1].pince, Moissonneuses[1].openPince)# lache plante 2
             self.open_time = time.time()
             while time.time() - self.open_time <= ACT_TIME:
@@ -362,6 +355,8 @@ class DeposeState(State):
             yield None
         self.back = False
         
+        #Retourne en secure B et se prépare à pousser les pots pour larguer en jardi
+
         # tourne l'autre face et reviens au waypoint
         self.robot.logger.info("je me tourne à {}".format(degrees(self.args['jardi'][0].azimut.value + Moissonneuses[2].orientation)))
         self.robot.goToWaypoint(self.args["destination"],self.args["jardi"][0].azimut.value + Moissonneuses[2].orientation)
