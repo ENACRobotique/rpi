@@ -500,7 +500,6 @@ class Robot:
 
     def commandeRoueSolaire(self,commande):
         self.setActionneur(Actionneur.Pano, int(commande + ValeurActionneur.InitPano.value))
-        time.sleep(1)
     
     def panoDo(self,commande, precommande):
         """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
@@ -509,7 +508,7 @@ class Robot:
         time.sleep(1)
         self.setActionneur(Actionneur.Pano,int(commande + ValeurActionneur.InitPano.value - precommande))
         #self.logger.info("commande: ",commande)
-        time.sleep(1)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
+        time.sleep(0.5)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         
