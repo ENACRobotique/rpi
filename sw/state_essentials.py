@@ -157,6 +157,7 @@ class PanoTurnState(State):
                     precommande = 0
                     # Dumb version
                     self.robot.commandeRoueSolaire(- commande/2)
+                    precommande = - commande/2
                     # # Fin Dumb version
                     # # Smart version v1
                     # if commande > (90 * self.robot.solar_ratio):
@@ -388,7 +389,7 @@ class DeposeState(State):
         data = self.robot.vl53_data[pince]
         if data is not None:
             angle, distance = data
-            if distance < 35:
+            if distance < 40:
                 self.robot.updateScore(4)
                 return True
         return False
