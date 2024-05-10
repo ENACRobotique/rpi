@@ -70,7 +70,7 @@ class Actionneur(Enum):
     AxTribord    = 8
 
 class ValeurActionneur(Enum):
-    InitPano = 1500
+    InitPano = 1400
 
     OpenPince1 = 1120
     OpenPince2 = 1900
@@ -141,7 +141,7 @@ class Robot:
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
         self.solar_offset = 125 # Basic solar offset
-        self.solar_ratio = 1
+        self.solar_ratio = 10
 
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
@@ -496,16 +496,19 @@ class Robot:
         if commande_pano < -180 : 
            commande_pano  = commande_pano + 360
 
-        self.commande_pano = commande_pano*self.solar_ratio + ValeurActionneur.InitPano.value
+        self.commande_pano = - commande_pano*self.solar_ratio
+
+    def commandeRoueSolaire(self,commande):
+        self.setActionneur(Actionneur.Pano, int(commande + ValeurActionneur.InitPano.value))
     
-    def panoDo(self,commande):
+    def panoDo(self,commande, precommande):
         """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
         \nArgs: int:consigne du servo"""
         self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
         time.sleep(1)
-        self.setActionneur(Actionneur.Pano,int(commande))
+        self.setActionneur(Actionneur.Pano,int(commande + ValeurActionneur.InitPano.value - precommande))
         #self.logger.info("commande: ",commande)
-        time.sleep(1)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
+        time.sleep(0.5)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
         self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
         self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
         
@@ -687,11 +690,13 @@ class Robot:
 
     
     def shuffle_play(self):
-        i = rd.randint(1,2)
+        i = rd.randint(1,3)
         if i==1:
             self.play_Space_oddity()
         elif i==2:
             self.play_Rick_Roll()
+        elif i==3:
+            self.play_rocket_man()
     
     def play_Space_oddity(self):
         """Lance la musique de Bowie avant le lancement """
@@ -791,10 +796,73 @@ class Robot:
         self.buzz(ord('A')) #
         time.sleep(0.3)
         self.buzz(ord('E')) #
-        time.sleep(0.4)
+        time.sleep(0.45)
         self.buzz(ord('D')) #
     
 
+def play_rocket_man(self):
+        
+        time.sleep(1)
+        self.buzz(ord('F')) #and
+        time.sleep(0.4)
+        self.buzz(ord('F')) #I 
+
+        self.buzz(ord('B')) #think  Bbemol normalement 
+        time.sleep(0.4)
+        self.buzz(ord('B')) #it's
+        
+        self.buzz(ord('D')) #go-
+        time.sleep(0.4)
+        self.buzz(ord('D')) #na 
+
+        self.buzz(ord('E')) #Be 
+        time.sleep(0.8)
+
+        self.buzz(ord('D')) #a
+        time.sleep(0.4)
+
+        self.buzz(ord('C')) #long
+        time.sleep(0.8)
+
+        self.buzz(ord('D')) #long
+        time.sleep(0.8)
+
+        self.buzz(ord('B')) #time  Bbemol
+        time.sleep(1.2)
+
+        self.buzz(ord('G')) #l
+        time.sleep(0.4)
+
+        self.buzz(ord('B')) #   Bbemol
+        time.sleep(0.8)
+
+        self.buzz(ord('C')) #   
+        time.sleep(0.8)
+
+        self.buzz(ord('E'))  #  Ebemol normalement   
+        time.sleep(0.8)
+
+        self.buzz(ord('D'))  #  Ebemol normalement   
+        time.sleep(0.4)
+
+        self.buzz(ord('B'))  #  Bbemol normalement   
+        time.sleep(0.4)
+
+        self.buzz(ord('B'))  #  Bbemol normalement   
+        time.sleep(0.4)
+
+        self.buzz(ord('C'))  #  
+        time.sleep(0.4)
+
+        self.buzz(ord('D'))  #   
+        time.sleep(0.4)
+
+        self.buzz(ord('B'))  #  Bbemol normalement   
+        time.sleep(0.4)
+
+        
+
+        
 
 
 
