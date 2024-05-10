@@ -279,7 +279,9 @@ class Robot:
 
     def hasReachedTarget(self):
         d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
-        return (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
+        hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
+        print(f"dist = {d} \t dtheta = {degrees(self.pos.theta - self.last_target.theta)} \t Reached = {hrt}")
+        return hrt 
     
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
@@ -375,6 +377,10 @@ class Robot:
     def onReceivePosition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
         self.pos = Pos.from_proto(msg)
+        if self.pos != (0.0,0.0,0.0):
+            self.pos_backup = self.pos
+    
+        print("Received pos :{self.pos}")
         self.nb_pos_received += 1
         self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 

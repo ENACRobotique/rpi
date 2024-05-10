@@ -13,6 +13,7 @@ class State:
         self.robot = robot
         self.globals = globals
         self.args = args
+        self.args['backup'] = []
 
     def enter(self, prev_state: State | None):
         #name = self.__class__.__name__
@@ -36,6 +37,14 @@ class State:
             self.robot.setTargetPos(last_target)
             print("no more obstacles, resuming move")
 
+    def ultimate_backup_pos(self):
+        if self.robot.pos == (0.0,0.0,0.0):
+            self.robot.logger.info(f"\n\n ########## \n ULTIMATE BACKUP GAME CHANGER PTN LE BAS NIVO DE SES MORTS \n ########## \n\n")
+            self.robot.resetPos(self.robot.pos_backup)
+
+
+
+
 
 
 
@@ -52,6 +61,7 @@ class FSM:
         print("\nState : ",self.current_state.__class__.__name__)
         while True:
             for next_state in self.current_state.loop():
+                self.current_state.ultimate_backup_pos()
                 if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch > MATCH_TIMEOUT:
                     print("\nTIMEOUT FIN DE MATCH\n")
                     if self.current_state.__class__ != self.end_state_cls:
