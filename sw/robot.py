@@ -377,10 +377,8 @@ class Robot:
     def onReceivePosition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
         self.pos = Pos.from_proto(msg)
-        if self.pos != (0.0,0.0,0.0):
+        if self.pos != Pos(x=0.0, y=0.0, theta=0.0):
             self.pos_backup = self.pos
-    
-        print("Received pos :{self.pos}")
         self.nb_pos_received += 1
         self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 
