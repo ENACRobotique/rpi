@@ -16,7 +16,7 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
-plotjuggler_udp = ("192.168.42.119", 9870)
+plotjuggler_udp = ("192.168.42.201", 9870)
 
 
 class RxState(Enum):
@@ -26,7 +26,7 @@ class RxState(Enum):
     
 
 class Duckoder(Protocol):
-    def __init__(self, plotjuggler=False):
+    def __init__(self, plotjuggler=True):
         Protocol.__init__(self)
         self.transport = None
         self._buffer = b'  '

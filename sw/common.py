@@ -17,6 +17,27 @@ class Pos:
     
     def __sub__(self, other):
         return Pos(self.x - other.x, self.y - other.y, self.theta - other.theta)
+    
+    def __mul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Pos(self.x*other, self.y*other, self.theta*other)
+        raise Exception("Not implemented!")
+
+    def clamp_abs(self, other):
+        clamp(-other.x, self.x, other.x)
+        x = clamp(-other.x, self.x, other.x)
+        y = clamp(-other.y, self.y, other.y)
+        theta = clamp(-other.theta, self.theta, other.theta)
+        return Pos(x, y, theta)
+    
+    def cwise_mul(self, other):
+        return Pos(self.x*other.x, self.y*other.y, self.theta*other.theta)
+    
+    def sign(self):
+        sx = 1 if self.x >= 0 else -1
+        sy = 1 if self.y >= 0 else -1
+        stheta = 1 if self.theta >= 0 else -1
+        return Pos(sx, sy, stheta)
 
     def distance(self, other):
         return sqrt((other.x - self.x)**2 + (other.y - self.y)**2)
@@ -74,6 +95,8 @@ class Speed:
     def from_proto(s: robot_pb.Speed):
         return Speed(s.vx, s.vy, s.vtheta) # type: ignore
 
+def clamp(lo, val, hi):
+    return min(hi, max(val, lo))
 
 def dot(v,w):
     x,y = v
