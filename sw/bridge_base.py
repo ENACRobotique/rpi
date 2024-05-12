@@ -160,9 +160,9 @@ class Duckoder(Protocol):
     def set_speed(self, topic_name, hlm, time):
         llmsg = llpb.Message()
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
-        llmsg.vx = hlm.vx
-        llmsg.vy = hlm.vy
-        llmsg.vtheta = hlm.vtheta
+        llmsg.speed.vx = hlm.vx
+        llmsg.speed.vy = hlm.vy
+        llmsg.speed.vtheta = hlm.vtheta
         self.send_message(llmsg)
         
 
