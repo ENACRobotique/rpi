@@ -44,10 +44,12 @@ class Duckoder(Protocol):
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
         self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
         self.pid_sub = ProtoSubscriber("pid_gains",llpb.MotorPid)
+        self.speed_cons_sub = ProtoSubscriber("speed_cons",hgpb.Speed)
         
         self.target_pos_sub.set_callback(self.set_target)
         self.reset_pos_sub.set_callback(self.reset_position)
         self.pid_sub.set_callback(self.set_pid)
+        self.speed_cons_sub.set_callback(self.set_speed)
         
 
     def connection_made(self, transport):
@@ -153,6 +155,14 @@ class Duckoder(Protocol):
         llmsg.motor_pid.kp = hlm.kp
         llmsg.motor_pid.ki = hlm.ki
         llmsg.motor_pid.kd = hlm.kd
+        self.send_message(llmsg)
+
+    def set_speed(self, topic_name, hlm, time):
+        llmsg = llpb.Message()
+        llmsg.msg_type = llpb.Message.MsgType.COMMAND
+        llmsg.vx = hlm.vx
+        llmsg.vy = hlm.vy
+        llmsg.vtheta = hlm.vtheta
         self.send_message(llmsg)
         
 
