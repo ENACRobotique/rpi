@@ -4,6 +4,7 @@ from typing import Optional, Generator
 import sys
 sys.path.append("../")
 from robot import Robot
+from common import Pos
 import time
 
 MATCH_TIMEOUT = 88
@@ -35,6 +36,10 @@ class State:
         if self.robot.tempsDebutMatch is not None and time.time() - self.robot.tempsDebutMatch < MATCH_TIMEOUT:
             self.robot.setTargetPos(last_target)
             print("no more obstacles, resuming move")
+
+
+
+
 
 
 

@@ -54,21 +54,23 @@ ALT_END_POS = {
 STRAT_DATA = {
     Team.JAUNE: {
         "panos": ["p9", "p8", "p7", "p6", "p5","p4"],
+        "wipe": Wipe("midJ",radians(30)),
         #"panos": ["p9", "p8", "p7"],
         "pano_angle": 180,
         "plantes":[Plante("planteNE",radians(-90-60))], 
         "pots":[("jardiPotJHaut", DeposeState.Azimut.EAST, THETA_PINCES_BABORD)],
         "depose":[Depose("basJ",radians(-45))],
-        "jardi": [Jardi("jardiSecureJ",DeposeState.Azimut.NORTH)]
+        "jardi": [Jardi("jardiSecureJ",DeposeState.Azimut.NORTH),Jardi("secureJ",DeposeState.Azimut.EAST)] ## tktk si c'est un esecure et apas un jardi. cf : depose state
     },
     Team.BLEU: {
         "panos": ["p1", "p2", "p3", "p4", "p5", "p6"],
+        "wipe": Wipe("midB",radians(-30)),
         #"panos": ["p1", "p2", "p3"],
         "pano_angle": 0,
         "plantes":[Plante("planteNW",radians(-35))],
         "pots":[("jardiPotBHaut", DeposeState.Azimut.WEST, THETA_PINCES_BABORD)],
         "depose":[Depose("basB",radians(-90-45))],
-        "jardi":[Jardi("jardiSecureB",DeposeState.Azimut.NORTH)]
+        "jardi":[Jardi("jardiSecureB",DeposeState.Azimut.NORTH),Jardi("secureB",DeposeState.Azimut.WEST)]
     }
 }
 
@@ -149,7 +151,8 @@ class InitState(State):
                     "plantes": self.globals["data"]["plantes"],
                     "pots": self.globals["data"]["pots"],
                     "depose": self.globals["data"]["depose"],
-                    "jardi": self.globals["data"]["jardi"]
+                    "jardi": self.globals["data"]["jardi"],
+                    "wipe":self.globals["data"]["wipe"]
                 }
                 
                 self.robot.pano_angle = args["pano_angle"]
@@ -164,25 +167,21 @@ class InitState(State):
                 
                 if self.robot.strat == Strat.Basique:
                     #yield TestState(self.robot, self.globals, args)
-                    #self.lidar_time = time.time()
-                    #while time.time() - self.lidar_time <= LIDAR_TIME:
-                    #   yield None
-                    #self.robot.recallageLidar(4000,True)
+                   
                     yield PanosState(self.robot, self.globals, args)
+                    #yield TestState(self.robot,self.globals, self.args)
                 
                 if self.robot.strat == Strat.Audacieuse:
-                    
                     #farming puis pano
-                    #args['next_state'] = PanosState(self.robot, self.globals, args)
                     yield FarmingState(self.robot, self.globals, args)
             yield None
             
 
 class TestState(State):
     def enter(self, prev_state: State | None):
-        self.robot.resetPosFromNav('secureB',-pi/2)
-        self.args['destination'] = self.args['plantes'][0].waypoint
-        self.args['orientation'] = self.args['plantes'][0].azimut
+        self.robot.resetPosFromNav('secureB',pi/2)
+        self.robot.goToWaypoint("midJ")
+
     
     def loop(self):
         self.robot.setActionneur(Actionneur.Pince3, ValeurActionneur.OpenPince3)

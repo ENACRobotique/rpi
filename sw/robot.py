@@ -114,6 +114,8 @@ class Robot:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
         self.pos = Pos(0, 0, 0)
+        self.pos_backup = Pos(0, 0, 0)
+        self.last_d = 20 # ne pas mettre trop grand
         self.nb_pos_received = 0
         self.speed = Speed(0, 0, 0)
         self.last_target = Pos(0, 0, 0)
@@ -279,7 +281,16 @@ class Robot:
 
     def hasReachedTarget(self):
         d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
-        return (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
+        
+        # Le robot peut pas se TP quand même ...
+        if d > 2000 :
+            self.logger.info(f"\n\n\n######## BACKUP SCHRODINGBOT ########\n\n\n")
+            self.resetPos(self.pos_backup)
+            #self.setTargetPos(self.last_target)
+
+        hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
+        print(f"dist = {d} \t dtheta = {degrees(self.pos.theta - self.last_target.theta)} \t Reached = {hrt}")
+        return hrt 
     
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
@@ -375,6 +386,8 @@ class Robot:
     def onReceivePosition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
         self.pos = Pos.from_proto(msg)
+        if self.pos.x > 10 or self.pos.y > 10 : # the robot can't be in the wall
+            self.pos_backup = self.pos
         self.nb_pos_received += 1
         self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 
@@ -800,7 +813,7 @@ class Robot:
         self.buzz(ord('D')) #
     
 
-def play_rocket_man(self):
+    def play_rocket_man(self):
         
         time.sleep(1)
         self.buzz(ord('F')) #and
