@@ -17,8 +17,8 @@ RATE = 10
 ROBOT_RADIUS = 130.5
 ACCEL_MAX = 1000
 ANG_ACCEL_MAX = 4
-VMAX = 300
-ANG_VMAX = 5
+VMAX = 200
+ANG_VMAX = 4
 
 XY_ACCURACY = 20
 THETA_ACCURACY = 0.05
@@ -41,8 +41,8 @@ class Locomotion:
         self.odom_pos_sub.set_callback(self.on_odom_pos)
         self.target_pos_sub.set_callback(self.on_target_pos)
 
-        self.kp = 10
-        self.kp_ang = 1
+        self.kp = 4
+        self.kp_ang = 2
         
         self.integral = Pos(0, 0, 0)
 
