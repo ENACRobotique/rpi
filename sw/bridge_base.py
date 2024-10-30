@@ -41,6 +41,10 @@ class Duckoder(Protocol):
         self.odom_speed_pub = ProtoPublisher("odom_speed", hgpb.Speed)
         self.carrot_pos_pub = ProtoPublisher("carrot_pos", hgpb.Position)
         self.ins_pub = ProtoPublisher("ins", hgpb.Ins)
+        self.motors_cmd_pub = ProtoPublisher("motors_cmd", llpb.Motors)
+        self.motors_speed_pub = ProtoPublisher("motors_speed", llpb.Motors)
+        self.motors_pos_pub = ProtoPublisher("motors_pos", llpb.Motors)
+        self.motors_pos_cons_pub = ProtoPublisher("motors_pos_cons", llpb.Motors)
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
         self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
         self.pid_sub = ProtoSubscriber("pid_gains",llpb.MotorPid)
@@ -78,7 +82,17 @@ class Duckoder(Protocol):
                 if topic == "ins" and m.msg_type == llpb.Message.MsgType.STATUS:
                     hgm = hgpb.Ins(vtheta=m.ins.vtheta,theta=m.ins.theta)
                     self.ins_pub.send(hgm)
-                
+                if topic == "motors" and m.msg_type == llpb.Message.MsgType.STATUS:
+                    hgm = llpb.Motors(m1=m.motors.m1, m2=m.motors.m2, m3=m.motors.m3)
+                    if m.motors.type == llpb.Motors.MotorDataType.MOTORS_POS_CONS:
+                        self.motors_pos_cons_pub.send(hgm)
+                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_SPEED:
+                        self.motors_speed_pub.send(hgm)
+                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_CMD:
+                        self.motors_cmd_pub.send(hgm)
+                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_POS:
+                        self.motors_pos_pub.send(hgm)
+
 
     def _decode(self, c):
         ret = False
@@ -170,7 +184,7 @@ class Duckoder(Protocol):
 if __name__ == "__main__":
     port = sys.argv[1] if len(sys.argv) > 1 else "/dev/robot_base"
 
-    ser=Serial(port, 115200)
+    ser=Serial(port, 230400)
     with ReaderThread(ser, Duckoder) as p:
         while True:
             time.sleep(1)
