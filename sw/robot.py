@@ -77,10 +77,10 @@ class ValeurActionneur(Enum):
     OpenPince3 = 850
     OpenPince4 = 1070
     
-    ClosePince1 = 790
-    ClosePince2 = 1550
-    ClosePince3 = 1200
-    ClosePince4 = 1315
+    ClosePince1 = 750
+    ClosePince2 = 1500
+    ClosePince3 = 1250
+    ClosePince4 = 1365
 
     ClosePincePot1 = 830
     ClosePincePot2 = 1590
@@ -136,7 +136,7 @@ class Robot:
 
         self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
-        self.strat = Strat.Basique
+        self.strat = Strat.Audacieuse
         self.score = 0
         self.obstacles = []
 
