@@ -52,6 +52,7 @@ class Driver:
         self.cloud = Cloud()
         self.cb = cb
 
+
     def scan(self):
         while True:
             # Getting data from the serial port

@@ -1,5 +1,5 @@
 [Unit]
-Description=eCal comm Bridge
+Description=VL53L5CX driver
 After=network.target network-online.target
 Wants=pigpiod.service
 

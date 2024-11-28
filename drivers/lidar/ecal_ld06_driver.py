@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import ld06_driver as lidar
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
@@ -20,5 +21,5 @@ if __name__ == '__main__':
         lidar_msg.quality.extend(quality)
         pub.send(lidar_msg, ecal_core.getmicroseconds()[1])
 
-    driver = lidar.Driver(publish_reading, '/dev/robot_lidar')
+    driver = lidar.Driver(publish_reading, '/dev/ttyUSB0')
     driver.scan()
