@@ -26,6 +26,8 @@ systemctl --user enable robot_start.service
 
 systemctl --user daemon-reload
 
+# start user.default target at startup
+loginctl enable-linger $(whoami)
 
 sudo rm /etc/systemd/system/pigpiod.service
 sudo ln -s ~/rpi2024/services/pigpiod.service /etc/systemd/system/pigpiod.service
