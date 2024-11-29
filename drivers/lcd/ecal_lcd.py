@@ -43,4 +43,5 @@ if __name__ == '__main__':
     while ecal_core.ok():
         time.sleep(1)
         ecal_lcd.send_state()
+    ecal_core.finalize()
     

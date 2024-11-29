@@ -1,19 +1,14 @@
 [Unit]
-Description= lidar driver 
+Description= LCD driver 
 After=network.target network-online.target
 
 [Service]
 Type=simple
- 
-User=pi
-Group=pi
+Restart=on-failure
 
-SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
 WorkingDirectory=/home/pi/rpi2024/drivers/lcd/ 
 ExecStart=python3 /home/pi/rpi2024/drivers/lcd/ecal_lcd.py
-
-Restart=on-failure
-RestartSec=2 
+#RestartSec=2 
 # Configures the time to wait before service is stopped forcefully.
 TimeoutStopSec=300
  

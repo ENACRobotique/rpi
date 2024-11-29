@@ -5,11 +5,6 @@ After=network.target network-online.target
 [Service]
 Type=simple
  
-User=pi
-Group=pi
-
-SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
- 
 ExecStart=python3 /home/pi/rpi2024/drivers/lidar/ecal_ld06_driver.py
 
 Restart=on-failure

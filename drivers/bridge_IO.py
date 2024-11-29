@@ -1,8 +1,10 @@
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
+import sys
+sys.path.append('../generated')
 
-import generated.robot_state_pb2 as robot_pb
+import robot_state_pb2 as robot_pb
 
 import sys
 import serial

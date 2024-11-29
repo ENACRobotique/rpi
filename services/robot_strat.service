@@ -7,11 +7,6 @@ Type=simple
 RemainAfterExit=no
 Restart=no
  
-User=pi
-Group=pi
-
-SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
-
 WorkingDirectory=/home/pi/rpi2024/sw/ 
 ExecStart=python3 /home/pi/rpi2024/sw/strat.py
  

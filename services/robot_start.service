@@ -13,11 +13,6 @@ Wants=robot_strat.service
 [Service]
 Type=simple
  
-User=pi
-Group=pi
-
-SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
- 
 ExecStart=/home/pi/rpi2024/services/heartbeat.py
  
 Restart=on-failure
@@ -26,6 +21,6 @@ RestartSec=2
 TimeoutStopSec=300
  
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 
 
