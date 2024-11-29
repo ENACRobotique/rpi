@@ -1,10 +1,10 @@
 #!/bin/bash
 
-[ $UID != 0 ] && echo A lancer avec sudo && exit 42
+#[ $UID != 0 ] && echo A lancer avec sudo && exit 42
 
-sp="/home/pi/rpi2024/services"
+mkdir -p ~/.config/systemd/user/
 
-rm /etc/systemd/system/robot_*
+rm ~/.config/systemd/user/robot_*
 rm /etc/systemd/system/pigpiod.service
 
 for f in \
@@ -19,12 +19,12 @@ robot_vl53 \
 robot_IO \
 # robot_optitrack \
 robot_aruco ; do 
-    ln -s $sp/$f.service 		/etc/systemd/system/$f.service
+    ln -s ~/rpi2024/services/$f.service ~/.config/systemd/user/$f.service
 done
 
-ln -s $sp/pigpiod.service                  /etc/systemd/system/pigpiod.service
+ln -s ~/rpi2024/services/pigpiod.service /etc/systemd/system/pigpiod.service
 
-systemctl enable robot_start.service
+systemctl --user enable robot_start.service
 
 systemctl daemon-reload
 
