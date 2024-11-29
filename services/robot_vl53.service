@@ -10,8 +10,8 @@ User=pi
 Group=pi
 
 SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
-WorkingDirectory=/home/pi/rpi2024/src/vl53/reader/
-ExecStart=python3 /home/pi/rpi2024/src/vl53/reader/vl53_ecal.py
+WorkingDirectory=/home/pi/rpi2024/drivers/vl53/reader/
+ExecStart=python3 /home/pi/rpi2024/drivers/vl53/reader/vl53_ecal.py
  
 Restart=on-failure
 RestartSec=2 

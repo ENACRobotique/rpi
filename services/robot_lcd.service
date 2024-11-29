@@ -9,8 +9,8 @@ User=pi
 Group=pi
 
 SupplementaryGroups=adm dialout cdrom sudo audio video plugdev games users input netdev gpio i2c spi
-WorkingDirectory=/home/pi/rpi2024/src/lcd/ 
-ExecStart=python3 /home/pi/rpi2024/src/lcd/ecal_lcd.py
+WorkingDirectory=/home/pi/rpi2024/drivers/lcd/ 
+ExecStart=python3 /home/pi/rpi2024/drivers/lcd/ecal_lcd.py
 
 Restart=on-failure
 RestartSec=2 
