@@ -3,7 +3,7 @@ from pygame.joystick import Joystick
 import time
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
-import generated.messages_pb2 as messages_pb2
+import generated.robot_state_pb2 as robot_state_pb2
 
 
 MAX_SPEED = 300
@@ -27,8 +27,8 @@ class JoystickEcal ():
         self.conf = None
 
         ecal_core.initialize([], "Joystick")
-        self.publisher = ProtoPublisher("speed_cons", messages_pb2.Speed)
-        self.message = messages_pb2.Speed()
+        self.publisher = ProtoPublisher("speed_cons", robot_state_pb2.Speed)
+        self.message = robot_state_pb2.Speed()
         
     def __repr__(self):
         return f"{len(self.axis)} Axis: {self.axis} \t{len(self.buttons)} Buttons : {self.buttons}"
