@@ -42,6 +42,8 @@ class JoystickEcal ():
                     self.axis = [self.axis_get_value(n) for n in range(self.joystick.get_numaxes())]
                     self.buttons = [self.button_get_value(n) for n in range(self.joystick.get_numbuttons())]
                     time.sleep(0.5)
+                    print(f"Manette {self.joystick.get_name()} connectée")
+
 
     def button_get_value(self,n):
         return self.joystick.get_button(n)
