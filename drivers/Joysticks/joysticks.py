@@ -13,13 +13,30 @@ V_THETA = 1.5
 ATTACK3_CONF = {
     "X": 1, #axe
     "X_sens" : -1, #facteur
+    "X_offset": 0.,
+    "X_dead_zone": 0.1,
     "Y": 0, #axe
     "Y_sens" : -1,
+    "Y_offset" : 0.,
+    "Y_dead_zone": 0.1,
     "angle_gauche": 3, #bouton
     "angle_droit":4, #bouton
     "vitesse_supra_luminique": 0 #bouton
 }
 
+BATTLETRON = {
+    "X": 1, #axe
+    "X_sens" : -1, #facteur
+    "X_offset": 0.15,
+    "X_dead_zone": 0.1,
+    "Y": 0, #axe
+    "Y_sens" : -1,
+    "Y_offset" : -0.6,
+    "Y_dead_zone": 0.1,
+    "angle_gauche": 6, #bouton
+    "angle_droit":7, #bouton
+    "vitesse_supra_luminique": 11 #bouton
+}
 class JoystickEcal ():
     def __init__(self):
         self.joystick: Joystick = None
@@ -43,6 +60,8 @@ class JoystickEcal ():
                     self.buttons = [self.button_get_value(n) for n in range(self.joystick.get_numbuttons())]
                     time.sleep(0.5)
                     print(f"Manette {self.joystick.get_name()} connectée")
+    def set_conf(self, conf):
+        self.conf = conf
 
 
     def button_get_value(self,n):
@@ -59,9 +78,12 @@ class JoystickEcal ():
             self.axis[n] = self.axis_get_value(n)
 
     def publish_message(self):
-        self.message.vx = (MAX_SPEED * self.axis[ATTACK3_CONF["X"]] * ATTACK3_CONF["X_sens"]) * (1 + self.buttons[ATTACK3_CONF["vitesse_supra_luminique"]])
-        self.message.vy = MAX_SPEED * self.axis[ATTACK3_CONF["Y"]] * ATTACK3_CONF["Y_sens"] * (1 + self.buttons[ATTACK3_CONF["vitesse_supra_luminique"]])
-        self.message.vtheta = V_THETA * (self.buttons[ATTACK3_CONF["angle_gauche"]] - self.buttons[ATTACK3_CONF["angle_droit"]]) * (1 + self.buttons[ATTACK3_CONF["vitesse_supra_luminique"]])
+        vx = (MAX_SPEED * self.axis[self.conf["X"]] * self.conf["X_sens"] - self.conf["X_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
+        self.message.vx = vx if abs(self.axis[self.conf["X"]])> self.conf["X_dead_zone"] else 0
+        vy = (MAX_SPEED * self.axis[self.conf["Y"]] * self.conf["Y_sens"] - self.conf["Y_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
+        self.message.vy = vy if abs(self.axis[self.conf["Y"]]) > self.conf["Y_dead_zone"] else 0
+        self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
+        print(self.message)
         self.publisher.send(self.message)
 
 
@@ -70,8 +92,7 @@ pygame.joystick.init()
 
 joysticks_ecal = JoystickEcal()        
 joysticks_ecal.open()
-
-
+joysticks_ecal.set_conf(BATTLETRON)
 
 while True :
     for event in pygame.event.get():
