@@ -96,9 +96,9 @@ class JoystickEcal ():
         self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         print(self.message)
         self.speed_publisher.send(self.message)
-        # if self.buttons[self.conf["frame"]]:
-            # print("LA",self.buttons[self.conf["frame"]])
-            # self.change_frame()
+        if self.buttons[self.conf["frame"]]:
+            print("LA",self.buttons[self.conf["frame"]])
+            self.change_frame()
 
     def set_mode(self, asserv, guidance):
         print(asserv,guidance)
