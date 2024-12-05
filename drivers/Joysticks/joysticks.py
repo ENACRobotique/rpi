@@ -5,10 +5,15 @@ import time
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 import generated.robot_state_pb2 as robot_state_pb2
+import generated.messages_pb2 as message_pb2
+
 
 
 MAX_SPEED = 300
 V_THETA = 1.5
+
+FRAME_W = 1
+FRAME_R = 0
 
 ATTACK3_CONF = {
     "X": 1, #axe
@@ -35,6 +40,7 @@ BATTLETRON = {
     "Y_dead_zone": 0.1,
     "angle_gauche": 6, #bouton
     "angle_droit":7, #bouton
+    "frame":1, #bouton
     "vitesse_supra_luminique": 11 #bouton
 }
 class JoystickEcal ():
@@ -43,10 +49,15 @@ class JoystickEcal ():
         self.buttons = []
         self.axis = []
         self.conf = None
+        self.frame = FRAME_R
 
         ecal_core.initialize([], "Joystick")
-        self.publisher = ProtoPublisher("speed_cons", robot_state_pb2.Speed)
+        time.sleep(1) # on laisse ecal se reveiller
+
+        self.speed_publisher = ProtoPublisher("speed_cons", robot_state_pb2.Speed)
         self.message = robot_state_pb2.Speed()
+        self.Mode_pub = ProtoPublisher("system_modes",message_pb2.System)
+        # self.change_frame() # on passe en frame Robot
         
     def __repr__(self):
         return f"{len(self.axis)} Axis: {self.axis} \t{len(self.buttons)} Buttons : {self.buttons}"
@@ -77,14 +88,38 @@ class JoystickEcal ():
         for n in range(self.joystick.get_numaxes()):
             self.axis[n] = self.axis_get_value(n)
 
-    def publish_message(self):
+    def publish_command(self):
         vx = (MAX_SPEED * self.axis[self.conf["X"]] * self.conf["X_sens"] - self.conf["X_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         self.message.vx = vx if abs(self.axis[self.conf["X"]])> self.conf["X_dead_zone"] else 0
         vy = (MAX_SPEED * self.axis[self.conf["Y"]] * self.conf["Y_sens"] - self.conf["Y_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         self.message.vy = vy if abs(self.axis[self.conf["Y"]]) > self.conf["Y_dead_zone"] else 0
         self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         print(self.message)
-        self.publisher.send(self.message)
+        self.speed_publisher.send(self.message)
+        # if self.buttons[self.conf["frame"]]:
+            # print("LA",self.buttons[self.conf["frame"]])
+            # self.change_frame()
+
+    def set_mode(self, asserv, guidance):
+        print(asserv,guidance)
+        mode = message_pb2.System()
+        mode.asserv = asserv
+        mode.guidance = guidance
+        mode.odometry = message_pb2.System.OdometryFlags.ODOMETRY_ENABLED
+        self.Mode_pub.send(mode)
+    
+    def change_frame(self):
+        
+        if self.frame == FRAME_W:
+            self.frame = FRAME_R
+            print("mode ",message_pb2.System.GuidanceFlags.GUIDANCE_ROBOT_FRAME | message_pb2.System.GuidanceFlags.GUIDANCE_BASIC)
+            self.set_mode(message_pb2.System.AsservFlags.ASSERV_POS,message_pb2.System.GuidanceFlags.GUIDANCE_ROBOT_FRAME | message_pb2.System.GuidanceFlags.GUIDANCE_BASIC)
+        
+        elif self.frame == FRAME_R:
+            self.frame = FRAME_W
+            self.set_mode(message_pb2.System.AsservFlags.ASSERV_POS,message_pb2.System.GuidanceFlags.GUIDANCE_BASIC)
+        print("Frame 1W|0R = ", self.frame)
+        
 
 
 pygame.init()
@@ -98,7 +133,7 @@ while True :
     for event in pygame.event.get():
         joysticks_ecal.update_value()
         print(joysticks_ecal)
-    joysticks_ecal.publish_message()  
+        joysticks_ecal.publish_command()  
     time.sleep(0.1)
     
 
