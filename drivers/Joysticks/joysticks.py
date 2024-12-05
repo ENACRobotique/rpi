@@ -133,7 +133,7 @@ while True :
     for event in pygame.event.get():
         joysticks_ecal.update_value()
         print(joysticks_ecal)
-        joysticks_ecal.publish_command()  
+    joysticks_ecal.publish_command()  
     time.sleep(0.1)
     
 
