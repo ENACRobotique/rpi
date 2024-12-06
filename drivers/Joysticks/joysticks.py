@@ -38,8 +38,10 @@ BATTLETRON = {
     "Y_sens" : -1,
     "Y_offset" : -0.6,
     "Y_dead_zone": 0.1,
-    "angle_gauche": 6, #bouton
-    "angle_droit":7, #bouton
+    "THETA": 3, #axe
+    "THETA_sens" : 1,
+    "THETA_offset" : 0.1, #à régler
+    "THETA_dead_zone": 0.1, # à régler
     "frame":1, #bouton
     "vitesse_supra_luminique": 11 #bouton
 }
@@ -93,7 +95,13 @@ class JoystickEcal ():
         self.message.vx = vx if abs(self.axis[self.conf["X"]])> self.conf["X_dead_zone"] else 0
         vy = (MAX_SPEED * self.axis[self.conf["Y"]] * self.conf["Y_sens"] - self.conf["Y_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         self.message.vy = vy if abs(self.axis[self.conf["Y"]]) > self.conf["Y_dead_zone"] else 0
-        self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
+        
+        if self.conf == BATTLETRON:
+            vtheta = (V_THETA * self.axis[self.conf["THETA"]] * self.conf["THETA_sens"] - self.conf["THETA_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
+            self.message.vtheta = vtheta if abs(self.axis[self.conf["THETA"]]) > self.conf["THETA_dead_zone"] else 0
+        if self.conf == ATTACK3_CONF:
+            self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
+        
         print(self.message)
         self.speed_publisher.send(self.message)
         if self.buttons[self.conf["frame"]]:
