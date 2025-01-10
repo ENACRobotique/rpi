@@ -4,6 +4,8 @@ from pygame.joystick import Joystick
 import time
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
+import sys
+sys.path.append("../..")
 import generated.robot_state_pb2 as robot_state_pb2
 import generated.messages_pb2 as message_pb2
 
@@ -104,7 +106,7 @@ class JoystickEcal ():
         if self.conf == ATTACK3_CONF:
             self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         
-        print(self.message)
+        #print(self.message)
         self.speed_publisher.send(self.message)
         if self.buttons[self.conf["frame_robot"]]:
             # print("LA",self.buttons[self.conf["frame_robot"]])
@@ -145,7 +147,7 @@ joysticks_ecal.set_conf(BATTLETRON)
 while True :
     for event in pygame.event.get():
         joysticks_ecal.update_value()
-        print(joysticks_ecal)
+        #print(joysticks_ecal)
     joysticks_ecal.publish_command()  
     time.sleep(0.1)
     
