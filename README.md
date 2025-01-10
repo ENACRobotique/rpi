@@ -1,19 +1,43 @@
-# High level code for eurobot 2024 robot
+# High level code for eurobot robot
 
-This repo contains submodules.
-To clone with submodules do ```git clone --recurse-submodules -j8 [URL] ```
-Or if you already cloned the repo you can still add the submodules after by doing : ```git clone --recurse-submodules [URL]```
+ENAC Robotic's high level code for the eurobot competition.
 
-To add lidar and stlink usb connections permanently ( mostly on pi4 ) use the .rule in conf directory : ( this may change due to rpi4 shield using uart !)
-```sudo cp 80-robot.rules /etc/udev/rules.d/```
-The lidar port name with this config is /dev/lidar.
-The base roulante name with this config is /dev/bas_niveau
+Please see the [installation instructions](conf/Readme.md) to set it up on a Raspberry Pi.
+
+Init the submodules with `git submodule update --init --recursive`.
+
+This repo heavily relies on [eCAL](https://ecal.io) for inter-process communications. Think about it like ROS, but lighter and easier to use.
+
+## Electronic architecture
+
+The robot is composed of:
+- a Raspberry Pi 4 (or 5)
+- "base roulante" board, driving the motors and featuring an IMU
+- The IO board to handle actuators and some sensors
+- The LCD board, a simple UI.
+
+Some sensors are directly connected to the Raspberry Pi, like the LD06 lidar, and the 8x8 range sensors VL53L5Cx.
+
+All theses boards communicate via UART, see the [udev rules](conf/80-robot.rules) to setup unambiguous device names.
+
+
+## Software architecture
+
+The code is divided in multiple processes, that communicate over an [eCAL](https://ecal.io) publish-subscribe bus.
+The messages definitions are in the [proto](proto/) submodule. 
+
+The processes are systemd user services. See the install script in the [services](services/) directory.
+The services unit files assume that the username is `robot` and the path to this repository is `/home/robot/rpi`.
+
+
+Manage the service with `systemctl --user status robot_*.services`.
+
+
+
+--------
+
 
 requirements : 
-- [ecal](https://eclipse-ecal.github.io/ecal/index.html)
-- protobuff (version ?)
-- pyserial 3.5 
-- numpy
 - heapq
 - typing
 - ...
@@ -34,14 +58,5 @@ Options :
 All robot necessary services being with the prefix "robot_". You can use TAB to list them all while writing the command.
 You can edit the install_service.sh and run if you make new services.
 To edit new services read the associated documentation. You may also just copy paste a working service and hope it works :).
-
-
-
-## TODO
-Pour les controle des GPIO:
-`sudo apt install python3-gpiozero`
-
-et éventuellement (à vérifier):
-https://abyz.me.uk/rpi/pigpio/download.html
 
 
