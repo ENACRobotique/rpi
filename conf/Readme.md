@@ -4,6 +4,8 @@ Instructions for setting up a RaspberryPi for the robot.
 
 The overlays and the network can probably be configured before the first boot.
 
+To begin, use the rpi imager to flash an SD card with Ubuntu 24.04.
+
 
 ## Overlays (UART, shutdown, bluetooth)
 
@@ -69,5 +71,21 @@ sudo bluetoothctl
 > pair 98:B6:E9:84:66:07
 > connect 98:B6:E9:84:66:07
 ```
+
+
+## GPIO for C
+
+```
+mkdir -p ~/lib
+cd ~/lib
+git clone https://github.com/joan2937/pigpio
+cd pigpio
+make
+sudo make install
+```
+
+May need `python3-setuptools`
+
+More details: https://abyz.me.uk/rpi/pigpio/download.html
 
 
