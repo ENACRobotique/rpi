@@ -34,3 +34,30 @@ Options :
 All robot necessary services being with the prefix "robot_". You can use TAB to list them all while writing the command.
 You can edit the install_service.sh and run if you make new services.
 To edit new services read the associated documentation. You may also just copy paste a working service and hope it works :).
+
+
+
+## TODO
+Pour les controle des GPIO:
+`sudo apt install python3-gpiozero`
+
+et éventuellement (à vérifier):
+https://abyz.me.uk/rpi/pigpio/download.html
+
+
+## Connexion manette bluetooth
+
+
+Ajouter dans /boot/firmware/config.txt: `dtoverlay=miniuart-bt`
+
+`sudo apt  install bluez`
+`sudo bluetoothctl`
+> scan on
+
+Appuyer 3s sur le bouton share (en haut à droite de la croix gauche) et le bouton home (entre les joysticks). La manette doit flasher en blanc.
+
+> trust 98:B6:E9:84:66:07
+> pair 98:B6:E9:84:66:07
+> connect 98:B6:E9:84:66:07
+
+
