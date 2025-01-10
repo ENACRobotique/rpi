@@ -5,8 +5,8 @@ After=network.target network-online.target
 [Service]
 Type=simple
 
-WorkingDirectory=/home/pi/robot_rpi_2024/drivers/optitrack
-ExecStart=python3 /home/pi/robot_rpi_2024/drivers/optitrack/ecal_optitrack.py
+WorkingDirectory=/home/robot/rpi/drivers/optitrack
+ExecStart=python3 /home/robot/rpi/drivers/optitrack/ecal_optitrack.py
  
 Restart=on-failure
 RestartSec=2 

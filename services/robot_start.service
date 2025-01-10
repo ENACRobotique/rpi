@@ -14,7 +14,7 @@ Wants=robot_joystick.service
 [Service]
 Type=simple
  
-ExecStart=/home/pi/rpi2024/services/heartbeat.py
+ExecStart=/home/robot/rpi/services/heartbeat.py
  
 Restart=on-failure
 RestartSec=2 

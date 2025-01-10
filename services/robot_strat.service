@@ -7,8 +7,8 @@ Type=simple
 RemainAfterExit=no
 Restart=no
  
-WorkingDirectory=/home/pi/rpi2024/sw/ 
-ExecStart=python3 /home/pi/rpi2024/sw/strat.py
+WorkingDirectory=/home/robot/rpi/sw
+ExecStart=python3 /home/robot/rpi/sw/strat.py
  
 [Install]
 # WantedBy=multi-user.target

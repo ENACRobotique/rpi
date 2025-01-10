@@ -19,7 +19,7 @@ robot_vl53 \
 robot_IO \
 robot_joystick \
 robot_aruco ; do 
-    ln -s ~/rpi2024/services/$f.service ~/.config/systemd/user/$f.service
+    ln -s ~/rpi/services/$f.service ~/.config/systemd/user/$f.service
 done
 
 
@@ -31,6 +31,6 @@ systemctl --user daemon-reload
 loginctl enable-linger $(whoami)
 
 sudo rm /etc/systemd/system/pigpiod.service
-sudo ln -s ~/rpi2024/services/pigpiod.service /etc/systemd/system/pigpiod.service
+sudo ln -s ~/rpi/services/pigpiod.service /etc/systemd/system/pigpiod.service
 sudo systemctl daemon-reload
 

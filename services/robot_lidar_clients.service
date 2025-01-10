@@ -6,7 +6,7 @@ Requires=robot_lidar_driver.service
 [Service]
 Type=simple
 
-ExecStart=python3 /home/pi/rpi2024/services/lidar_clients.py
+ExecStart=python3 /home/robot/rpi/services/lidar_clients.py
 
 Restart=on-failure
 RestartSec=2 

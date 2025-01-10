@@ -5,8 +5,8 @@ After=network.target network-online.target
 [Service]
 Type=simple
  
-WorkingDirectory=/home/pi/rpi2024/sw/aruco
-ExecStart=python3 /home/pi/rpi2024/sw/aruco/getAruco.py
+WorkingDirectory=/home/robot/rpi/sw/aruco
+ExecStart=python3 /home/robot/rpi/sw/aruco/getAruco.py
  
 Restart=on-failure
 RestartSec=2 
