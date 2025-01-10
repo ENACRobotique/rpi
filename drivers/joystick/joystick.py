@@ -32,23 +32,25 @@ ATTACK3_CONF = {
 }
 
 BATTLETRON = {
-    "X": 1, #axe
+    "X": 4, #axe 1
     "X_sens" : -1, #facteur
     "X_offset": 0.15,
     "X_dead_zone": 0.1,
-    "Y": 0, #axe
+    "Y": 3, #axe 0
     "Y_sens" : -1,
     "Y_offset" : -0.6,
     "Y_dead_zone": 0.1,
-    "THETA": 3, #axe
+    "THETA": 0, #axe 3
     "THETA_sens" : -1,
     "THETA_offset" : 0.1, #à régler
     "THETA_dead_zone": 0.1, # à régler
     "frame_robot":1, #bouton CARRÉ
     "frame_table":3, #bouton ROND
-    "theta_supra_luminique":12, #bouton
-    "vitesse_supra_luminique": 11 #bouton
+    "theta_supra_luminique":11, #bouton
+    "vitesse_supra_luminique": 12 #bouton
 }
+
+
 class JoystickEcal ():
     def __init__(self):
         self.joystick: Joystick = None
@@ -101,6 +103,8 @@ class JoystickEcal ():
         self.message.vy = vy if abs(self.axis[self.conf["Y"]]) > self.conf["Y_dead_zone"] else 0
         
         if self.conf == BATTLETRON:
+
+
             vtheta = (V_THETA * self.axis[self.conf["THETA"]] * self.conf["THETA_sens"] - self.conf["THETA_offset"]) * (1 + self.buttons[self.conf["theta_supra_luminique"]])
             self.message.vtheta = vtheta if abs(self.axis[self.conf["THETA"]]) > self.conf["THETA_dead_zone"] else 0
         if self.conf == ATTACK3_CONF:
@@ -136,19 +140,19 @@ class JoystickEcal ():
         print("Frame 1W|0R = ", self.frame)
         
 
+if __name__ == '__main__':
+    pygame.init()
+    pygame.joystick.init()
 
-pygame.init()
-pygame.joystick.init()
+    joysticks_ecal = JoystickEcal()        
+    joysticks_ecal.open()
+    joysticks_ecal.set_conf(BATTLETRON)
 
-joysticks_ecal = JoystickEcal()        
-joysticks_ecal.open()
-joysticks_ecal.set_conf(BATTLETRON)
-
-while True :
-    for event in pygame.event.get():
-        joysticks_ecal.update_value()
-        #print(joysticks_ecal)
-    joysticks_ecal.publish_command()  
-    time.sleep(0.1)
+    while True :
+        for event in pygame.event.get():
+            joysticks_ecal.update_value()
+            #print(joysticks_ecal)
+        joysticks_ecal.publish_command()  
+        time.sleep(0.1)
     
 
