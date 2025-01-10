@@ -1,5 +1,10 @@
 # RaspberryPi Config
 
+Instructions for setting up a RaspberryPi for the robot.
+
+The overlays and the network can probably be configured before the first boot.
+
+
 ## Overlays (UART, shutdown, bluetooth)
 
 Disable the login shell on UART:
@@ -28,7 +33,32 @@ Then reboot.
 
 For more details: https://www.raspberrypi.com/documentation/computers/configuration.html#uarts-and-device-tree
 
-# Manette Bluetooth
+## Network
+
+```
+sudo apt install network-manager
+```
+
+- Copy `50-ENAC-network.yaml` in /etc/netplan/
+- Edit /etc/netplan/50-ENAC-network.yaml to set the correct wifi SSID and password.
+- run `netplan apply`.
+
+
+## Packages
+
+Run `install_packages.sh` to install all necessary packages.
+
+
+## Python path
+
+To add directories to python path, copy `robot_enac.pth` to `/usr/lib/python3/dist-packages/`:
+
+`cp robot_enac.pth /usr/lib/python3/dist-packages/`
+
+
+## Manette Bluetooth
+
+Need the `bluez` package.
 
 ```
 sudo apt install bluez
@@ -39,7 +69,5 @@ sudo bluetoothctl
 > pair 98:B6:E9:84:66:07
 > connect 98:B6:E9:84:66:07
 ```
-
-
 
 
