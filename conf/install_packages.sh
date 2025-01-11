@@ -11,7 +11,7 @@ sudo apt-get install -y bluez
 # pour le joystick
 sudo apt-get install -y python3-pygame
 # Serial
-sudo apt-get install -y python3-pyserial
+sudo apt-get install -y python3-serial
 # GPIO
 sudo apt-get install -y python3-gpiozero
 # gros calculs
