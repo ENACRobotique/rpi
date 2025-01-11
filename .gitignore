@@ -1,6 +1,4 @@
-robot_ros2_ws/build
-robot_ros2_ws/install
-robot_ros2_ws/log
+generated/
 __pycache__
 .venv
 .pyc
