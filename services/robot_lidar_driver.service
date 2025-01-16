@@ -4,8 +4,8 @@ After=network.target network-online.target
 
 [Service]
 Type=simple
- 
-ExecStart=python3 /home/pi/rpi2024/drivers/lidar/ecal_ld06_driver.py
+
+ExecStart=/home/robot/rpi/drivers/lidar/ld06_cpp/build/ld06_driver /dev/ttyUSB0
 
 Restart=on-failure
 RestartSec=2 

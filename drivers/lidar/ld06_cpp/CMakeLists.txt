@@ -6,6 +6,13 @@ project(ld06_driver)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+
+
 find_package(eCAL REQUIRED)
 find_package(Protobuf REQUIRED)
 

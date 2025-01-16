@@ -7,7 +7,7 @@
 
 #include "ld06.h"
 #include "lidar_data.pb.h"
-
+#include "math.h"
 
 #include <fcntl.h> // Contains file controls like O_RDWR
 #include <errno.h> // Error integer and strerror() function
@@ -82,8 +82,8 @@ int main(int argc, char** argv){
 
   LD06 ld06([&publisher](std::array<Point,LD06_NB_POINTS> points, size_t len){
     enac::Lidar lidar_msg;
-    for (int i=0; i<len; i++){
-        lidar_msg.add_angles(360-points[i].angle);
+    for (int i=len-1; i>=0; i--){
+        lidar_msg.add_angles((360-points[i].angle) * M_PI / 180.0);
         lidar_msg.add_distances(points[i].distance);
         lidar_msg.add_quality(points[i].intensity);
     }

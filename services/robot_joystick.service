@@ -6,8 +6,8 @@ After=network.target network-online.target
 Type=simple
 Restart=on-failure
 
-WorkingDirectory=/home/pi/rpi2024/drivers/Joysticks
-ExecStart=python3 /home/pi/rpi2024/drivers/Joysticks/joysticks.py
+WorkingDirectory=/home/robot/rpi/drivers/joystick
+ExecStart=python3 /home/robot/rpi/drivers/joystick/joystick.py
 #RestartSec=2 
 # Configures the time to wait before service is stopped forcefully.
 TimeoutStopSec=300
