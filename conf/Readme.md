@@ -18,6 +18,8 @@ Open /boot/firmware/config.txt and make sure that the UART is enabled:
 At the end of the file, add:
 
 ```
+[all] # will be enabled for all rpi hardware
+
 # Bluetooth: use miniuart to free the good UART for the robot
 dtoverlay=miniuart-bt
 core_freq=250
@@ -25,15 +27,34 @@ core_freq=250
 # Shutdown button
 dtoverlay=gpio-shutdown,gpio_pin=24
 
+
+[pi4] # will be enabled only  for rpi 4
+
 # activate UART 3,4,5
 dtoverlay=uart3
 dtoverlay=uart4
 dtoverlay=uart5
+
+
+[pi5] # will be enabled only for rpi 5
+
+# activate UART 0,1,2,3,4
+dtoverlay=uart0-pi5 # Enable uart 0 on GPIOs 14-15
+#dtoverlay=uart1-pi5 # Enable mini-uart 1 on GPIOs 0-1 
+dtoverlay=uart2-pi5 # Enable uart 2 on GPIOs 4-5
+dtoverlay=uart3-pi5 # Enable uart 3 on GPIOs 8-9
+dtoverlay=uart4-pi5 # Enable uart 4 on GPIOs 12-13
+
 ```
 
 Then reboot.
 
-For more details: https://www.raspberrypi.com/documentation/computers/configuration.html#uarts-and-device-tree
+For more details: 
+- https://www.raspberrypi.com/documentation/computers/configuration.html#uarts-and-device-tree 
+- https://www.raspberrypi.com/documentation/computers/config_txt.html#conditional-filters
+- https://github.com/Felipegalind0/RPI5.pinout   Chapter "dtoverlays for UARTs"
+- https://gist.github.com/lbussy/9e81cbcc617952f1250e353bd42e7775 Chapter "Boot Overlay"
+
 
 ## Network
 
