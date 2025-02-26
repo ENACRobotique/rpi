@@ -12,6 +12,7 @@ import generated.lidar_data_pb2 as lidar_pb
 QUALITY_REJECTION_VAL = 160
 MAX_DIST = 3600 # diagonal of the table in mm
 AMALGAME_DIST_THRESHOLD_SQUARE = 150**2
+MAX_SIZE = 500
 
 
 class Amalgameur:
@@ -40,9 +41,10 @@ class Amalgameur:
         xs, ys, sizes = [], [], []
         for a in amalgames:
             x, y, size = self.get_amalgame_infos(distances[a], angles[a])
-            xs.append(x)
-            ys.append(y)
-            sizes.append(size)
+            if size < MAX_SIZE:
+                xs.append(x)
+                ys.append(y)
+                sizes.append(size)
         msg = lidar_pb.Amalgames(x=xs, y=ys, size=sizes)
         self.pub_amalgames.send(msg)
 
@@ -60,7 +62,7 @@ class Amalgameur:
             size = np.sqrt(d2)
         i_center = len(distances) // 2
         d = distances[i_center]
-        ar = np.radians(angles[i_center])
+        ar = angles[i_center]
         x = d * np.cos(ar)
         y = d * np.sin(ar)
         return x, y, size
@@ -104,7 +106,7 @@ class Amalgameur:
         """
         r1, theta1 = pt1
         r2, theta2 = pt2
-        return r1**2 + r2**2 - 2 * r1 * r2 * np.cos(np.radians(theta2 - theta1))
+        return r1**2 + r2**2 - 2 * r1 * r2 * np.cos(theta2 - theta1)
 
 
 if __name__ == "__main__":
