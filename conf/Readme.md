@@ -40,10 +40,13 @@ dtoverlay=uart5
 
 # activate UART 0,1,2,3,4
 dtoverlay=uart0-pi5 # Enable uart 0 on GPIOs 14-15
-#dtoverlay=uart1-pi5 # Enable mini-uart 1 on GPIOs 0-1 
 dtoverlay=uart2-pi5 # Enable uart 2 on GPIOs 4-5
 dtoverlay=uart3-pi5 # Enable uart 3 on GPIOs 8-9
 dtoverlay=uart4-pi5 # Enable uart 4 on GPIOs 12-13
+# SPI0 conflicts with UART3
+dtparam=spi=off
+# Enable RTC backup battery charging
+dtparam=rtc_bbat_vchg=3000000
 
 ```
 
@@ -65,6 +68,10 @@ sudo apt install network-manager
 - Copy `50-ENAC-network.yaml` in /etc/netplan/
 - Edit /etc/netplan/50-ENAC-network.yaml to set the correct wifi SSID and password.
 - run `netplan apply`.
+
+## UDEV rules
+
+Copy `80-robot.rules` to `/etc/udev/rules.d/`, and edit it to change the configuration according to your setup (pi4 vs pi5, ...)
 
 
 ## Packages
