@@ -4,7 +4,7 @@ from gpiozero import LED
 from time import sleep
 
 
-LED_GPIO = 19
+LED_GPIO = 21 # led2
 PERIOD = 1
 
 if __name__ == "__main__":
