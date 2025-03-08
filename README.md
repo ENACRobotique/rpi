@@ -14,11 +14,14 @@ The robot is composed of:
 - a Raspberry Pi 4 (or 5)
 - "base roulante" board, driving the motors and featuring an IMU
 - The IO board to handle actuators and some sensors
-- The LCD board, a simple UI.
+- The [LCD](https://github.com/ENACRobotique/interface_robot) board, a simple UI.
 
 Some sensors are directly connected to the Raspberry Pi, like the LD06 lidar, and the 8x8 range sensors VL53L5Cx.
 
 All theses boards communicate via UART, see the [udev rules](conf/80-robot.rules) to setup unambiguous device names.
+
+For more : 
+- Base roulante board [electronics](https://github.com/ENACRobotique/Cartes_Base_roulante) and [code](https://github.com/ENACRobotique/base_roulante_2024)
 
 
 ## Software architecture
