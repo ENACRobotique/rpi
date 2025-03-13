@@ -78,6 +78,9 @@ Copy `80-robot.rules` to `/etc/udev/rules.d/`, and edit it to change the configu
 
 Run `install_packages.sh` to install all necessary packages.
 
+## Build drivers
+
+Run `../build.sh`
 
 ## Python path
 
