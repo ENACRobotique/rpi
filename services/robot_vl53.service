@@ -1,13 +1,12 @@
 [Unit]
 Description=VL53L5CX driver
 After=network.target network-online.target
-Wants=pigpiod.service
 
 [Service]
 Type=simple
  
-WorkingDirectory=/home/robot/rpi/drivers/vl53/reader/
-ExecStart=python3 /home/robot/rpi/drivers/vl53/reader/vl53_ecal.py
+WorkingDirectory=/home/robot/rpi/drivers/vl53cpp/
+ExecStart=python3 /home/robot/rpi/drivers/vl53cpp/build/vl53_driver
  
 Restart=on-failure
 RestartSec=2 

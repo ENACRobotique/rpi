@@ -21,4 +21,6 @@ sudo apt-get install -y protobuf-compiler
 # eCAL
 sudo apt-get install -y ecal
 sudo apt-get install -y python3-ecal5
+#libgpiod
+sudo apt-get install -y gpiod libgpiod-dev
 

@@ -101,19 +101,3 @@ sudo bluetoothctl
 ```
 
 
-## GPIO for C
-
-```
-mkdir -p ~/lib
-cd ~/lib
-git clone https://github.com/joan2937/pigpio
-cd pigpio
-make
-sudo make install
-```
-
-May need `python3-setuptools`
-
-More details: https://abyz.me.uk/rpi/pigpio/download.html
-
-
