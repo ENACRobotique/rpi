@@ -1,16 +1,21 @@
 #include <ecal/ecal.h>
 #include <ecal/msg/protobuf/publisher.h>
+#include <ecal/msg/protobuf/subscriber.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <iostream>
 #include <thread>
 #include <stdio.h>
 #include <fcntl.h>
-#include "lidar_data.pb.h"
+#include "actionneurs.pb.h"
 #include "math.h"
 #include "STS3032.h"
 #include "serial.h"
 
+using SS = enac::SmartServo;
+STS3032* p_sts;
+
+void ssCb(const SS& msg);
 
 int main(int argc, char** argv){
 
@@ -30,40 +35,29 @@ int main(int argc, char** argv){
   STS3032 sts(serial_port);
   sts.init();
   sts.setSerialBaudrate(125000);
+  p_sts = &sts;
 
-  while(true) {
-    sts.ping(1);
-    usleep(500000);
+  // eCAL 
+  eCAL::Initialize(argc, argv, "smart_servo_driver");
+  eCAL::protobuf::CSubscriber<SS> subscriber("smart_servo");
+  // eCAL::CServiceServer server("smartServo Server");
+  subscriber.AddReceiveCallback(std::bind(&ssCb, std::placeholders::_2));
+
+  while (eCAL::Ok()){
+    usleep(1);}
+
+  eCAL::Finalize();
+  printf("Smart Servo Drivers Terminated\n");
+}
+
+void ssCb(const SS& msg){
+  if (msg.type() == SS::ServoType::SmartServo_ServoType_STS)
+  {
+    if (msg.command()== SS::CommandType::SmartServo_CommandType_PING)
+    {
+      p_sts->ping((uint8_t)msg.id());
+      // printf("pinged sts %d\n",msg.id());
+    }
   }
-
-  
-  // Initialize eCAL and create a protobuf publisher
-  // eCAL::Initialize(argc, argv, "ld06_driver");
-  // eCAL::protobuf::CPublisher<enac::Lidar> publisher("lidar_data");
-
-
-  // LD06 ld06([&publisher](std::array<Point,LD06_NB_POINTS> points, size_t len){
-  //   enac::Lidar lidar_msg;
-  //   for (int i=len-1; i>=0; i--){
-  //       lidar_msg.add_angles((360-points[i].angle) * M_PI / 180.0);
-  //       lidar_msg.add_distances(points[i].distance);
-  //       lidar_msg.add_quality(points[i].intensity);
-  //   }
-  //   // Send the message
-  //   publisher.Send(lidar_msg);
-
-  // });
-
-
-  // Infinite loop (using eCAL::Ok() will enable us to gracefully shutdown the
-  // Process from another application)
-  // while (eCAL::Ok()){
-  //   uint8_t cs[SERIAL_BUF_LEN];
-
-  //   int num_bytes = read(serial_port, cs, SERIAL_BUF_LEN);
-  //   ld06.feed(cs, num_bytes);
-  // }
-
-  // finalize eCAL API
-  // eCAL::Finalize();
+  return;
 }

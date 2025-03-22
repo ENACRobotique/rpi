@@ -27,7 +27,7 @@ set(source_files
 set(PROTO_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/../../proto)
 
 set(protobuf_files
-	${PROTO_DIR}/lidar_data.proto
+  ${PROTO_DIR}/actionneurs.proto
 )
 
 
