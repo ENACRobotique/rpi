@@ -11,10 +11,13 @@
 #include "math.h"
 #include "STS3032.h"
 #include "serial.h"
+#include "Dynamixel.h"
 
 using SS = enac::SmartServo;
 STS3032* p_sts;
+Dynamixel* p_dynamixel;
 
+void handleServo(const SS& msg, SmartServo* p_servo);
 void ssCb(const SS& msg);
 
 int main(int argc, char** argv){
@@ -47,17 +50,67 @@ int main(int argc, char** argv){
     usleep(1);}
 
   eCAL::Finalize();
-  printf("Smart Servo Drivers Terminated\n");
 }
 
 void ssCb(const SS& msg){
+  SmartServo* p_servo;
   if (msg.type() == SS::ServoType::SmartServo_ServoType_STS)
-  {
-    if (msg.command()== SS::CommandType::SmartServo_CommandType_PING)
-    {
-      p_sts->ping((uint8_t)msg.id());
-      // printf("pinged sts %d\n",msg.id());
-    }
-  }
+    {p_servo = p_sts;}
+
+  else if (msg.type() == SS::ServoType::SmartServo_ServoType_AX12)
+    {p_servo = p_dynamixel;}
+
+  handleServo(msg, p_servo);
   return;
+}
+
+void handleServo(const SS& msg, SmartServo* p_servo)
+{
+    switch (msg.command())
+    {
+        case SS::CommandType::SmartServo_CommandType_SET_ID:
+            p_servo->setID((uint8_t)msg.id(), (uint8_t)msg.newid());
+            break;
+        
+        case SS::CommandType::SmartServo_CommandType_PING:
+            p_servo->ping((uint8_t)msg.id());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_SET_BAUDRATE:
+            p_servo->setBaudrate((uint8_t)msg.id(), (uint32_t)msg.speed());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_MOVE:
+            p_servo->move((uint8_t)msg.id(), (uint16_t)msg.position());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_MOVE_SPEED:
+            p_servo->moveSpeed((uint8_t)msg.id(), (uint16_t)msg.position(), (uint16_t)msg.speed());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_SET_ENDLESS:
+            p_servo->setEndless((uint8_t)msg.id(), msg.endless_status());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_TURN:
+            // je sais pas si le cast marchera
+            p_servo->turn((uint8_t)msg.id(), (SmartServo::RotationDirection)msg.direction(), (uint16_t)msg.speed());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_SET_TORQUE:
+            p_servo->setTorque((uint8_t)msg.id(), (uint16_t)msg.torque());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_TORQUE_ENABLE:
+            p_servo->torqueEnable((uint8_t)msg.id(), msg.enable_torque());
+            break;
+
+        case SS::CommandType::SmartServo_CommandType_SET_LIMITS:
+            p_servo->setLimits((uint8_t)msg.id(), (uint16_t)msg.min_angle(), (uint16_t)msg.max_angle());
+            break;
+
+        default:
+            std::cerr << " Unknown command : " << msg.command() << std::endl;
+            break;
+}
 }
