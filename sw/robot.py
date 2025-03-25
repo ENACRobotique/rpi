@@ -9,9 +9,10 @@ import logging
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
+import generated.actionneurs_pb2 as actionneurs_pb
 import common
 from common import Pos, Speed, dist_to_line, next_path # tkt ça marche
-
+import musics
 import random as rd
 
 from enum import Enum
@@ -142,9 +143,6 @@ class Robot:
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
-        self.solar_offset = 125 # Basic solar offset
-        self.solar_ratio = 10
-
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
         #self.proximityStatus = None
@@ -162,17 +160,12 @@ class Robot:
         self.status_page = lcd.Text("Status", m, "---")
         self.score_page = lcd.Text("Score", m, "0")
         pid_page = lcd.Menu("PID", m)
-        solar_page = lcd.Menu("Solar",m)
-        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page, solar_page)
+        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page)
 
         kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
         ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
         kd_page = lcd.Number("Kd", pid_page, 0, 5, lambda x: self.set_pid_gain(2, x))
         pid_page.add_subpages(kp_page, ki_page, kd_page)
-
-        solar_offset_page = lcd.Number("Offset", solar_page, 100, 140, self.set_solar_offset)
-        solar_ratio_page = lcd.Number("Ratio", solar_page, 0, 2, self.set_solar_ratio)
-        solar_page.add_subpages(solar_offset_page, solar_ratio_page)
 
         self.lcd = lcd.LCDClient(m, self.on_lcd_event, self.on_lcd_state)
         self.lcd.start()
@@ -187,9 +180,6 @@ class Robot:
 
         self.speedReportSub = ProtoSubscriber("odom_speed",robot_pb.Speed)
         self.speedReportSub.set_callback(self.onReceiveSpeed)
-
-        self.pano_sub = ProtoSubscriber("aruco",robot_pb.Position_aruco)
-        self.pano_sub.set_callback(self.aruco)
         
         self.amalgame_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
         self.amalgame_sub.set_callback(self.detection)
@@ -238,6 +228,13 @@ class Robot:
         self.nav.initialisation()
         self.initActionneur()
 
+    def __repr__(self) -> str:
+        return "Cooking Mama's status storage structure"
+
+# ---------------------------- #
+#             IHM              #
+# ____________________________ #
+
     def set_color(self, c):
         self.color = c
         msg = robot_pb.Side()
@@ -254,18 +251,6 @@ class Robot:
         self.logger.info(f"Equipe : {c}")
         self.color_pub.send(msg)
 
-    def __repr__(self) -> str:
-        return "Cooking Mama's status storage structure"
-
-
-    @staticmethod
-    def normalize(angle):
-        while angle >= pi:
-            angle-=2*pi
-        while angle < -pi:
-            angle += 2*pi
-        return angle
-    
 
     def on_lcd_event(self, event):
         if event.button == robot_pb.LCDEvent.Button.COLOR and event.value == 1:
@@ -278,7 +263,51 @@ class Robot:
     def on_lcd_state(self, state):
         self.tirette = Tirette(state.tirette)
 
+    def updateScore(self,points):
+        self.buzz(ord('B'))
+        time.sleep(0.1)
+        self.buzz(ord('E')+7)
+        time.sleep(0.1)
+        #self.buzz(ord('0'))
+        self.score += points
+        self.score_page.set_text(f"Score",f"{self.score}")
+        self.lcd.set_page(self.score_page)
+    
+    def buzz(self,tone):
+        """Args , string:tone
+        \ntone : ['A'-'G'] + 7*octave : note à cette octave (0<=octave<=2)"""
+        self.lcd.buzz = tone
+        self.lcd.display()
 
+    def onReceiveMatchStarted (self, topic_name, msg, timestamp):
+        self.tempsDebutMatch = time.time()
+        ecal_core.log_message("Match started at " + str(self.tempsDebutMatch))
+
+    def set_strat(self, strat):
+        self.strat = strat
+
+    def shuffle_play(self):
+        for music in musics.playlist :
+            self.play_music(music)
+
+    def play_music(self, music):
+        """Joue une musique"""
+        for tone, duration in music:
+            self.buzz(tone)
+            time.sleep(duration)
+
+# ---------------------------- #
+#           CONTROL            #
+# ____________________________ #
+
+    @staticmethod
+    def normalize(angle):
+        while angle >= pi:
+            angle-=2*pi
+        while angle < -pi:
+            angle += 2*pi
+        return angle
+    
     def hasReachedTarget(self):
         d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
         
@@ -291,7 +320,6 @@ class Robot:
         hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
         print(f"dist = {d} \t dtheta = {degrees(self.pos.theta - self.last_target.theta)} \t Reached = {hrt}")
         return hrt 
-    
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
@@ -313,12 +341,6 @@ class Robot:
                     return True
                 time.sleep(0.1)
             return False
-        
-            
-            
-
-
-
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
@@ -359,25 +381,6 @@ class Robot:
                 last_time = time.time()
             time.sleep(0.1)
     
-    def updateScore(self,points):
-        self.buzz(ord('B'))
-        time.sleep(0.1)
-        self.buzz(ord('E')+7)
-        time.sleep(0.1)
-        #self.buzz(ord('0'))
-        self.score += points
-        self.score_page.set_text(f"Score",f"{self.score}")
-        self.lcd.set_page(self.score_page)
-
-    
-    
-        
-    
-    def buzz(self,tone):
-        """Args , string:tone
-        \ntone : ['A'-'G'] + 7*octave : note à cette octave (0<=octave<=2)"""
-        self.lcd.buzz = tone
-        self.lcd.display()
 
     def onSetTargetPostition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -395,13 +398,19 @@ class Robot:
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
         self.speed = Speed.from_proto(msg)
     
+
+    def set_pid_gain(self, gain, value):
+        self._pid_gains[gain] = value
+        kp, ki, kd = self._pid_gains
+        msg = base_pb.MotorPid(motor_no=0, kp=kp, ki=ki, kd=kd)
+        self.pid_pub.send(msg)
     
-    def onReceiveMatchStarted (self, topic_name, msg, timestamp):
-        self.tempsDebutMatch = time.time()
-        ecal_core.log_message("Match started at " + str(self.tempsDebutMatch))
 
 
-### NAVIGATION ###
+# ---------------------------- #
+#          NAVIGATION          #
+# ____________________________ #   
+
     def initNav(self):
         """ Initialise la navigation """
         self.nav.initialisation()
@@ -458,84 +467,6 @@ class Robot:
         if self.pos.distance(self.lidar_pos) < tolerance :
             self.resetPos(Pos(self.lidar_pos.x,self.lidar_pos.y,theta))
         
-    
-
-
-    ### Actionneur ###
-    def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
-        """ Définir en externe les valeurs à prendre 
-        \nArgs, Actionneur:actionneur, ValeurActionneur|int:valeur
-        \n Ex: Faire setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL) pour piloter l'ax de gauche !"""
-        if type(val) == int :
-            msg = robot_pb.IO(id = actionneur.value , val = val)    
-        else :
-            msg = robot_pb.IO(id = actionneur.value , val = val.value)
-        
-        self.IO_pub.send(msg)
-        time.sleep(0.15)
-
-    def initActionneur(self):
-        """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
-        self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
-        self.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
-        self.setActionneur(Actionneur.Pince3,ValeurActionneur.OpenPince3)
-        self.setActionneur(Actionneur.Pince4,ValeurActionneur.OpenPince4)
-        self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        self.setActionneur(Actionneur.AxBabord,ValeurActionneur.UpAxBabord)
-        self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
-
-    def set_solar_offset(self, x):
-        self.solar_offset = x
-    
-    def set_solar_ratio(self,x):
-        self.solar_ratio = x
-
-    def aruco(self, topic_name, msg, timestamp):
-        """Callback Ecal du code getAruco, stocke la commande du panneau"""
-        # self.logger.info(msg)
-        
-        self.aruco_theta = msg.theta
-        # position du centre de rotation
-        self.aruco_y = msg.x - cos(np.deg2rad(self.aruco_theta)) * 15 
-        self.aruco_x = -(msg.z - self.solar_offset) - sin(np.deg2rad(self.aruco_theta)) * 15
-        self.aruco_time = time.time()
-        #self.logger.info("aruco : ",self.aruco_x,self.aruco_y)
-        commande_pano = self.aruco_theta + self.pano_angle
-        #self.logger.info(f"aruco cmd : x = {self.aruco_x}\t y = {self.aruco_y}")
-        if commande_pano > 180 : 
-            commande_pano  = commande_pano - 360
-
-        if commande_pano < -180 : 
-           commande_pano  = commande_pano + 360
-
-        self.commande_pano = - commande_pano*self.solar_ratio
-
-    def commandeRoueSolaire(self,commande):
-        self.setActionneur(Actionneur.Pano, int(commande + ValeurActionneur.InitPano.value))
-    
-    def panoDo(self,commande, precommande):
-        """ensemble d'instruction bloquantes pour la procédure des Paneau solaires
-        \nArgs: int:consigne du servo"""
-        self.setActionneur(Actionneur.Bras,ValeurActionneur.DownBras)
-        time.sleep(1)
-        self.setActionneur(Actionneur.Pano,int(commande + ValeurActionneur.InitPano.value - precommande))
-        #self.logger.info("commande: ",commande)
-        time.sleep(0.5)# il faut un sleep là sinon le robot bouge avec le pano encore en bas
-        self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        
-    
-    def set_strat(self, strat):
-        self.strat = strat
-
-    def set_pid_gain(self, gain, value):
-        self._pid_gains[gain] = value
-        kp, ki, kd = self._pid_gains
-        msg = base_pb.MotorPid(motor_no=0, kp=kp, ki=ki, kd=kd)
-        self.pid_pub.send(msg)
-    
-
     def detection(self, topic_name, msg, timestamp):
         """ Try to find ennemies 
         \nSend 3 detected object Pos on ecal to visualize but saves all of them """
@@ -573,6 +504,36 @@ class Robot:
                 return True
             
         return False
+    
+
+# ---------------------------- #
+#              IO              #
+# ____________________________ #
+
+    def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
+        """ Définir en externe les valeurs à prendre 
+        \nArgs, Actionneur:actionneur, ValeurActionneur|int:valeur
+        \n Ex: Faire setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL) pour piloter l'ax de gauche !"""
+        if type(val) == int :
+            msg = robot_pb.IO(id = actionneur.value , val = val)    
+        else :
+            msg = robot_pb.IO(id = actionneur.value , val = val.value)
+        
+        self.IO_pub.send(msg)
+        time.sleep(0.15)
+
+    def initActionneur(self):
+        """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
+        self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
+        self.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
+        self.setActionneur(Actionneur.Pince3,ValeurActionneur.OpenPince3)
+        self.setActionneur(Actionneur.Pince4,ValeurActionneur.OpenPince4)
+        self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
+        self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
+        self.setActionneur(Actionneur.AxBabord,ValeurActionneur.UpAxBabord)
+        self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
+
+    
     
     def vl53_detect_plante(self, msg, id):
         self.vl53_started[id] = True
@@ -701,209 +662,11 @@ class Robot:
                 self.vl53_distance[id] = [distance_moy_1, distance_moy_0]
 
 
-    
-    def shuffle_play(self):
-        i = rd.randint(1,3)
-        if i==1:
-            self.play_Space_oddity()
-        elif i==2:
-            self.play_Rick_Roll()
-        elif i==3:
-            self.play_rocket_man()
-    
-    def play_Space_oddity(self):
-        """Lance la musique de Bowie avant le lancement """
-        time.sleep(1)
-        self.buzz(ord('G'))
-        time.sleep(0.2)
-        self.buzz(ord('G'))
-        time.sleep(0.2)
-        self.buzz(ord('C')+7) #
-        time.sleep(0.3)
-        self.buzz(ord('D')+7)
-        time.sleep(0.3)
-        self.buzz(ord('F')+7)
-        time.sleep(0.3)
-        self.buzz(ord('E')+7)
-        time.sleep(0.35)
-        self.buzz(ord('D')+7)
-        time.sleep(0.35)
-        self.buzz(ord('C')+7)
-        time.sleep(0.35)
-        self.buzz(ord('B')+7)
-        self.buzz(ord('B')+7)
-        self.buzz(ord('B')+7)
-        time.sleep(1)
-        self.buzz(ord('B')+7)
-        time.sleep(0.35)
-        self.buzz(ord('E')+7)
-        time.sleep(0.35)
-        self.buzz(ord('D')+7)
-        time.sleep(0.35)
-        self.buzz(ord('C')+7)
-        time.sleep(0.35)
-        self.buzz(ord('B')+7)
-        time.sleep(0.35)
-        self.buzz(ord('C')+7)
-        time.sleep(0.35)
-        self.buzz(ord('D')+7)
-        time.sleep(0.2)
-        self.buzz(ord('C')+7)
-        time.sleep(0.2)
-        self.buzz(ord('A')+7)
-
-    
-    def play_Rick_Roll(self):
-        
-        time.sleep(0.12)
-        self.buzz(ord('A')) #Ne
-        time.sleep(0.2)
-        self.buzz(ord('B')) #Ver
-        time.sleep(0.2)
-        self.buzz(ord('D')) #Go
-        time.sleep(0.2)
-        self.buzz(ord('B')) #na
-        time.sleep(0.3)
-        self.buzz(ord('F')) #Give
-        time.sleep(0.3)
-        self.buzz(ord('F')) #You
-        time.sleep(0.3)
-        self.buzz(ord('E')) # Up
-        time.sleep(0.5)
-
-        self.buzz(ord('A')) #Ne 
-        time.sleep(0.2)
-        self.buzz(ord('B')) # Ver
-        time.sleep(0.2)
-        self.buzz(ord('C')) #Go
-        time.sleep(0.2)
-        self.buzz(ord('A')) # Na
-        time.sleep(0.3)
-        self.buzz(ord('E')) #Let
-        time.sleep(0.3)
-        self.buzz(ord('E')) #You
-        time.sleep(0.3)
-        self.buzz(ord('D')) # Do-
-        time.sleep(0.3)
-        self.buzz(ord('C')) # -oo-
-        time.sleep(0.2)
-        self.buzz(ord('B')) # -wn
-        time.sleep(0.5)
-
-        self.buzz(ord('A')) #Ne
-        time.sleep(0.2)
-        self.buzz(ord('B')) #Ver
-        time.sleep(0.2)
-        self.buzz(ord('D')) #Go
-        time.sleep(0.2)
-        self.buzz(ord('B')) #na
-        time.sleep(0.3)
-        self.buzz(ord('D')) #run 
-        time.sleep(0.3)
-        self.buzz(ord('E')) #arouund
-        time.sleep(0.3)
-        self.buzz(ord('C')) #
-        time.sleep(0.3)
-        self.buzz(ord('A')) # 
-        time.sleep(0.15)
-        self.buzz(ord('A')) #
-        time.sleep(0.3)
-        self.buzz(ord('E')) #
-        time.sleep(0.45)
-        self.buzz(ord('D')) #
-    
-
-    def play_rocket_man(self):
-        
-        time.sleep(1)
-        self.buzz(ord('F')) #and
-        time.sleep(0.4)
-        self.buzz(ord('F')) #I 
-
-        self.buzz(ord('B')) #think  Bbemol normalement 
-        time.sleep(0.4)
-        self.buzz(ord('B')) #it's
-        
-        self.buzz(ord('D')) #go-
-        time.sleep(0.4)
-        self.buzz(ord('D')) #na 
-
-        self.buzz(ord('E')) #Be 
-        time.sleep(0.8)
-
-        self.buzz(ord('D')) #a
-        time.sleep(0.4)
-
-        self.buzz(ord('C')) #long
-        time.sleep(0.8)
-
-        self.buzz(ord('D')) #long
-        time.sleep(0.8)
-
-        self.buzz(ord('B')) #time  Bbemol
-        time.sleep(1.2)
-
-        self.buzz(ord('G')) #l
-        time.sleep(0.4)
-
-        self.buzz(ord('B')) #   Bbemol
-        time.sleep(0.8)
-
-        self.buzz(ord('C')) #   
-        time.sleep(0.8)
-
-        self.buzz(ord('E'))  #  Ebemol normalement   
-        time.sleep(0.8)
-
-        self.buzz(ord('D'))  #  Ebemol normalement   
-        time.sleep(0.4)
-
-        self.buzz(ord('B'))  #  Bbemol normalement   
-        time.sleep(0.4)
-
-        self.buzz(ord('B'))  #  Bbemol normalement   
-        time.sleep(0.4)
-
-        self.buzz(ord('C'))  #  
-        time.sleep(0.4)
-
-        self.buzz(ord('D'))  #   
-        time.sleep(0.4)
-
-        self.buzz(ord('B'))  #  Bbemol normalement   
-        time.sleep(0.4)
-
-        
-
-        
-
-
-
-
-    # def obstacle_dist_on_path(self,target_pos:Pos):
-    #     """Return True if the robot could colide with something on path and cooord of problem"""
-    #     if self.pos.distance(target_pos) < 1:
-    #         return False, 3600
-        
-    #     problems = []
-    #     for obj_pos,size in self.obstacles:
-    #         dist, pt = dist_to_line(obj_pos, self.pos, target_pos)
-    #         if dist < AVOIDANCE_OBSTACLE_MARGIN:
-    #             problems.append(pt)
-        
-    #     if problems :
-    #         closest_problem = min(problems, key=lambda x: self.pos.distance(x))
-    #         return True, self.pos.distance(closest_problem)
-    #     else:
-    #         return False, 3600
-
-
-
 
 
 if __name__ == "__main__":
     r = Robot()
     while(True):
-        self.logger.info(r.pos)
+        r.logger.info(r.pos)
         time.sleep(0.5)
         
