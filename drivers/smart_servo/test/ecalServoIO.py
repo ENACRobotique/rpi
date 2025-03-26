@@ -10,7 +10,6 @@ from generated.actionneurs_pb2 import SmartServo
 
 default = SmartServo.ServoType.STS
 
-
 class servoIO:
   def __init__(self) -> None:
     # ecal_core.initialize(sys.argv, "smart servo test publisher")  
@@ -103,7 +102,6 @@ class servoIO:
     self.message.command = SmartServo.CommandType.READ_POS
     self.publisher.send(self.message)
     # TODO lire le retour
-
 
 pedro = servoIO()
 if __name__ == "__main__":
