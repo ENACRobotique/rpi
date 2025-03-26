@@ -114,18 +114,7 @@ int writeData(int fd, uint8_t* data, size_t len, bool echo) {
         return -1;
     }
     
-    if (echo)
-    {
-        ssize_t echo_len = read(fd, buffer, len);
-        if (len == echo_len && !memcmp(buffer, data, len)) {
-	    //printf("echo ok!\n");
-            //ok
-        } else {
-            printf("Error: Echo does not match\n");
-            enableDriver(fd, false);
-            return -1;
-        }
-    }
+
 
     // wait for the transmit buffer to be empty
     // seems to be working on Rpi with hardware uart, but not with an USB<->UART dongle
@@ -135,6 +124,19 @@ int writeData(int fd, uint8_t* data, size_t len, bool echo) {
     } while (!(lsr & TIOCSER_TEMT));
 
     enableDriver(fd, false);
+
+    if (echo)
+    {
+        ssize_t echo_len = read(fd, buffer, len);
+        if (len == echo_len && !memcmp(buffer, data, len)) {
+	    //printf("echo ok!\n");
+            //ok
+        } else {
+            printf("Error: Echo does not match\n");
+            return -1;
+        }
+    }
+
     return 0;
 }
 
