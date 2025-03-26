@@ -7,6 +7,7 @@
 #include <thread>
 #include <stdio.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include "actionneurs.pb.h"
 #include "math.h"
 #include "STS3032.h"
@@ -24,11 +25,9 @@ void log_msg(const char *fmt, ...) {
   vsnprintf(print_buffer, 200, fmt, args);
   va_end(args);
   eCAL::Logging::Log(print_buffer);
-  printf("%s\n", print_buffer);
 }
 
 void handleServo(const SS& msg, SmartServo* p_servo);
-void ssCb(const SS& msg);
 
 int main(int argc, char** argv){
 
@@ -50,85 +49,92 @@ int main(int argc, char** argv){
   sts.setSerialBaudrate(B500000);
   p_sts = &sts;
 
-  // eCAL 
   eCAL::Initialize(argc, argv, "smart_servo_driver");
   eCAL::protobuf::CSubscriber<SS> subscriber("smart_servo");
-  // eCAL::CServiceServer server("smartServo Server");
-  subscriber.AddReceiveCallback(std::bind(&ssCb, std::placeholders::_2));
 
+  subscriber.AddReceiveCallback([=](const char *topic_name_, const SS &msg, long long time_, long long clock_, long long id_) {
+    if (msg.type() == SS::ServoType::SmartServo_ServoType_STS) {
+      handleServo(msg, p_sts);
+    }
+    else if (msg.type() == SS::ServoType::SmartServo_ServoType_AX12) {
+      handleServo(msg, p_dynamixel);
+    }
+  });
+  
   while (eCAL::Ok()){
-    usleep(1);}
+    usleep(1000);
+  }
 
   eCAL::Finalize();
 }
 
-void ssCb(const SS& msg){
-  SmartServo* p_servo;
-  if (msg.type() == SS::ServoType::SmartServo_ServoType_STS)
-    {p_servo = p_sts;}
-
-  else if (msg.type() == SS::ServoType::SmartServo_ServoType_AX12)
-    {p_servo = p_dynamixel;}
-
-  handleServo(msg, p_servo);
-  return;
-}
 
 void handleServo(const SS& msg, SmartServo* p_servo)
 {
     switch (msg.command())
     {
         case SS::CommandType::SmartServo_CommandType_SET_ID:
-            log_msg("set id %d to %d", msg.id(), msg.newid());
-            p_servo->setID((uint8_t)msg.id(), (uint8_t)msg.newid());
+            log_msg("[%d] set id to %d", msg.id(), msg.newid());
+            p_servo->setID(msg.id(), msg.newid());
             break;
         
         case SS::CommandType::SmartServo_CommandType_PING:
-            log_msg("ping %d", msg.id());
-            p_servo->ping((uint8_t)msg.id());
+            log_msg("[%d] ping", msg.id());
+            p_servo->ping(msg.id());
             break;
         case SS::CommandType::SmartServo_CommandType_READ_POS:
           {
-            int pos = p_servo->readPosition((uint8_t)msg.id());
-            log_msg("Read pos %d: %d", msg.id(), pos);
+            int pos = p_servo->readPosition(msg.id());
+            log_msg("[%d] Read pos: %d", msg.id(), pos);
           }
             break;
 
         case SS::CommandType::SmartServo_CommandType_SET_BAUDRATE:
-            p_servo->setBaudrate((uint8_t)msg.id(), (uint32_t)msg.speed());
+            p_servo->setBaudrate(msg.id(), msg.speed());
             break;
 
         case SS::CommandType::SmartServo_CommandType_MOVE:
-            p_servo->move((uint8_t)msg.id(), (uint16_t)msg.position());
+            p_servo->move(msg.id(), msg.position());
             break;
 
         case SS::CommandType::SmartServo_CommandType_MOVE_SPEED:
-            p_servo->moveSpeed((uint8_t)msg.id(), (uint16_t)msg.position(), (uint16_t)msg.speed());
+            p_servo->moveSpeed(msg.id(), msg.position(), msg.speed());
             break;
 
         case SS::CommandType::SmartServo_CommandType_SET_ENDLESS:
-            p_servo->setEndless((uint8_t)msg.id(), msg.endless_status());
+            p_servo->setEndless(msg.id(), msg.endless_status());
             break;
 
         case SS::CommandType::SmartServo_CommandType_TURN:
-            // je sais pas si le cast marchera
-            p_servo->turn((uint8_t)msg.id(), (SmartServo::RotationDirection)msg.direction(), (uint16_t)msg.speed());
+            p_servo->turn(msg.id(), (SmartServo::RotationDirection)msg.direction(), msg.speed());
             break;
 
         case SS::CommandType::SmartServo_CommandType_SET_TORQUE:
-            p_servo->setTorque((uint8_t)msg.id(), (uint16_t)msg.torque());
+            p_servo->setTorque(msg.id(), msg.torque());
             break;
 
         case SS::CommandType::SmartServo_CommandType_TORQUE_ENABLE:
-            p_servo->torqueEnable((uint8_t)msg.id(), msg.enable_torque());
+            p_servo->torqueEnable(msg.id(), msg.enable_torque());
             break;
 
         case SS::CommandType::SmartServo_CommandType_SET_LIMITS:
-            p_servo->setLimits((uint8_t)msg.id(), (uint16_t)msg.min_angle(), (uint16_t)msg.max_angle());
+            log_msg("[%d] Set limits: %d-%d", msg.id(), msg.min_angle(), msg.max_angle());
+            p_servo->setLimits(msg.id(), msg.min_angle(), msg.max_angle());
+            break;
+
+          case SS::CommandType::SmartServo_CommandType_SET_MULTITURN:
+            log_msg("[%d] Set multiturn factor: %d", msg.id(), msg.multiturn_factor());
+            if(msg.unlock_eeprom()) {
+              p_servo->lock_eprom(msg.id(), false);
+            }
+            p_servo->setMultiturn(msg.id(), msg.multiturn_factor());
+            if(msg.unlock_eeprom()) {
+              p_servo->lock_eprom(msg.id(), true);
+            }
             break;
 
         default:
             std::cerr << " Unknown command : " << msg.command() << std::endl;
             break;
-}
+    }
 }
