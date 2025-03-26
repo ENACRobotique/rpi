@@ -10,11 +10,6 @@ from ecal.core.subscriber import ProtoSubscriber
 
 
 class RadarView(QtWidgets.QWidget):
-    COLOR_SCALE = ["#00876c", "#3d9c73", "#63b179",
-                   "#88c580", "#aed987", "#d6ec91",
-                   "#ffff9d", "#fee17e", "#fcc267",
-                   "#f7a258", "#ef8250", "#e4604e",
-                   "#d43d51"]
     vl53_data = QtCore.pyqtSignal(list)
 
     def __init__(self, nb, parent):
@@ -48,8 +43,6 @@ class RadarView(QtWidgets.QWidget):
     def color_from_distance(self, distance):
         v = min(255, distance / 200 * 255)
         c = QtGui.QColor(int(v), 0, 0)
-        #color_index = len(self.COLOR_SCALE) - int(distance * len(self.COLOR_SCALE) / 2000) - 1
-        #c = QtGui.QColor(self.COLOR_SCALE[color_index])
         return c
 
     def wheelEvent(self, e: QtGui.QWheelEvent) -> None:
@@ -64,18 +57,12 @@ class RadarView(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         rect = QtCore.QRect(0, 0, painter.device().width(), painter.device().height())
 
-        # paint scale
-        for i, color in enumerate(self.COLOR_SCALE):
-            scale_rect = QtCore.QRect(rect.right()-50, 10 + i*20, 40, 20)
-            painter.setBrush(QtGui.QColor(color))
-            painter.setPen(QtCore.Qt.NoPen)
-            painter.drawRect(scale_rect)
-
         px_w = rect.width() // 8
         px_h = rect.height() // 8
 
         def idx(x, y):
-            return (7 - y) * 8 + (7 - x)
+            #return (7 - y) * 8 + (7 - x)
+            return (8*x+(7-y))
 
         min_idxs = []
         min_dists = []
