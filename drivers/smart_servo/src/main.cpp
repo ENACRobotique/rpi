@@ -7,6 +7,7 @@
 #include <thread>
 #include <stdio.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include "actionneurs.pb.h"
 #include "math.h"
 #include "STS3032.h"
