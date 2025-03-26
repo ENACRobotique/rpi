@@ -17,6 +17,16 @@ using SS = enac::SmartServo;
 STS3032* p_sts;
 Dynamixel* p_dynamixel;
 
+void log_msg(const char *fmt, ...) {
+  char print_buffer[200] = {0};
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(print_buffer, 200, fmt, args);
+  va_end(args);
+  eCAL::Logging::Log(print_buffer);
+  printf("%s\n", print_buffer);
+}
+
 void handleServo(const SS& msg, SmartServo* p_servo);
 void ssCb(const SS& msg);
 
@@ -37,7 +47,7 @@ int main(int argc, char** argv){
 
   STS3032 sts(serial_port);
   sts.init();
-  sts.setSerialBaudrate(125000);
+  sts.setSerialBaudrate(B500000);
   p_sts = &sts;
 
   // eCAL 
@@ -69,11 +79,19 @@ void handleServo(const SS& msg, SmartServo* p_servo)
     switch (msg.command())
     {
         case SS::CommandType::SmartServo_CommandType_SET_ID:
+            log_msg("set id %d to %d", msg.id(), msg.newid());
             p_servo->setID((uint8_t)msg.id(), (uint8_t)msg.newid());
             break;
         
         case SS::CommandType::SmartServo_CommandType_PING:
+            log_msg("ping %d", msg.id());
             p_servo->ping((uint8_t)msg.id());
+            break;
+        case SS::CommandType::SmartServo_CommandType_READ_POS:
+          {
+            int pos = p_servo->readPosition((uint8_t)msg.id());
+            log_msg("Read pos %d: %d", msg.id(), pos);
+          }
             break;
 
         case SS::CommandType::SmartServo_CommandType_SET_BAUDRATE:
