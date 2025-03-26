@@ -9,10 +9,10 @@ import logging
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
-import generated.actionneurs_pb2 as actionneurs_pb
 from ..drivers.smart_servo.test.ecalServoIO import servoIO
+from actionneurs import * 
 import common
-from common import Pos, Speed, dist_to_line, next_path # tkt ça marche
+from common import Pos, Speed, dist_to_line, next_path
 import musics
 import random as rd
 
@@ -57,53 +57,6 @@ class Strat(Enum):
     Audacieuse = 3
     ShowOff = 4
 
-
-
-class Actionneur(Enum):
-    #todo : Droit = la droite du robot par rapport à son axe X
-    AimantBasDroit = 4
-    AimantBasGauche = 3
-    AscenseurAimant = 5
-    
-    AimantHautDroit = 6 
-    AimantHautGauche = 7
-    Rentreur = 8
-
-    PlancheDroit = 1
-    PlancheGauche = 2
-    VerrouPince = 9
-    BrasPince = 11 # AX
-
-    AscenseurBanderolle = 10
-
-class ValeurActionneur(Enum):
-    STSLowSpeed = 0
-    AimantBasDroitGRAB = 0
-    AimantBasDroitDROP = 0
-    AimantBasGaucheGRAB = 0
-    AimantBasGaucheDROP = 0
-    AimantHautDroitGRAB = 0
-    AimantHautDroitDROP = 0
-    AimantHautGaucheGRAB = 0
-    AimantHautGaucheDROP = 0
-    AscenseurAimantUP = 0
-    AscenseurAimantDOWN = 0
-
-    RentreurIN = 0
-    RentreurOUT = 0
-
-    BrasPinceIN = 0
-    BrasPinceOUT = 0
-    VerrouPinceLOCK = 0
-    VerrouPinceUNLOCK = 0
-
-    PlancheDroitUP = 0
-    PlancheDroitDOWN = 0
-    PlancheGaucheUP = 0
-    PlancheGaucheDOWN = 0
-
-
-
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
     
@@ -137,7 +90,7 @@ class Robot:
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
-        self.Servo_IO = servoIO()
+        self.actionneurs = IO_Manager()
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
         #self.proximityStatus = None
@@ -221,10 +174,10 @@ class Robot:
         time.sleep(1)
 
         self.nav.initialisation()
-        self.initActionneur()
+        self.actionneurs.initActionneur()
 
     def __repr__(self) -> str:
-        return "Cooking Mama's status storage structure"
+        return "Robot Enac status storage structure"
 
 # ---------------------------- #
 #             IHM              #
@@ -505,74 +458,7 @@ class Robot:
 #              IO              #
 # ____________________________ #
 
-    def initActionneur(self):
-        """Passage de tout les actionneurs à leur position de début de match \n"""
-        pass
-        
-        
-    def liftPlanches(self, up:bool, sync:bool = False):
-        """Monter ou descendre les planches\n"""
-        if up:
-            self.Servo_IO.moveSpeed(Actionneur.PlancheDroit, ValeurActionneur.PlancheDroitUP, ValeurActionneur.STSLowSpeed)
-            self.Servo_IO.moveSpeed(Actionneur.PlancheGauche, ValeurActionneur.PlancheGaucheUP, ValeurActionneur.STSLowSpeed)
-            
-        else:
-            self.Servo_IO.moveSpeed(Actionneur.PlancheDroit, ValeurActionneur.PlancheDroitDOWN, ValeurActionneur.STSLowSpeed)
-            self.Servo_IO.moveSpeed(Actionneur.PlancheGauche, ValeurActionneur.PlancheGaucheDOWN, ValeurActionneur.STSLowSpeed)
-            
-        
-    def lockPlanche(self, lock:bool, sync:bool = False):
-        """ Tenir ou lacher la planche du haut"""
-        if lock:
-            self.Servo_IO.move(Actionneur.VerrouPince, ValeurActionneur.VerrouPinceLOCK)
-            
-        else :
-            self.Servo_IO.move(Actionneur.VerrouPince, ValeurActionneur.VerrouPinceUNLOCK)
-            
-        
-    def deployPince(self, deploy:bool, sync:bool = False):
-        if deploy:
-            self.Servo_IO.move(Actionneur.BrasPince, ValeurActionneur.BrasPinceOUT, actionneurs_pb.SmartServo.ServoType.AX12)
-            
-        else :
-            self.Servo_IO.move(Actionneur.BrasPince, ValeurActionneur.BrasPinceIN, actionneurs_pb.SmartServo.ServoType.AX12)
-            
     
-    def stockConserve(self, stock: bool, sync:bool = False):
-        if stock:
-            self.Servo_IO.moveSpeed(Actionneur.Rentreur, ValeurActionneur.RentreurIN, ValeurActionneur.STSLowSpeed)
-            
-        else:
-            self.Servo_IO.moveSpeed(Actionneur.Rentreur, ValeurActionneur.RentreurOUT, ValeurActionneur.STSLowSpeed)
-            
-        
-    def liftConserve(self,up:bool, sync:bool = False):
-        if up:
-            self.Servo_IO.moveSpeed(Actionneur.AscenseurAimant, ValeurActionneur.AscenseurAimantUP, ValeurActionneur.STSLowSpeed)
-            
-        else:
-            self.Servo_IO.moveSpeed(Actionneur.AscenseurAimant, ValeurActionneur.AscenseurAimantDOWN, ValeurActionneur.STSLowSpeed)
-            
-            
-    def grabLowConserve(self, grab : bool, sync:bool = False):
-        if grab : 
-            self.Servo_IO.move(Actionneur.AimantBasGauche,ValeurActionneur.AimantBasGaucheGRAB)
-            self.Servo_IO.move(Actionneur.AimantBasDroit,ValeurActionneur.AimantBasDroitGRAB)
-            
-        else: 
-            self.Servo_IO.move(Actionneur.AimantBasGauche,ValeurActionneur.AimantBasGaucheDROP)
-            self.Servo_IO.move(Actionneur.AimantBasDroit,ValeurActionneur.AimantBasDroitDROP)
-            
-        
-    def grabHighConserve(self, grab : bool, sync:bool = False):
-        if grab : 
-            self.Servo_IO.move(Actionneur.AimantHautGauche,ValeurActionneur.AimantHautGaucheGRAB)
-            self.Servo_IO.move(Actionneur.AimantHautDroit,ValeurActionneur.AimantHautDroitGRAB)
-            
-        else: 
-            self.Servo_IO.move(Actionneur.AimantHautGauche,ValeurActionneur.AimantHautGaucheDROP)
-            self.Servo_IO.move(Actionneur.AimantHautDroit,ValeurActionneur.AimantHautDroitDROP)
-            
 
 
 

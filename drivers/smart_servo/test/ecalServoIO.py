@@ -94,10 +94,6 @@ class servoIO:
     # TODO lire le retour
 
 
-
-  
-  
-
 pedro = servoIO()
 if __name__ == "__main__":
 
