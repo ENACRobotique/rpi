@@ -3,7 +3,10 @@ import sys
 import time
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
-from actionneurs_pb2 import SmartServo
+
+sys.path.append("../../../")
+
+from generated.actionneurs_pb2 import SmartServo
 
 default = SmartServo.ServoType.STS
 
@@ -86,6 +89,14 @@ class servoIO:
     self.message.max_angle = max
     self.publisher.send(self.message)
 
+  def setMultiturn(self, id, factor, unlock=False, type=default):
+    self.message.id = id
+    self.message.type = type
+    self.message.command = SmartServo.CommandType.SET_MULTITURN
+    self.message.multiturn_factor = factor
+    self.message.unlock_eeprom = unlock
+    self.publisher.send(self.message)
+
   def readPos(self, id, type=default):
     self.message.id = id
     self.message.type = type
@@ -98,6 +109,8 @@ pedro = servoIO()
 if __name__ == "__main__":
 
   while ecal_core.ok():
-     time.sleep(1)
-
+     pedro.ping(254)
+     time.sleep(2)
+  print("Closing Ecal")
   ecal_core.finalize()
+  

@@ -69,6 +69,9 @@ public:
     virtual SmartServo::Status torqueEnable(uint8_t id, bool enable) = 0;
     virtual SmartServo::Status setLimits(uint8_t id, uint16_t minAngle, uint16_t maxAngle) = 0;
 
+    virtual SmartServo::Status setMultiturn(uint8_t id, uint8_t factor) = 0;
+    virtual SmartServo::Status lock_eprom(uint8_t id, bool lock) = 0;
+
     virtual int readPosition(uint8_t id) = 0;
     
     /**

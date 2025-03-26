@@ -32,10 +32,10 @@ public:
     SmartServo::Status setLimits(uint8_t id, uint16_t minAngle, uint16_t maxAngle) override;
     SmartServo::Status setResolution(uint8_t id, uint8_t resolution);
 
-    SmartServo::Status setMultiturn(uint8_t id, uint8_t factor);
+    SmartServo::Status setMultiturn(uint8_t id, uint8_t factor) override;
     
     // true for locking, false for unlocking
-    SmartServo::Status lock_eprom(uint8_t id, bool lock);
+    SmartServo::Status lock_eprom(uint8_t id, bool lock) override;
 
     
 	

@@ -109,6 +109,7 @@ class Robot:
         self.score_page = lcd.Text("Score", m, "0")
         pid_page = lcd.Menu("PID", m)
         m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page)
+        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page)
 
         kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
         ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
@@ -198,6 +199,7 @@ class Robot:
             self.lcd.blue = True
         self.logger.info(f"Equipe : {c}")
         self.color_pub.send(msg)
+
 
 
     def on_lcd_event(self, event):
@@ -352,8 +354,6 @@ class Robot:
         kp, ki, kd = self._pid_gains
         msg = base_pb.MotorPid(motor_no=0, kp=kp, ki=ki, kd=kd)
         self.pid_pub.send(msg)
-    
-
 
 # ---------------------------- #
 #          NAVIGATION          #
@@ -415,6 +415,7 @@ class Robot:
         if self.pos.distance(self.lidar_pos) < tolerance :
             self.resetPos(Pos(self.lidar_pos.x,self.lidar_pos.y,theta))
         
+        
     def detection(self, topic_name, msg, timestamp):
         """ Try to find ennemies 
         \nSend 3 detected object Pos on ecal to visualize but saves all of them """
@@ -457,27 +458,6 @@ class Robot:
 # ---------------------------- #
 #              IO              #
 # ____________________________ #
-
-    
-
-
-
-    # def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
-    #     """ Définir en externe les valeurs à prendre 
-    #     \nArgs, Actionneur:actionneur, ValeurActionneur|int:valeur
-    #     \n Ex: Faire setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL) pour piloter l'ax de gauche !"""
-    #     if type(val) == int :
-    #         msg = robot_pb.IO(id = actionneur.value , val = val)    
-    #     else :
-    #         msg = robot_pb.IO(id = actionneur.value , val = val.value)
-        
-    #     self.IO_pub.send(msg)
-    #     time.sleep(0.15)
-
-
-    
-
-    
     
     def vl53_detect_plante(self, msg, id):
         self.vl53_started[id] = True
