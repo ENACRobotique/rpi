@@ -30,7 +30,7 @@ systemctl --user daemon-reload
 # start user.default target at startup
 loginctl enable-linger $(whoami)
 
-sudo rm /etc/systemd/system/pigpiod.service
-sudo ln -s ~/rpi/services/pigpiod.service /etc/systemd/system/pigpiod.service
-sudo systemctl daemon-reload
+#sudo rm /etc/systemd/system/pigpiod.service
+#sudo ln -s ~/rpi/services/pigpiod.service /etc/systemd/system/pigpiod.service
+#sudo systemctl daemon-reload
 
