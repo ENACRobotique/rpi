@@ -7,10 +7,10 @@ from actionneurs_pb2 import SmartServo
 
 default = SmartServo.ServoType.STS
 
-# nom temporaire
-class messenger:
+
+class servoIO:
   def __init__(self) -> None:
-    ecal_core.initialize(sys.argv, "smart servo test publisher")  
+    # ecal_core.initialize(sys.argv, "smart servo test publisher")  
     self.publisher = ProtoPublisher("smart_servo", SmartServo)
     self.message = SmartServo()
 
@@ -98,7 +98,7 @@ class messenger:
   
   
 
-pedro = messenger()
+pedro = servoIO()
 if __name__ == "__main__":
 
   while ecal_core.ok():

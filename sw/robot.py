@@ -10,6 +10,7 @@ import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
 import generated.actionneurs_pb2 as actionneurs_pb
+from ..drivers.smart_servo.test.ecalServoIO import servoIO
 import common
 from common import Pos, Speed, dist_to_line, next_path # tkt ça marche
 import musics
@@ -28,8 +29,6 @@ XY_ACCURACY = 15  # mm
 THETA_ACCURACY = radians(10) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
-THETA_PINCES_BABORD = radians(60)  #pinces babord repère robot 
-THETA_PINCES_TRIBORD = radians(-60)
 
 # avoidance bounds 
 BOUNDS = (-100,400,-250,250)
@@ -61,45 +60,48 @@ class Strat(Enum):
 
 
 class Actionneur(Enum):
-    Pince1 = 3
-    Pince2 = 2
-    Pince3 = 5
-    Pince4 = 6
-    Bras   = 4
-    Pano   = 1
-    AxBabord    = 7
-    AxTribord    = 8
+    #todo : Droit = la droite du robot par rapport à son axe X
+    AimantBasDroit = 4
+    AimantBasGauche = 3
+    AscenseurAimant = 5
+    
+    AimantHautDroit = 6 
+    AimantHautGauche = 7
+    Rentreur = 8
+
+    PlancheDroit = 1
+    PlancheGauche = 2
+    VerrouPince = 9
+    BrasPince = 11 # AX
+
+    AscenseurBanderolle = 10
 
 class ValeurActionneur(Enum):
-    InitPano = 1400
+    STSLowSpeed = 0
+    AimantBasDroitGRAB = 0
+    AimantBasDroitDROP = 0
+    AimantBasGaucheGRAB = 0
+    AimantBasGaucheDROP = 0
+    AimantHautDroitGRAB = 0
+    AimantHautDroitDROP = 0
+    AimantHautGaucheGRAB = 0
+    AimantHautGaucheDROP = 0
+    AscenseurAimantUP = 0
+    AscenseurAimantDOWN = 0
 
-    OpenPince1 = 1120
-    OpenPince2 = 1900
-    OpenPince3 = 850
-    OpenPince4 = 1070
-    
-    ClosePince1 = 750
-    ClosePince2 = 1500
-    ClosePince3 = 1250
-    ClosePince4 = 1365
+    RentreurIN = 0
+    RentreurOUT = 0
 
-    ClosePincePot1 = 830
-    ClosePincePot2 = 1590
-    ClosePincePot3 = 1150
-    ClosePincePot4 = 1260
-    
+    BrasPinceIN = 0
+    BrasPinceOUT = 0
+    VerrouPinceLOCK = 0
+    VerrouPinceUNLOCK = 0
 
-    DownBras = 1960
-    UpBras = 970
-    
-    UpAxBabord = 1020
-    UpAxTribord = 140
+    PlancheDroitUP = 0
+    PlancheDroitDOWN = 0
+    PlancheGaucheUP = 0
+    PlancheGaucheDOWN = 0
 
-    MidAxBabord = 500
-    MidAxTribord = 640   
-
-    DownAxBabord = 90
-    DownAxTribord = 1020
 
 
 class Robot:
@@ -121,20 +123,12 @@ class Robot:
         self.speed = Speed(0, 0, 0)
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav()
-        self.pano_angle = 0
-        self.aruco_time = 0
         self.command_sent = False
         self.lidar_pos = Pos(0,0,0)
-        self.vl53_data: dict[Actionneur,None|tuple] = {Actionneur.Pince1: None,
-                           Actionneur.Pince2: None,
-                           Actionneur.Pince3: None,
-                           Actionneur.Pince4: None
+        self.vl53_data: dict[Actionneur,None|tuple] = {Actionneur.AimantBasDroit: None,
+                           Actionneur.AimantBasGauche: None
                            }
-
-        self.aruco_y = 0
-        self.aruco_x = 0
-        self.aruco_theta = 0
-
+        
         self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
         self.strat = Strat.Audacieuse
@@ -143,6 +137,7 @@ class Robot:
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
+        self.Servo_IO = servoIO()
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
         #self.proximityStatus = None
@@ -194,15 +189,15 @@ class Robot:
         #self.proximitySub.set_callback(self.onProximityStatus)
 
 
-        self.vl53_started = {Actionneur.Pince1: False, Actionneur.Pince2: False, Actionneur.Pince3: False, Actionneur.Pince4: False}
+        self.vl53_started = {Actionneur.AimantBasDroit: False, Actionneur.AimantBasGauche: False}
         self.vl53_1_sub = ProtoSubscriber("vl53_1",lidar_pb.Lidar)
-        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince1))
+        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.AimantBasGauche))
         self.vl53_2_sub = ProtoSubscriber("vl53_2",lidar_pb.Lidar)
-        self.vl53_2_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince2))
-        self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
-        self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince3))
-        self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
-        self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
+        self.vl53_2_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.AimantBasDroit))
+        # self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
+        # self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince3))
+        # self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
+        # self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
         
         ### PUB ECAL ###
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
@@ -510,28 +505,91 @@ class Robot:
 #              IO              #
 # ____________________________ #
 
-    def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
-        """ Définir en externe les valeurs à prendre 
-        \nArgs, Actionneur:actionneur, ValeurActionneur|int:valeur
-        \n Ex: Faire setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL) pour piloter l'ax de gauche !"""
-        if type(val) == int :
-            msg = robot_pb.IO(id = actionneur.value , val = val)    
-        else :
-            msg = robot_pb.IO(id = actionneur.value , val = val.value)
-        
-        self.IO_pub.send(msg)
-        time.sleep(0.15)
-
     def initActionneur(self):
-        """Passage de tout les actionneurs à leur position de début de match \n bloquant pendant 1 sec"""
-        self.setActionneur(Actionneur.Pince1,ValeurActionneur.OpenPince1)
-        self.setActionneur(Actionneur.Pince2,ValeurActionneur.OpenPince2)
-        self.setActionneur(Actionneur.Pince3,ValeurActionneur.OpenPince3)
-        self.setActionneur(Actionneur.Pince4,ValeurActionneur.OpenPince4)
-        self.setActionneur(Actionneur.Bras,ValeurActionneur.UpBras)
-        self.setActionneur(Actionneur.Pano,ValeurActionneur.InitPano)
-        self.setActionneur(Actionneur.AxBabord,ValeurActionneur.UpAxBabord)
-        self.setActionneur(Actionneur.AxTribord,ValeurActionneur.UpAxTribord)
+        """Passage de tout les actionneurs à leur position de début de match \n"""
+        pass
+        
+        
+    def liftPlanches(self, up:bool, sync:bool = False):
+        """Monter ou descendre les planches\n"""
+        if up:
+            self.Servo_IO.moveSpeed(Actionneur.PlancheDroit, ValeurActionneur.PlancheDroitUP, ValeurActionneur.STSLowSpeed)
+            self.Servo_IO.moveSpeed(Actionneur.PlancheGauche, ValeurActionneur.PlancheGaucheUP, ValeurActionneur.STSLowSpeed)
+            
+        else:
+            self.Servo_IO.moveSpeed(Actionneur.PlancheDroit, ValeurActionneur.PlancheDroitDOWN, ValeurActionneur.STSLowSpeed)
+            self.Servo_IO.moveSpeed(Actionneur.PlancheGauche, ValeurActionneur.PlancheGaucheDOWN, ValeurActionneur.STSLowSpeed)
+            
+        
+    def lockPlanche(self, lock:bool, sync:bool = False):
+        """ Tenir ou lacher la planche du haut"""
+        if lock:
+            self.Servo_IO.move(Actionneur.VerrouPince, ValeurActionneur.VerrouPinceLOCK)
+            
+        else :
+            self.Servo_IO.move(Actionneur.VerrouPince, ValeurActionneur.VerrouPinceUNLOCK)
+            
+        
+    def deployPince(self, deploy:bool, sync:bool = False):
+        if deploy:
+            self.Servo_IO.move(Actionneur.BrasPince, ValeurActionneur.BrasPinceOUT, actionneurs_pb.SmartServo.ServoType.AX12)
+            
+        else :
+            self.Servo_IO.move(Actionneur.BrasPince, ValeurActionneur.BrasPinceIN, actionneurs_pb.SmartServo.ServoType.AX12)
+            
+    
+    def stockConserve(self, stock: bool, sync:bool = False):
+        if stock:
+            self.Servo_IO.moveSpeed(Actionneur.Rentreur, ValeurActionneur.RentreurIN, ValeurActionneur.STSLowSpeed)
+            
+        else:
+            self.Servo_IO.moveSpeed(Actionneur.Rentreur, ValeurActionneur.RentreurOUT, ValeurActionneur.STSLowSpeed)
+            
+        
+    def liftConserve(self,up:bool, sync:bool = False):
+        if up:
+            self.Servo_IO.moveSpeed(Actionneur.AscenseurAimant, ValeurActionneur.AscenseurAimantUP, ValeurActionneur.STSLowSpeed)
+            
+        else:
+            self.Servo_IO.moveSpeed(Actionneur.AscenseurAimant, ValeurActionneur.AscenseurAimantDOWN, ValeurActionneur.STSLowSpeed)
+            
+            
+    def grabLowConserve(self, grab : bool, sync:bool = False):
+        if grab : 
+            self.Servo_IO.move(Actionneur.AimantBasGauche,ValeurActionneur.AimantBasGaucheGRAB)
+            self.Servo_IO.move(Actionneur.AimantBasDroit,ValeurActionneur.AimantBasDroitGRAB)
+            
+        else: 
+            self.Servo_IO.move(Actionneur.AimantBasGauche,ValeurActionneur.AimantBasGaucheDROP)
+            self.Servo_IO.move(Actionneur.AimantBasDroit,ValeurActionneur.AimantBasDroitDROP)
+            
+        
+    def grabHighConserve(self, grab : bool, sync:bool = False):
+        if grab : 
+            self.Servo_IO.move(Actionneur.AimantHautGauche,ValeurActionneur.AimantHautGaucheGRAB)
+            self.Servo_IO.move(Actionneur.AimantHautDroit,ValeurActionneur.AimantHautDroitGRAB)
+            
+        else: 
+            self.Servo_IO.move(Actionneur.AimantHautGauche,ValeurActionneur.AimantHautGaucheDROP)
+            self.Servo_IO.move(Actionneur.AimantHautDroit,ValeurActionneur.AimantHautDroitDROP)
+            
+
+
+
+    # def setActionneur(self, actionneur: Actionneur,val : ValeurActionneur | int):
+    #     """ Définir en externe les valeurs à prendre 
+    #     \nArgs, Actionneur:actionneur, ValeurActionneur|int:valeur
+    #     \n Ex: Faire setActionneur(Actionneur.AxL,ValeurActionneur.UpAxL) pour piloter l'ax de gauche !"""
+    #     if type(val) == int :
+    #         msg = robot_pb.IO(id = actionneur.value , val = val)    
+    #     else :
+    #         msg = robot_pb.IO(id = actionneur.value , val = val.value)
+        
+    #     self.IO_pub.send(msg)
+    #     time.sleep(0.15)
+
+
+    
 
     
     
