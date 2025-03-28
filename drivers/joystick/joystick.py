@@ -135,6 +135,11 @@ class JoystickEcal ():
             #Actionneur 2025
             if self.hats[0][self.conf["selectGlisse"]] != 0:
                 self.glisseMode +=self.hats[0][self.conf["selectGlisse"]]
+                if self.glisseMode >2 :
+                    self.glisseMode = 2
+                if self.glisseMode <0 :
+                    self.glisseMode = 0
+                time.sleep(0.25)
                 
             if self.glisseMode == PLANCHE:
                 self.IO_manager.liftPlancheContinu(self.hats[0][self.conf["glisse"]])
