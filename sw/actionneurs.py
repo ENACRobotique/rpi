@@ -29,7 +29,7 @@ class ValeurActionneur(Enum):
     AimantHautDroitGRAB = 1900
     AimantHautDroitDROP = 3000
     AimantHautGaucheGRAB = 1700
-    AimantHautGaucheDROP = 1100
+    AimantHautGaucheDROP = 700
     AscenseurAimantUP = 0
     AscenseurAimantDOWN = 0
 

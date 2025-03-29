@@ -11,8 +11,8 @@ import generated.messages_pb2 as message_pb2
 from sw.actionneurs import IO_Manager
 
 
-MAX_SPEED = 600
-V_THETA = 3
+MAX_SPEED = 300
+V_THETA = 2
 
 FRAME_W = 1
 FRAME_R = 0
