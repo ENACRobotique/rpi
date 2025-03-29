@@ -36,7 +36,7 @@ class ValeurActionneur(Enum):
     RentreurIN = 0
     RentreurOUT = 0
 
-    BrasPinceIN = 500
+    BrasPinceIN = 450
     BrasPinceOUT = 200
     VerrouPinceLOCK = 2300
     VerrouPinceUNLOCK = 3500

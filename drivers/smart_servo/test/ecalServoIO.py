@@ -155,17 +155,4 @@ class servoIO:
     self.z_init1 = z1
     self.z_init2 = z2
 
-
-
-
-pedro = servoIO()
-if __name__ == "__main__":
-
-  while ecal_core.ok():
-     pedro.readPos(1)
-     time.sleep(0.1)
-     pedro.readPos(2)
-     time.sleep(1)
-  print("Closing Ecal")
-  ecal_core.finalize()
   

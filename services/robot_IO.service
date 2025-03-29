@@ -7,7 +7,7 @@ Type=simple
  
 
 WorkingDirectory=/home/robot/rpi/drivers
-ExecStart=python3 /home/robot/rpi/drivers/bridge_IO.py
+ExecStart=/home/robot/rpi/drivers/smart_servo/build/smartServoDriver /dev/robot_io
  
 Restart=on-failure
 RestartSec=2 
