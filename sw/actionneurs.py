@@ -3,6 +3,7 @@ import sys
 sys.path.append("../")
 from drivers.smart_servo.test.ecalServoIO import servoIO
 import generated.actionneurs_pb2 as actionneurs_pb
+import time
 class Actionneur(Enum):
     #todo : Droit = la droite du robot par rapport à son axe X
     AimantBasDroit = 4
@@ -26,15 +27,18 @@ class ValeurActionneur(Enum):
     AimantBasDroitDROP = 3800
     AimantBasGaucheGRAB = 2950
     AimantBasGaucheDROP = 2285
-    AimantHautDroitGRAB = 1900
+    AimantHautDroitGRAB = 1800
     AimantHautDroitDROP = 3000
-    AimantHautGaucheGRAB = 1700
+    AimantHautGaucheGRAB = 1800
     AimantHautGaucheDROP = 700
-    AscenseurAimantUP = 0
-    AscenseurAimantDOWN = 0
+    
+    # MULTITURN FACTOR 2
+    AscenseurAimantUP = 3950
+    AscenseurAimantDOWN = 110
 
+    
     RentreurIN = 0
-    RentreurOUT = 0
+    RentreurOUT = 4096
 
     BrasPinceIN = 450
     BrasPinceOUT = 200
@@ -46,6 +50,15 @@ class ValeurActionneur(Enum):
     PlancheGaucheUP = 0
     PlancheGaucheDOWN = 0
 
+UP = 1
+DOWN = -1 
+STOP = 0 
+
+CONSERVE_UP = True
+CONSERVE_DOWN = False
+
+INSIDE = True
+OUTSIDE = False
 class IO_Manager:
     def __init__(self):
         self.Servo_IO = servoIO()
@@ -58,6 +71,12 @@ class IO_Manager:
         pass
     
     def liftPlancheContinu(self, direction, sync:bool =False):
+        """ 
+        direction \n
+        1 or UP : haut\n
+        -1 or DOWN : bas\n
+        0 or STOP : pas bouger\n
+        """
         self.Servo_IO.setEndless(Actionneur.PlancheDroit.value,True)
         self.Servo_IO.setEndless(Actionneur.PlancheGauche.value,True)
         if direction == 1 :
@@ -123,8 +142,8 @@ class IO_Manager:
             self.Servo_IO.moveSpeed(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceIN.value,100, actionneurs_pb.SmartServo.ServoType.AX12)
             
     
-    def stockConserve(self, stock: bool, sync:bool = False):
-        if stock:
+    def moveRentreur(self, inside: bool, sync:bool = False):
+        if inside:
             self.Servo_IO.moveSpeed(Actionneur.Rentreur.value, ValeurActionneur.RentreurIN.value, ValeurActionneur.STSLowSpeed.value)
             
         else:
@@ -157,4 +176,37 @@ class IO_Manager:
         else: 
             self.Servo_IO.move(Actionneur.AimantHautGauche.value,ValeurActionneur.AimantHautGaucheDROP.value)
             self.Servo_IO.move(Actionneur.AimantHautDroit.value,ValeurActionneur.AimantHautDroitDROP.value)
-            
+    
+
+    def deploy_Macon(self):
+        """Deployer l'actionneur Maçon\n
+        WARNING : Il faut avoir initialisé les lifts avec les fin de courses avant de l'utiliser !!!"""
+        self.deployPince(True)
+        self.lockPlanche(False)
+        self.liftPlanches(False) # down
+        self.grabHighConserve(False)
+        self.grabLowConserve(False)
+    
+    def premieresConserve(self):
+        """BLOQUANT"""
+        self.grabHighConserve(False)
+        self.grabLowConserve(True)
+        time.sleep(0.1)
+        self.liftConserve(CONSERVE_UP)
+        time.sleep(2)
+        self.moveRentreur(OUTSIDE)
+        time.sleep(0.1)
+        self.grabHighConserve(True)
+        time.sleep(1.5)
+        self.grabLowConserve(False)
+        time.sleep(0.25)
+        self.liftConserve(CONSERVE_DOWN)
+        time.sleep(0.9)
+
+        self.grabLowConserve(True) # temporaire pour eviter de peter le robot
+        time.sleep(0.7)
+
+        self.moveRentreur(INSIDE)
+        time.sleep(0.3)
+        self.grabLowConserve(CONSERVE_DOWN)
+        

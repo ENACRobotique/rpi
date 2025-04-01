@@ -55,7 +55,9 @@ BATTLETRON = {
     "bras" : 6, #bouton gachette gauche
     "verrou" : 7, #bouton gachette droite
     "grabHaut" : 4, #bouton bumper gauche
-    "grabBas" : 5 #bouton bumper droit
+    "grabBas" : 5, #bouton bumper droit
+    "action_1" : 0, #bouton bumper gauche
+    "action_2" : 2, #bouton bumper gauche
 
 }
 
@@ -169,6 +171,9 @@ class JoystickEcal ():
                 self.grabBas = not self.grabBas
                 self.IO_manager.grabLowConserve(self.grabBas)
                 time.sleep(0.25)
+                
+            if self.buttons[self.conf["action_1"]] == 1:
+                self.IO_manager.premieresConserve()
             
             
 
@@ -217,7 +222,7 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             # print(event)
             joysticks_ecal.update_value()
-            print(f'Glissière :{joysticks_ecal.glisseMode}\n')
+            # print(f'Glissière :{joysticks_ecal.glisseMode}\n')
             # print(joysticks_ecal)
         joysticks_ecal.publish_command()  
         time.sleep(0.1)
