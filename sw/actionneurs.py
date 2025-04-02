@@ -37,8 +37,8 @@ class ValeurActionneur(Enum):
     AscenseurAimantDOWN = 110
 
     
-    RentreurIN = 0
-    RentreurOUT = 4096
+    RentreurIN = 20
+    RentreurOUT = 4090
 
     BrasPinceIN = 450
     BrasPinceOUT = 200
@@ -143,6 +143,7 @@ class IO_Manager:
             
     
     def moveRentreur(self, inside: bool, sync:bool = False):
+        self.Servo_IO.setEndless(Actionneur.Rentreur.value,False)
         if inside:
             self.Servo_IO.moveSpeed(Actionneur.Rentreur.value, ValeurActionneur.RentreurIN.value, ValeurActionneur.STSLowSpeed.value)
             
@@ -151,6 +152,7 @@ class IO_Manager:
             
         
     def liftConserve(self,up:bool, sync:bool = False):
+        self.Servo_IO.setEndless(Actionneur.AscenseurAimant.value,False)
         if up:
             self.Servo_IO.moveSpeed(Actionneur.AscenseurAimant.value, ValeurActionneur.AscenseurAimantUP.value, ValeurActionneur.STSLowSpeed.value)
             
@@ -191,7 +193,7 @@ class IO_Manager:
         """BLOQUANT"""
         self.grabHighConserve(False)
         self.grabLowConserve(True)
-        time.sleep(0.1)
+        time.sleep(0.3)
         self.liftConserve(CONSERVE_UP)
         time.sleep(2)
         self.moveRentreur(OUTSIDE)
@@ -209,4 +211,15 @@ class IO_Manager:
         self.moveRentreur(INSIDE)
         time.sleep(0.3)
         self.grabLowConserve(CONSERVE_DOWN)
+    
+    def etage2(self):
+        self.moveRentreur(OUTSIDE)
+        time.sleep(2)
+        self.grabHighConserve(False)
+        time.sleep(0.3)
+        self.moveRentreur(INSIDE)
+        time.sleep(0.5)
+        self.lockPlanche(False)
+
+
         

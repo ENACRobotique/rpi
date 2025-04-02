@@ -173,7 +173,12 @@ class JoystickEcal ():
                 time.sleep(0.25)
                 
             if self.buttons[self.conf["action_1"]] == 1:
+                self.glisseMode = PLANCHE
                 self.IO_manager.premieresConserve()
+            
+            if self.buttons[self.conf["action_2"]] == 1:
+                self.glisseMode = PLANCHE
+                self.IO_manager.etage2()
             
             
 
