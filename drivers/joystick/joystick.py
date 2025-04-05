@@ -64,6 +64,8 @@ BATTLETRON = {
 PLANCHE = 0
 RENTREUR = 1
 ASSCENSEUR = 2
+IDLE = 0
+GLISSING = 1
 class JoystickEcal ():
     def __init__(self):
         self.joystick: Joystick = None
@@ -73,6 +75,7 @@ class JoystickEcal ():
         self.conf = BATTLETRON
         self.frame = FRAME_R
         self.glisseMode = PLANCHE
+        self.glisseState = IDLE
 
         ecal_core.initialize([], "Joystick")
         time.sleep(1) # on laisse ecal se reveiller
@@ -142,15 +145,23 @@ class JoystickEcal ():
                 if self.glisseMode <0 :
                     self.glisseMode = 0
                 time.sleep(0.25)
+            
+            
+            if self.hats[0][self.conf["glisse"]] != 0:
+                self.glisseState = GLISSING
+
+            if self.glisseState == GLISSING :
+                if self.glisseMode == PLANCHE:
+                    self.IO_manager.liftPlancheContinu(self.hats[0][self.conf["glisse"]])
+
+                if self.glisseMode == RENTREUR:
+                    self.IO_manager.stockConserveContinu(self.hats[0][self.conf["glisse"]])
+
+                if self.glisseMode == ASSCENSEUR:
+                    self.IO_manager.liftConserveContinu(self.hats[0][self.conf["glisse"]])
                 
-            if self.glisseMode == PLANCHE:
-                self.IO_manager.liftPlancheContinu(self.hats[0][self.conf["glisse"]])
-                
-            if self.glisseMode == RENTREUR:
-                self.IO_manager.stockConserveContinu(self.hats[0][self.conf["glisse"]])
-                
-            if self.glisseMode == ASSCENSEUR:
-                self.IO_manager.liftConserveContinu(self.hats[0][self.conf["glisse"]])
+                if self.hats[0][self.conf["glisse"]] == 0:
+                    self.glisseState = IDLE
             
             if self.buttons[self.conf["verrou"]] == 1:
                 self.verrouLock = not self.verrouLock
