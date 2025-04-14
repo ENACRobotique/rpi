@@ -1,4 +1,5 @@
 from enum import Enum
+from gpiozero import Button
 import sys
 sys.path.append("../")
 from drivers.smart_servo.test.ecalServoIO import servoIO
@@ -42,13 +43,18 @@ class ValeurActionneur(Enum):
 
     BrasPinceIN = 450
     BrasPinceOUT = 200
-    VerrouPinceLOCK = 2300
-    VerrouPinceUNLOCK = 3500
+    VerrouPinceLOCK = 2400
+    VerrouPinceUNLOCK = 3100
 
     PlancheDroitUP = 0
     PlancheDroitDOWN = 0
     PlancheGaucheUP = 0
     PlancheGaucheDOWN = 0
+
+
+
+fdcGauche = Button(21) # led2
+fdcDroite = Button(20) # led1
 
 UP = 1
 DOWN = -1 
@@ -62,6 +68,8 @@ OUTSIDE = False
 class IO_Manager:
     def __init__(self):
         self.Servo_IO = servoIO()
+        self.liftG_up = 0
+        self.liftD_up = 0
     
     def __repr__(self) -> str:
         return "Robot Enac IOs managment class"
@@ -79,9 +87,12 @@ class IO_Manager:
         """
         self.Servo_IO.setEndless(Actionneur.PlancheDroit.value,True)
         self.Servo_IO.setEndless(Actionneur.PlancheGauche.value,True)
+
         if direction == 1 :
-            self.Servo_IO.turn(Actionneur.PlancheDroit.value,1,ValeurActionneur.STSLowSpeed.value)
-            self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,ValeurActionneur.STSLowSpeed.value)
+            if not fdcDroite.is_pressed:
+                self.Servo_IO.turn(Actionneur.PlancheDroit.value,1,ValeurActionneur.STSLowSpeed.value)
+            if not fdcGauche.is_pressed:
+                self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,ValeurActionneur.STSLowSpeed.value)
             
         elif direction == -1:
             self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,ValeurActionneur.STSLowSpeed.value)
@@ -90,6 +101,9 @@ class IO_Manager:
         else :
             self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,0)
             self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,0)
+    
+    def isLiftUp(self):
+        return fdcDroite.is_pressed and fdcGauche.is_pressed
     
     def stockConserveContinu(self, direction, sync:bool =False):
         self.Servo_IO.setEndless(Actionneur.Rentreur.value,True)
@@ -179,15 +193,22 @@ class IO_Manager:
             self.Servo_IO.move(Actionneur.AimantHautGauche.value,ValeurActionneur.AimantHautGaucheDROP.value)
             self.Servo_IO.move(Actionneur.AimantHautDroit.value,ValeurActionneur.AimantHautDroitDROP.value)
     
-
     def deploy_Macon(self):
         """Deployer l'actionneur Maçon\n
         WARNING : Il faut avoir initialisé les lifts avec les fin de courses avant de l'utiliser !!!"""
         self.deployPince(True)
         self.lockPlanche(False)
-        self.liftPlanches(False) # down
         self.grabHighConserve(False)
         self.grabLowConserve(False)
+        self.liftPlancheContinu(DOWN) # down
+        time.sleep(0.5)
+        self.liftPlancheContinu(UP) # down
+        # if not self.isLiftUp():
+        #    return False
+        # self.liftD_up = self.Servo_IO.readPos(Actionneur.PlancheDroit.value)
+        # self.liftG_up = self.Servo_IO.readPos(Actionneur.PlancheGauche.value)
+        # return True # maçon is deployed
+
     
     def premieresConserve(self):
         """BLOQUANT"""
@@ -223,3 +244,10 @@ class IO_Manager:
 
 
         
+if __name__ == "__main__":
+    jerome = IO_Manager()
+    time.sleep(1)
+    jerome.deploy_Macon()
+    while True:
+        pass
+    print("Maçon deployed")

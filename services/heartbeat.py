@@ -8,9 +8,9 @@ LED_GPIO = 21 # led2
 PERIOD = 1
 
 if __name__ == "__main__":
-    led = LED(LED_GPIO)
+    # led = LED(LED_GPIO)
     while True:
-        led.on()
+        # led.on()
         sleep(PERIOD)
-        led.off()
-        sleep(PERIOD)
+        # led.off()
+        # sleep(PERIOD)
