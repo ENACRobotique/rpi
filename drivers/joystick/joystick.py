@@ -170,7 +170,7 @@ class JoystickEcal ():
 
             if self.buttons[self.conf["bras"]] == 1:
                 # self.brasUP = not self.brasUP
-                self.IO_manager.deploy_Macon()
+                self.IO_manager.deployMacon()
                 time.sleep(0.25)
 
             if self.buttons[self.conf["grabHaut"]] == 1:

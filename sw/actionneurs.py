@@ -49,9 +49,8 @@ class ValeurActionneur(Enum):
     PlancheDroitDELTA = 0
     PlancheGaucheDELTA = 0
 
-
-
-
+    
+servoPosError = 20 # on prend large
 
 UP = 1
 DOWN = -1 
@@ -224,7 +223,7 @@ class IO_Manager:
             self.Servo_IO.move(Actionneur.AimantHautGauche.value,ValeurActionneur.AimantHautGaucheDROP.value)
             self.Servo_IO.move(Actionneur.AimantHautDroit.value,ValeurActionneur.AimantHautDroitDROP.value)
     
-    def deploy_Macon(self):
+    def deployMacon(self):
         """Deployer l'actionneur Maçon\n
          Déclenche l'initialisation des valeurs de l'actionneur planche !!!"""
         self.deployPince(True)
@@ -276,7 +275,37 @@ class IO_Manager:
         time.sleep(0.5)
         self.grabLowConserve(False)         # lache les conserves du bas
 
-        
+
+#### Only for abstraction ####
+    def isLiftUp(self):
+        """Return true if both servo are up"""
+        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - self.liftD_up)  < servoPosError
+        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - self.liftG_up) < servoPosError
+        return a and b
+    
+    def isLiftDown(self):
+        """Return true if both servo are down"""
+        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - (self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value))  < servoPosError
+        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - (self.liftG_up-ValeurActionneur.PlancheDroitDELTA.value)) < servoPosError
+        return a and b
+    
+    def isConserveUp(self):
+        a = abs(self.Servo_IO.readPos(Actionneur.AscenseurAimant.value) - (ValeurActionneur.AscenseurAimantUP.value))  < servoPosError
+        return a
+    
+    def isConserveDown(self):
+        a = abs(self.Servo_IO.readPos(Actionneur.AscenseurAimant.value) - (ValeurActionneur.AscenseurAimantDOWN.value))  < servoPosError
+        return a
+    
+    def isRentreurIN(self):
+        a = abs(self.Servo_IO.readPos(Actionneur.Rentreur.value) - (ValeurActionneur.RentreurIN.value))  < servoPosError
+        return a
+    
+    def isRentreurOUT(self):
+        a = abs(self.Servo_IO.readPos(Actionneur.Rentreur.value) - (ValeurActionneur.RentreurOUT.value))  < servoPosError
+        return a
+    
+
 # if __name__ == "__main__":
 #     jerome = IO_Manager()
 #     time.sleep(1)
