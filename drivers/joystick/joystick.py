@@ -169,8 +169,8 @@ class JoystickEcal ():
                 time.sleep(0.25)
 
             if self.buttons[self.conf["bras"]] == 1:
-                self.brasUP = not self.brasUP
-                self.IO_manager.deployPince(self.brasUP)
+                # self.brasUP = not self.brasUP
+                self.IO_manager.deploy_Macon()
                 time.sleep(0.25)
 
             if self.buttons[self.conf["grabHaut"]] == 1:
@@ -185,11 +185,11 @@ class JoystickEcal ():
                 
             if self.buttons[self.conf["action_1"]] == 1:
                 self.glisseMode = PLANCHE
-                self.IO_manager.premieresConserve()
+                self.IO_manager.ramasseGradin()
             
             if self.buttons[self.conf["action_2"]] == 1:
                 self.glisseMode = PLANCHE
-                self.IO_manager.etage2()
+                self.IO_manager.construitGradin()
             
             
 
