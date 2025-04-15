@@ -121,8 +121,10 @@ class IO_Manager:
         self.Servo_IO.setEndless(Actionneur.PlancheGauche.value,True)
 
         if direction == 1 :
-            self.Servo_IO.turn(Actionneur.PlancheDroit.value,1,ValeurActionneur.STSLowSpeed.value)
-            self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,ValeurActionneur.STSLowSpeed.value)
+            if not self.fdcDroite.is_pressed:
+                self.Servo_IO.turn(Actionneur.PlancheDroit.value,1,ValeurActionneur.STSLowSpeed.value)
+            if not self.fdcGauche.is_pressed:
+                self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,ValeurActionneur.STSLowSpeed.value)
             
         elif direction == -1:
             self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,ValeurActionneur.STSLowSpeed.value)
