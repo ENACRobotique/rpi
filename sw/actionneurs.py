@@ -88,18 +88,20 @@ class IO_Manager:
         """Stops planche lifterG rotation\n
         Calibration will also take effect on first function call only if the
         corresponding button is pressed\n"""
-        self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,0) 
+        self.Servo_IO.setEndless(Actionneur.PlancheGauche.value,True)
+        self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,0)
         if not self.liftGCalibrated:
             if self.fdcGauche.is_pressed: # we make sure twice that the button is actually pressed
                 self.liftG_up = self.Servo_IO.readPos(Actionneur.PlancheGauche.value)
                 self.liftGCalibrated = True
                 self.Servo_IO.setEndless(Actionneur.PlancheGauche.value, False)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheDroitDELTA.value, ValeurActionneur.STSLowSpeed.value)
+                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheGaucheDELTA.value, ValeurActionneur.STSLowSpeed.value)
     
     def stopLiftD(self):
         """Stops planche lifterD rotation\n
         Calibration will also take effect on first function call only if the
         corresponding button is pressed\n"""
+        self.Servo_IO.setEndless(Actionneur.PlancheDroit.value,True)
         self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,0)
         if not self.liftDCalibrated:
             if self.fdcDroite.is_pressed: # we make sure twice that the button is actually pressed
