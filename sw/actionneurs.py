@@ -266,7 +266,7 @@ class IO_Manager:
         time.sleep(0.25)
         self.lockPlanche(True)              # attrape la planche du haut
         self.liftConserve(CONSERVE_DOWN)    # descend l'ascenseur à conserve
-        time.sleep(0.9)
+        time.sleep(0.5)
 
         self.grabLowConserve(True)          # temporaire pour eviter de peter le robot
         time.sleep(0.7)
