@@ -92,10 +92,13 @@ class IO_Manager:
         self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,0)
         if not self.liftGCalibrated:
             if self.fdcGauche.is_pressed: # we make sure twice that the button is actually pressed
-                self.liftG_up = self.Servo_IO.readPos(Actionneur.PlancheGauche.value)
                 self.liftGCalibrated = True
                 self.Servo_IO.setEndless(Actionneur.PlancheGauche.value, False)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheGaucheDELTA.value, ValeurActionneur.STSLowSpeed.value)
+                self.liftG_up = self.Servo_IO.readPos(Actionneur.PlancheGauche.value)
+                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheGaucheDELTA.value)
+                
+                
+                
     
     def stopLiftD(self):
         """Stops planche lifterD rotation\n
@@ -105,10 +108,13 @@ class IO_Manager:
         self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,0)
         if not self.liftDCalibrated:
             if self.fdcDroite.is_pressed: # we make sure twice that the button is actually pressed
-                self.liftD_up = self.Servo_IO.readPos(Actionneur.PlancheDroit.value)
                 self.liftDCalibrated = True
                 self.Servo_IO.setEndless(Actionneur.PlancheDroit.value, False)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value, ValeurActionneur.STSLowSpeed.value)
+                self.liftD_up = self.Servo_IO.readPos(Actionneur.PlancheDroit.value)
+                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value)
+                
+                
+                
     
     def liftPlancheContinu(self, direction, sync:bool =False):
         """ 
@@ -164,12 +170,12 @@ class IO_Manager:
         self.Servo_IO.setEndless(Actionneur.PlancheGauche.value, False)
         if (self.liftD_up is not None) and (self.liftG_up is not None) :
             if up:
-                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_up, ValeurActionneur.STSLowSpeed.value)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up, ValeurActionneur.STSLowSpeed.value)
+                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up)
+                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_up)
                 
             else:
-                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value, ValeurActionneur.STSLowSpeed.value)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheDroitDELTA.value, ValeurActionneur.STSLowSpeed.value)
+                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value)
+                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheGaucheDELTA.value)
                 
         
     def lockPlanche(self, lock:bool, sync:bool = False):
@@ -184,28 +190,28 @@ class IO_Manager:
     def deployPince(self, deploy:bool, sync:bool = False):
         """Déployer ou rentrer la pince"""
         if deploy:
-            self.Servo_IO.moveSpeed(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceOUT.value,100, actionneurs_pb.SmartServo.ServoType.AX12)
+            self.Servo_IO.move(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceOUT.value, actionneurs_pb.SmartServo.ServoType.AX12)
             
         else :
-            self.Servo_IO.moveSpeed(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceIN.value,100, actionneurs_pb.SmartServo.ServoType.AX12)
+            self.Servo_IO.move(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceIN.value, actionneurs_pb.SmartServo.ServoType.AX12)
             
     
     def moveRentreur(self, inside: bool, sync:bool = False):
         self.Servo_IO.setEndless(Actionneur.Rentreur.value, False)
         if inside:
-            self.Servo_IO.moveSpeed(Actionneur.Rentreur.value, ValeurActionneur.RentreurIN.value, ValeurActionneur.STSLowSpeed.value)
+            self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurIN.value)
             
         else:
-            self.Servo_IO.moveSpeed(Actionneur.Rentreur.value, ValeurActionneur.RentreurOUT.value, ValeurActionneur.STSLowSpeed.value)
+            self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurOUT.value)
             
         
     def liftConserve(self,up:bool, sync:bool = False):
         self.Servo_IO.setEndless(Actionneur.AscenseurAimant.value, False)
         if up:
-            self.Servo_IO.moveSpeed(Actionneur.AscenseurAimant.value, ValeurActionneur.AscenseurAimantUP.value, ValeurActionneur.STSLowSpeed.value)
+            self.Servo_IO.move(Actionneur.AscenseurAimant.value, ValeurActionneur.AscenseurAimantUP.value)
             
         else:
-            self.Servo_IO.moveSpeed(Actionneur.AscenseurAimant.value, ValeurActionneur.AscenseurAimantDOWN.value, ValeurActionneur.STSLowSpeed.value)
+            self.Servo_IO.move(Actionneur.AscenseurAimant.value, ValeurActionneur.AscenseurAimantDOWN.value)
             
             
     def grabLowConserve(self, grab : bool, sync:bool = False):
@@ -229,7 +235,11 @@ class IO_Manager:
     
     def deployMacon(self):
         """Deployer l'actionneur Maçon\n
-         Déclenche l'initialisation des valeurs de l'actionneur planche !!!"""
+         Déclenche l'initialisation des valeurs de l'actionneur planche !!!
+         BLOQUANT
+         """
+        self.liftDCalibrated = False
+        self.liftGCalibrated = False
         self.deployPince(True)
         self.lockPlanche(False)
         self.grabHighConserve(False)
