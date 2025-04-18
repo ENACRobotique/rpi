@@ -57,7 +57,7 @@ SmartServo::Status SmartServo::readStatus()
 
 void SmartServo::flushSerialInput()
 {
-    //while(sdGetTimeout(sd, TIME_IMMEDIATE) != MSG_TIMEOUT) {}
+    tcflush(serial_fd, TCIFLUSH);
 }
 
 void SmartServo::init()

@@ -133,6 +133,8 @@ int writeData(int fd, uint8_t* data, size_t len, bool echo) {
             //ok
         } else {
             printf("Error: Echo does not match\n");
+            tcflush(fd, TCIOFLUSH); // empty buffer
+            usleep(100000); // wait 100ms
             return -1;
         }
     }
