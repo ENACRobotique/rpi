@@ -9,6 +9,7 @@ sys.path.append("../..")
 import generated.robot_state_pb2 as robot_state_pb2
 import generated.messages_pb2 as message_pb2
 from sw.actionneurs import IO_Manager
+from sw.IO_BT import *
 
 
 MAX_SPEED = 300
@@ -16,9 +17,7 @@ V_THETA = 2
 
 FRAME_W = 1
 FRAME_R = 0
-UP = 1
-DOWN = -1
-NO = 0
+
 ATTACK3_CONF = {
     "X": 1, #axe
     "X_sens" : -1, #facteur
@@ -216,14 +215,19 @@ if __name__ == '__main__':
     joysticks_ecal = JoystickEcal()        
     joysticks_ecal.open()
     joysticks_ecal.set_conf(BATTLETRON)
-
+    tree = py_trees.trees.BehaviourTree(test_bt(joysticks_ecal.IO_manager))
+    tree.setup(timeout=15)
+    tick = 0
     while True :
         for event in pygame.event.get():
             # print(event)
             joysticks_ecal.update_value()
             # print(f'Glissière :{joysticks_ecal.glisseMode}\n')
             # print(joysticks_ecal)
-        joysticks_ecal.publish_command()  
+        joysticks_ecal.publish_command()
+        print(f"Tick {tick} \n")
+        tree.tick()
+        tick = tick + 1
         time.sleep(0.1)
     
 

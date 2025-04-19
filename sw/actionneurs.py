@@ -51,12 +51,8 @@ class ValeurActionneur(Enum):
     
 servoPosError = 20 # on prend large
 
-UP = 1
-DOWN = -1 
-STOP = 0 
-
-CONSERVE_UP = True
-CONSERVE_DOWN = False
+UP = True
+DOWN = False
 
 INSIDE = True
 OUTSIDE = False
@@ -163,7 +159,7 @@ class IO_Manager:
             self.Servo_IO.turn(Actionneur.AscenseurAimant.value,0,0)
 
 
-    def liftUpPlanches(self, up:bool, sync:bool = False):
+    def liftPlanches(self, up:bool, sync:bool = False):
         """Monter ou descendre les planches\n
         Si fdc non calibrés la fonction ne fera rien"""
         if self.liftCalibrated:
@@ -238,16 +234,16 @@ class IO_Manager:
         self.lockPlanche(False)
         self.grabHighConserve(False)
         self.grabLowConserve(False)
-        self.liftUpPlanches(False)
+        self.liftPlanches(DOWN)
 
     def ramasseGradin(self):
         """BLOQUANT"""
-        self.liftUpPlanches(True) #Soulève les planches
+        self.liftPlanches(UP) #Soulève les planches
         time.sleep(0.5)
         self.grabHighConserve(False)        # lache les préhenseur du haut
         self.grabLowConserve(True)          # sort les préhenseur du bas
         time.sleep(0.3)
-        self.liftConserve(CONSERVE_UP)      # monte les conserves
+        self.liftConserve(UP)      # monte les conserves
         time.sleep(2)
         self.moveRentreur(OUTSIDE)          # sort le rentreur
         time.sleep(0.1)
@@ -256,7 +252,7 @@ class IO_Manager:
         self.grabLowConserve(False)         # lache par le bas
         time.sleep(0.25)
         self.lockPlanche(True)              # attrape la planche du haut
-        self.liftConserve(CONSERVE_DOWN)    # descend l'ascenseur à conserve
+        self.liftConserve(DOWN)    # descend l'ascenseur à conserve
         time.sleep(0.5)
 
         self.grabLowConserve(True)          # temporaire pour eviter de peter le robot
@@ -268,7 +264,7 @@ class IO_Manager:
     
     def construitGradin(self):
         """BLOQUANT"""
-        self.liftUpPlanches(False)          # Descend la planche du 1er etage
+        self.liftPlanches(DOWN)          # Descend la planche du 1er etage
         time.sleep(2.5)
         self.moveRentreur(OUTSIDE)          # Sort les conserves
         time.sleep(1.8)
@@ -279,37 +275,6 @@ class IO_Manager:
         self.lockPlanche(False)             # lache la planche du haut
         time.sleep(0.5)
         self.grabLowConserve(False)         # lache les conserves du bas
-
-
-#### Only for abstraction ####
-    def isLiftUp(self):
-        """Return true if both servo are up"""
-        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - self.liftD_init)  < servoPosError
-        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - self.liftG_init) < servoPosError
-        return a and b
-    
-    def isLiftDown(self):
-        """Return true if both servo are down"""
-        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - (self.liftD_init-ValeurActionneur.PlancheDELTA.value))  < servoPosError
-        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - (self.liftG_init-ValeurActionneur.PlancheDELTA.value)) < servoPosError
-        return a and b
-    
-    def isConserveUp(self):
-        a = abs(self.Servo_IO.readPos(Actionneur.AscenseurAimant.value) - (ValeurActionneur.AscenseurAimantUP.value))  < servoPosError
-        return a
-    
-    def isConserveDown(self):
-        a = abs(self.Servo_IO.readPos(Actionneur.AscenseurAimant.value) - (ValeurActionneur.AscenseurAimantDOWN.value))  < servoPosError
-        return a
-    
-    def isRentreurIN(self):
-        a = abs(self.Servo_IO.readPos(Actionneur.Rentreur.value) - (ValeurActionneur.RentreurIN.value))  < servoPosError
-        return a
-    
-    def isRentreurOUT(self):
-        a = abs(self.Servo_IO.readPos(Actionneur.Rentreur.value) - (ValeurActionneur.RentreurOUT.value))  < servoPosError
-        return a
-    
 
 # if __name__ == "__main__":
 #     jerome = IO_Manager()
