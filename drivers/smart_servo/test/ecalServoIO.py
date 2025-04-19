@@ -80,6 +80,7 @@ class servoIO:
     self.client.call_method("read_pos", msg_bin)
   
   def setEndless(self, id,  status, type=default):
+    """CAUTION: This will make Multiturn servos back to turn 1 !"""
     self.message.id = id
     self.message.type = type
     self.message.command = SmartServo.CommandType.SET_ENDLESS
@@ -142,17 +143,11 @@ class servoIO:
         return msg_resp.position
     except Empty:
       print("no response...")
-  
-  def lift(self,id, up:bool):
-    if up : 
-      self.move(1,self.z_init1)
-      self.move(2,self.z_init2+ self.delta2H)
-    else : 
-      self.move(1,self.z_init1 + self.delta1H)
-      self.move(2,self.z_init2)
 
-  def set_init(self,z1,z2):
-    self.z_init1 = z1
-    self.z_init2 = z2
-
-  
+if __name__ == "__main__":
+  pedro = servoIO()
+  while True:
+    a = pedro.readPos(1)
+    b = pedro.readPos(2)
+    print(f"Droite:{a}\t Gauche:{b}\n")
+    time.sleep(0.1)

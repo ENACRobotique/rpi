@@ -46,8 +46,7 @@ class ValeurActionneur(Enum):
     VerrouPinceLOCK = 2400
     VerrouPinceUNLOCK = 3100
 
-    PlancheDroitDELTA = 0
-    PlancheGaucheDELTA = 0
+    PlancheDELTA = 2700
 
     
 servoPosError = 20 # on prend large
@@ -67,15 +66,13 @@ class IO_Manager:
         self.Servo_IO = servoIO()
         
         #Handling Planche servos
-        self.fdcGauche = Button(21) # led2
-        self.fdcDroite = Button(20) # led1
-        self.fdcGauche.when_pressed = self.stopLiftG # tester si ça marche en mono ou continu 
-        self.fdcDroite.when_pressed = self.stopLiftD # cad pas un "while_pressed"
-        self.liftGCalibrated = False
-        self.liftDCalibrated = False
-        
-        self.liftG_up = None
-        self.liftD_up = None
+        self.liftCalibrated = False
+        self.liftG_init = -1
+        self.liftD_init = -1
+        self.liftG_up = -1
+        self.liftD_up = -1
+        self.liftG_down = -1
+        self.liftD_down = -1
 
     def __repr__(self) -> str:
         return "Robot Enac IOs managment class"
@@ -84,38 +81,43 @@ class IO_Manager:
         """Passage de tout les actionneurs à leur position de début de match \n"""
         pass
 
-    def stopLiftG(self):
-        """Stops planche lifterG rotation\n
-        Calibration will also take effect on first function call only if the
-        corresponding button is pressed\n"""
-        self.Servo_IO.setEndless(Actionneur.PlancheGauche.value,True)
-        self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,0)
-        if not self.liftGCalibrated:
-            if self.fdcGauche.is_pressed: # we make sure twice that the button is actually pressed
-                self.liftGCalibrated = True
-                self.Servo_IO.setEndless(Actionneur.PlancheGauche.value, False)
-                self.liftG_up = self.Servo_IO.readPos(Actionneur.PlancheGauche.value)
-                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheGaucheDELTA.value)
-                
-                
-                
-    
-    def stopLiftD(self):
-        """Stops planche lifterD rotation\n
-        Calibration will also take effect on first function call only if the
-        corresponding button is pressed\n"""
-        self.Servo_IO.setEndless(Actionneur.PlancheDroit.value,True)
-        self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,0)
-        if not self.liftDCalibrated:
-            if self.fdcDroite.is_pressed: # we make sure twice that the button is actually pressed
-                self.liftDCalibrated = True
-                self.Servo_IO.setEndless(Actionneur.PlancheDroit.value, False)
-                self.liftD_up = self.Servo_IO.readPos(Actionneur.PlancheDroit.value)
-                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value)
-                
-                
-                
-    
+    def calibrateLift(self):
+        """ Calibrating will make the servo back to first turn !\n"""
+        self.Servo_IO.setEndless(Actionneur.PlancheGauche.value, False)
+        self.Servo_IO.setEndless(Actionneur.PlancheDroit.value, False)
+        g = 0
+        d = 0
+        fg = False # Calibration fail flags
+        fd = False # Calibration fail flags
+        self.liftG_init = -1
+        self.liftD_init = -1
+
+        while self.liftG_init == -1:
+            g = g + 1
+            self.liftG_init = self.Servo_IO.readPos(Actionneur.PlancheGauche.value)
+            if g > 5: # In case of timeout reading, number of checks are arbitrary
+                print("Cannot calibrate liftG, check connections")
+                fg = True
+                break
+
+        while self.liftD_init == -1:
+            d = d + 1
+            self.liftD_init = self.Servo_IO.readPos(Actionneur.PlancheDroit.value)
+            if d > 5: # In case of timeout reading, number of checks are arbitrary
+                print("Cannot calibrate liftD, check connections")
+                fd = True
+                break
+
+        self.liftD_up = self.liftD_init//4
+        self.liftD_down = self.liftD_init//4+ValeurActionneur.PlancheDELTA.value+100
+        
+        self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value
+        self.liftG_down = self.liftG_init//4
+        
+        self.liftCalibrated = True
+        if not fg or not fd:
+            print("Lift calibration sucessfull !")
+
     def liftPlancheContinu(self, direction, sync:bool =False):
         """ 
         direction \n
@@ -127,10 +129,8 @@ class IO_Manager:
         self.Servo_IO.setEndless(Actionneur.PlancheGauche.value,True)
 
         if direction == 1 :
-            if not self.fdcDroite.is_pressed:
-                self.Servo_IO.turn(Actionneur.PlancheDroit.value,1,ValeurActionneur.STSLowSpeed.value)
-            if not self.fdcGauche.is_pressed:
-                self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,ValeurActionneur.STSLowSpeed.value)
+            self.Servo_IO.turn(Actionneur.PlancheDroit.value,1,ValeurActionneur.STSLowSpeed.value)
+            self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,ValeurActionneur.STSLowSpeed.value)
             
         elif direction == -1:
             self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,ValeurActionneur.STSLowSpeed.value)
@@ -166,17 +166,13 @@ class IO_Manager:
     def liftUpPlanches(self, up:bool, sync:bool = False):
         """Monter ou descendre les planches\n
         Si fdc non calibrés la fonction ne fera rien"""
-        self.Servo_IO.setEndless(Actionneur.PlancheDroit.value, False)
-        self.Servo_IO.setEndless(Actionneur.PlancheGauche.value, False)
-        if (self.liftD_up is not None) and (self.liftG_up is not None) :
+        if self.liftCalibrated:
             if up:
-                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up)
                 self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_up)
-                
+                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up)     
             else:
-                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value)
-                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_up-ValeurActionneur.PlancheGaucheDELTA.value)
-                
+                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_down)
+                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_down)                  
         
     def lockPlanche(self, lock:bool, sync:bool = False):
         """ Tenir ou lâcher la planche du haut"""
@@ -235,24 +231,19 @@ class IO_Manager:
     
     def deployMacon(self):
         """Deployer l'actionneur Maçon\n
-         Déclenche l'initialisation des valeurs de l'actionneur planche !!!
-         BLOQUANT
+         Il faut Calibrer l'ascenceur planche avant !!!\n
+         NON BLOQUANT
          """
-        self.liftDCalibrated = False
-        self.liftGCalibrated = False
         self.deployPince(True)
         self.lockPlanche(False)
         self.grabHighConserve(False)
         self.grabLowConserve(False)
-        self.liftPlancheContinu(DOWN)
-        time.sleep(0.5)
-        self.liftPlancheContinu(UP)# When the button (fdc) will be pressed this will trigger calibration 
-                                   # The lift will then go down and stop moving
+        self.liftUpPlanches(False)
 
     def ramasseGradin(self):
         """BLOQUANT"""
         self.liftUpPlanches(True) #Soulève les planches
-        time.sleep(0.2)
+        time.sleep(0.5)
         self.grabHighConserve(False)        # lache les préhenseur du haut
         self.grabLowConserve(True)          # sort les préhenseur du bas
         time.sleep(0.3)
@@ -277,10 +268,10 @@ class IO_Manager:
     
     def construitGradin(self):
         """BLOQUANT"""
-        self.liftUpPlanches(False)          # Descen la planche du 1er etage
-        time.sleep(1.5)
+        self.liftUpPlanches(False)          # Descend la planche du 1er etage
+        time.sleep(2.5)
         self.moveRentreur(OUTSIDE)          # Sort les conserves
-        time.sleep(2)
+        time.sleep(1.8)
         self.grabHighConserve(False)        # Lache les conserves
         time.sleep(0.3)
         self.moveRentreur(INSIDE)           # Rentre le rentreur
@@ -293,14 +284,14 @@ class IO_Manager:
 #### Only for abstraction ####
     def isLiftUp(self):
         """Return true if both servo are up"""
-        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - self.liftD_up)  < servoPosError
-        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - self.liftG_up) < servoPosError
+        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - self.liftD_init)  < servoPosError
+        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - self.liftG_init) < servoPosError
         return a and b
     
     def isLiftDown(self):
         """Return true if both servo are down"""
-        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - (self.liftD_up-ValeurActionneur.PlancheDroitDELTA.value))  < servoPosError
-        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - (self.liftG_up-ValeurActionneur.PlancheDroitDELTA.value)) < servoPosError
+        a = abs(self.Servo_IO.readPos(Actionneur.PlancheDroit.value) - (self.liftD_init-ValeurActionneur.PlancheDELTA.value))  < servoPosError
+        b = abs(self.Servo_IO.readPos(Actionneur.PlancheGauche.value) - (self.liftG_init-ValeurActionneur.PlancheDELTA.value)) < servoPosError
         return a and b
     
     def isConserveUp(self):
@@ -323,4 +314,4 @@ class IO_Manager:
 # if __name__ == "__main__":
 #     jerome = IO_Manager()
 #     time.sleep(1)
-#     jerome.deploy_Macon()
+#     jerome.deployMacon()

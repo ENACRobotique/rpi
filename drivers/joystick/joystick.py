@@ -146,26 +146,9 @@ class JoystickEcal ():
                     self.glisseMode = 0
                 time.sleep(0.25)
             
-            
-            if self.hats[0][self.conf["glisse"]] != 0:
-                self.glisseState = GLISSING
-
-            if self.glisseState == GLISSING :
-                if self.glisseMode == PLANCHE:
-                    self.IO_manager.liftPlancheContinu(self.hats[0][self.conf["glisse"]])
-
-                if self.glisseMode == RENTREUR:
-                    self.IO_manager.stockConserveContinu(self.hats[0][self.conf["glisse"]])
-
-                if self.glisseMode == ASSCENSEUR:
-                    self.IO_manager.liftConserveContinu(self.hats[0][self.conf["glisse"]])
-                
-                if self.hats[0][self.conf["glisse"]] == 0:
-                    self.glisseState = IDLE
-            
             if self.buttons[self.conf["verrou"]] == 1:
                 self.verrouLock = not self.verrouLock
-                self.IO_manager.lockPlanche(self.verrouLock)
+                self.IO_manager.calibrateLift()
                 time.sleep(0.25)
 
             if self.buttons[self.conf["bras"]] == 1:
