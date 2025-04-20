@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+# import matplotlib.pyplot as plt
+# import matplotlib.patches as patches
 from math import sqrt
 #import dijkstra
 import random as rd 

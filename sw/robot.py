@@ -9,8 +9,7 @@ import logging
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
-from ..drivers.smart_servo.test.ecalServoIO import servoIO
-from actionneurs import * 
+from sw.IO.actionneurs import * 
 import common
 from common import Pos, Speed, dist_to_line, next_path
 import musics
@@ -19,7 +18,7 @@ import random as rd
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
-import nav 
+import sw.nav.nav as nav 
 
 import lcd_client as lcd
 HEIGHT = 2000
@@ -157,7 +156,7 @@ class Robot:
         self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
         self.reset_pos_pub = ProtoPublisher("reset", robot_pb.Position)
 
-        self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
+        # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
         self.color_pub = ProtoPublisher("color", robot_pb.Side)
 
@@ -458,6 +457,13 @@ class Robot:
 # ---------------------------- #
 #              IO              #
 # ____________________________ #
+
+
+
+
+        
+
+
     
     def vl53_detect_plante(self, msg, id):
         self.vl53_started[id] = True

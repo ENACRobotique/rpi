@@ -276,7 +276,3 @@ class IO_Manager:
         time.sleep(0.5)
         self.grabLowConserve(False)         # lache les conserves du bas
 
-# if __name__ == "__main__":
-#     jerome = IO_Manager()
-#     time.sleep(1)
-#     jerome.deployMacon()

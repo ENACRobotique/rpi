@@ -1,6 +1,8 @@
-import map
-import dijkstra
-import matplotlib.pyplot as plt
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+import map as map
+import dijkstra as dijkstra
+# import matplotlib.pyplot as plt
 from math import sqrt,pi
 class Nav(object):  
     def __init__(self):
@@ -11,7 +13,7 @@ class Nav(object):
         self.entree : str
         self.sortie : str
         self.graph : map.Graph
-        self.file = "graph.txt"
+        self.file = os.path.join(current_dir, "graph.txt")
         self.path : list
         self.statut : bool # arrivé : True ; en chemin : False. # sert pour savoir si on peut envoyer la nouvelle consigne
         self.consigne : tuple # (x,y)
@@ -24,14 +26,14 @@ class Nav(object):
         self.graph.weight()
         ## On augmente les poids de la "croix" au milieu pour ne pas passer dans les plantes
         ## à changer si o sait qu'on a pris les plantes
-        self.graph.weights[('planteNW', 'mid')] += 10000
-        self.graph.weights[('mid', 'planteNW')] += 10000
-        self.graph.weights[('planteNE', 'mid')] += 10000
-        self.graph.weights[('mid', 'planteNE')] += 10000
-        self.graph.weights[('navSW', 'mid')] += 10000
-        self.graph.weights[('mid', 'navSW')] += 10000
-        self.graph.weights[('navSE', 'mid')] += 10000
-        self.graph.weights[('mid', 'navSE')] += 10000
+        # self.graph.weights[('planteNW', 'mid')] += 10000
+        # self.graph.weights[('mid', 'planteNW')] += 10000
+        # self.graph.weights[('planteNE', 'mid')] += 10000
+        # self.graph.weights[('mid', 'planteNE')] += 10000
+        # self.graph.weights[('navSW', 'mid')] += 10000
+        # self.graph.weights[('mid', 'navSW')] += 10000
+        # self.graph.weights[('navSE', 'mid')] += 10000
+        # self.graph.weights[('mid', 'navSE')] += 10000
     
     def getCoords(self,waypoint):
         """Unité en milimètres !!!!"""
@@ -85,11 +87,11 @@ if __name__ == "__main__" :
     #### Pour tester le système 
     nav = Nav()
     nav.initialisation()
-    nav.entree = "secureB"
-    nav.sortie = "secureJ"
-    nav.findPath()
-    #print(nav.closestWaypoint(100,200))
-    plt.plot()
+    nav.entree = "backstageJ"
+    nav.sortie = "backstageB"
+    print(nav.findPath(0,0))
+    # print(nav.closestWaypoint(100,200))
+    # plt.plot()
 
     
     ### faire en sorte que le bas niveau renvoi si il est arrivé ou non

@@ -1,7 +1,7 @@
 import py_trees
 import sys
 sys.path.append("../..")
-from sw.actionneurs import*
+from sw.IO.actionneurs import*
 
 ##### Behavior tree pour l'automatisation #####
 
