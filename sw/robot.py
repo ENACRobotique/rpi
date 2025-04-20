@@ -65,7 +65,7 @@ class Robot:
         theta est en radian"""
         ecal_core.initialize(sys.argv, name)
         self.logger = logging.getLogger(name)
-        logging.basicConfig(filename=next_path("/home/pi/logs/strat_log_{}.log"), level=logging.INFO)
+        logging.basicConfig(filename=next_path("/home/robot/logs/strat_log_{}.log"), level=logging.INFO)
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
         self.pos = Pos(0, 0, 0)

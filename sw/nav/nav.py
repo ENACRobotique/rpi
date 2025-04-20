@@ -1,7 +1,9 @@
 import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
-import map as map
-import dijkstra as dijkstra
+import sys
+sys.path.append("../..")
+import sw.nav.map as map
+import sw.nav.dijkstra as dijkstra
 # import matplotlib.pyplot as plt
 from math import sqrt,pi
 class Nav(object):  
