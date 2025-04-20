@@ -12,10 +12,16 @@ class LiftPlanche(py_trees.behaviour.Behaviour):
             pos = "UP"
         super().__init__(name=f"Lift {pos} planche")
         self.manager = manager
-        self.manager.liftPlanches(up)
+        self.up = up
+        self.done = False
+        self.pos = pos
 
     def update(self):
-        py_trees.common.Status.SUCCESS
+        if not self.done:
+            self.done= True
+            print(f"Lift {self.pos} planche")
+            self.manager.liftPlanches(self.up)
+        return py_trees.common.Status.SUCCESS
 
 
 class LiftConserve(py_trees.behaviour.Behaviour):
@@ -25,9 +31,15 @@ class LiftConserve(py_trees.behaviour.Behaviour):
             pos = "UP"
         super().__init__(name=f"Lift {pos} Conserve")
         self.manager = manager
-        self.manager.liftConserve(up)
+        self.up = up
+        self.done = False
+        self.pos = pos
 
     def update(self):
+        if not self.done:
+            self.done= True
+            print(f"Lift {self.pos} Conserve")
+            self.manager.liftConserve(self.up)
         return py_trees.common.Status.SUCCESS
     
 class MoveRentreur(py_trees.behaviour.Behaviour):
@@ -37,9 +49,15 @@ class MoveRentreur(py_trees.behaviour.Behaviour):
             pos = "INSIDE"
         super().__init__(name=f"Rentreur going {pos}")
         self.manager = manager
-        self.manager.moveRentreur(position)
+        self.position = position
+        self.done = False
+        self.pos = pos
 
     def update(self):
+        if not self.done:
+            self.done= True
+            print(f"Rentreur going {self.pos}")
+            self.manager.moveRentreur(self.position)
         return py_trees.common.Status.SUCCESS
 
 
@@ -48,12 +66,17 @@ class GrabHighConserve(py_trees.behaviour.Behaviour):
         status = "Dropping"
         if grab:
             status = "Grabbing"
-        super().__init__(name=f"{status} Rentreur Conserve")
+        super().__init__(name=f"{status} High Conserve")
         self.manager = manager
         self.grab = grab
+        self.done = False
+        self.status= status
 
     def update(self):
-        self.manager.grabHighConserve(self.grab)
+        if not self.done:
+            self.done= True
+            print(f"{self.status} High Conserve")
+            self.manager.grabHighConserve(self.grab)
         return py_trees.common.Status.SUCCESS
 
 class GrabLowConserve(py_trees.behaviour.Behaviour):
@@ -61,21 +84,29 @@ class GrabLowConserve(py_trees.behaviour.Behaviour):
         status = "Dropping"
         if grab:
             status = "Grabbing"
-        super().__init__(name=f"{status} Rentreur Conserve")
+        super().__init__(name=f"{status} Low Conserve")
         self.manager = manager
         self.grab = grab
+        self.done = False
+        self.status = status
 
     def update(self):
-        self.manager.grabLowConserve(self.grab)
+        if not self.done:
+            self.done= True
+            print(f"{self.status} Low Conserve")
+            self.manager.grabLowConserve(self.grab)
         return py_trees.common.Status.SUCCESS
 
 class WaitSeconds(py_trees.behaviour.Behaviour):
     def __init__(self, delay:float|int):
         super().__init__(name=f"Waiting {delay} second")
         self.delay = delay
-        self.startingTime = time.time()
+        self.startingTime = -1
 
     def update(self):
+        if self.startingTime == -1:
+            print(f"Waiting {self.delay} second")
+            self.startingTime = time.time() # init timer
         if abs(time.time()-self.startingTime)>= self.delay : 
             return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
@@ -88,19 +119,27 @@ class LockPlanche(py_trees.behaviour.Behaviour):
         super().__init__(name=f"{status} Upper Planche")
         self.manager = manager
         self.lock = lock
+        self.done = False
+        self.status = status
 
     def update(self):
-        self.manager.lockPlanche(self.lock)
+        if not self.done:
+            self.done= True
+            print(f"{self.status} Upper Planche")
+            self.manager.lockPlanche(self.lock)
         return py_trees.common.Status.SUCCESS
     
 class DeployMacon(py_trees.behaviour.Behaviour):
     def __init__(self, manager:IO_Manager):
-        super().__init__(name=f"Deploying Pince")
+        super().__init__(name=f"Deploying Macon")
         self.manager = manager
-        self.manager.deployMacon()
-        print("Deploying Macon")
+        self.deployed = False
 
     def update(self):
+        if not self.deployed:
+            print("Deploying Macon")
+            self.manager.deployMacon()
+            self.deployed = True
         return py_trees.common.Status.SUCCESS
 
 class waitCalibration(py_trees.behaviour.Behaviour):
@@ -115,8 +154,7 @@ class waitCalibration(py_trees.behaviour.Behaviour):
         print("Waiting Calibration")
         return py_trees.common.Status.FAILURE
 
-def test_bt(jerome :IO_Manager):
-    root = py_trees.composites.Sequence("Root", False)
+def test_bt(jerome: IO_Manager):
     
     ramasseGradin = py_trees.composites.Sequence("Rammasser un Gradin", True)
     ramasseGradin.add_children([
@@ -160,6 +198,11 @@ def test_bt(jerome :IO_Manager):
             GrabLowConserve(jerome, False) 
     ])
 
-    root.add_children([waitCalibration(jerome), DeployMacon(jerome), ramasseGradin])
+    root = py_trees.composites.Sequence("Root", True)
+    root.add_children([
+        waitCalibration(jerome),
+        DeployMacon(jerome),
+        WaitSeconds(2),
+        ramasseGradin])
     return root
 
