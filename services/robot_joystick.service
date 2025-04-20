@@ -7,7 +7,8 @@ Type=simple
 Restart=on-failure
 
 WorkingDirectory=/home/robot/rpi/drivers/joystick
-ExecStart=python3 /home/robot/rpi/drivers/joystick/joystick.py
+ExecStart=/home/robot/rpi/virtualEnv/btEnv/bin/python /home/robot/rpi/drivers/joystick/joystick.py
+#ExecStart=python3 /home/robot/rpi/drivers/joystick/joystick.py
 KillSignal=SIGKILL
 #RestartSec=2 
 # Configures the time to wait before service is stopped forcefully.
