@@ -78,6 +78,22 @@ Copy `80-robot.rules` to `/etc/udev/rules.d/`, and edit it to change the configu
 
 Run `install_packages.sh` to install all necessary packages.
 
+## Virtual Env
+
+You will need to create a venv to use some packages such as `py-trees`. 
+Create a folder `virtualEnv` in root of the repo and in this folder and create the venv. In our case it is called `btEnv`. Use the flag `--system-site-packages` to acces system wide package in the venv so you don't need to reinstall everything.
+
+```
+mkdir virtualEnv
+python3 -m venv --system-site-packages btEnv
+```
+
+When using services you can use the venv as following :
+
+```
+ExecStart=/home/robot/rpi/virtualEnv/btEnv/bin/python /home/robot/rpi/python_program.py
+```
+
 ## Build drivers
 
 Run `../build.sh`
