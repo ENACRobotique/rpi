@@ -9,7 +9,7 @@ sys.path.append("../..")
 import generated.robot_state_pb2 as robot_state_pb2
 import generated.messages_pb2 as message_pb2
 from sw.IO.actionneurs import IO_Manager
-from sw.IO.IO_BT import *
+from sw.stratBT import*
 
 
 MAX_SPEED = 300
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     joysticks_ecal = JoystickEcal()        
     joysticks_ecal.open()
     joysticks_ecal.set_conf(BATTLETRON)
-    tree = py_trees.trees.BehaviourTree(test_bt(joysticks_ecal.IO_manager))
+    tree = py_trees.trees.BehaviourTree(joystick_bt(joysticks_ecal.IO_manager))
     tree.setup(timeout=15)
     tick = 0
     while True :
