@@ -9,7 +9,7 @@ sys.path.append("../..")
 import generated.robot_state_pb2 as robot_state_pb2
 import generated.messages_pb2 as message_pb2
 from sw.IO.actionneurs import IO_Manager
-from sw.stratBT import*
+from sw.IO.test import *
 
 
 MAX_SPEED = 300
