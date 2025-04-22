@@ -401,7 +401,8 @@ class Robot:
         
     
     def isNavDestReached(self):
-        """Si le dernier point de Nav est atteint renvoie True"""
+        """Si le dernier point de Nav est atteint renvoie True\n
+        Nécéssite de vider continuement la liste des points de nav !"""
         return self.nav_pos == []
     
     def onLidar(self, topic_name, msg, timestamp):

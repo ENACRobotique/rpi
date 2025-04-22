@@ -47,8 +47,12 @@ class Navigate(py_trees.behaviour.Behaviour):
 
     def update(self):
         self.robot.setTargetPos(self.robot.nav_pos[0])
-        if self.robot.isNavDestReached():
-            return py_trees.common.Status.SUCCESS
+        if self.robot.hasReachedTarget():
+            del self.robot.nav_pos[0]
+            if self.robot.isNavDestReached():
+                # print(f"{self.dest} reached !\n")
+                return py_trees.common.Status.SUCCESS
+        # Moving
         return py_trees.common.Status.RUNNING
  
 class Evitement(py_trees.behaviour.Behaviour):
