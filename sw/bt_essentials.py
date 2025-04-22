@@ -42,7 +42,7 @@ class Navigate(py_trees.behaviour.Behaviour):
         self.dest = dest
         self.orientation = orientation
 
-    def initialise(self) :
+    def initialise(self):
         self.robot.pathFinder(self.dest, self.orientation)
 
     def update(self):
@@ -52,6 +52,30 @@ class Navigate(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.RUNNING
  
 class Evitement(py_trees.behaviour.Behaviour):
-    """TODO: ALL"""
-    def __init__(self):
+    """TODO:
+    - evitement basique : on s'arrete DONE  !
+    - evitement intermédiare : on recule 
+    - evitement avancé : on countourne"""
+    def __init__(self, robot:Robot):
         super().__init__(name=f"Evitement")
+        self.robot = robot
+        self.evitement = False
+
+    def initialise(self):
+        self.last_target = self.robot.last_target # on retient la dernière consigne à chaque appel. Tant que update renvoie FAILURE cette fonction sera apellée
+        self.evitement = False
+
+    def update(self):
+        if self.robot.obstacle_in_way(self.last_target):# self.last_target):
+            # print("Avoiding")
+            self.robot.setTargetPos(self.robot.pos)
+            self.evitement = True
+            return py_trees.common.Status.RUNNING # adversaire detecté, évitement en cours !
+        # print("Nothing to avoid")
+        return py_trees.common.Status.FAILURE # pas d'advresaire detecté 
+    
+    def terminate(self, new_status: py_trees.common.Status):
+        if new_status == py_trees.common.Status.FAILURE: ## si on a une state INVALID on préfère ne rien faire (pour l'instant)
+            if self.evitement: # on verifie qu'on a evité quelque chose pour ne pas perturber le robot
+                self.robot.setTargetPos(self.last_target) # le robot repart
+                print(self.last_target)

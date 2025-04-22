@@ -135,8 +135,9 @@ class Robot:
         self.lidar_sub = ProtoSubscriber("smooth_pos", robot_pb.Position)
         self.lidar_sub.set_callback(self.onLidar)
 
-        #self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
-        #self.setPositionSub.set_callback(self.onSetTargetPostition)
+        # When Using Robokontrol
+        self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
+        self.setPositionSub.set_callback(self.onSetTargetPostition)
 
         #self.proximitySub = ProtoSubscriber("proximity_status",lidar_pb.Proximity)
         #self.proximitySub.set_callback(self.onProximityStatus)
