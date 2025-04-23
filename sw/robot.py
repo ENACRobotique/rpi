@@ -11,7 +11,7 @@ import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
 from sw.IO.actionneurs import * 
 import common
-from common import Pos, Speed, dist_to_line, next_path
+from common import Pos, Speed, dist_to_line, next_path, normalize_angle
 import locomotion
 import musics
 import random as rd
@@ -70,7 +70,6 @@ class Robot:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
         self.pos = Pos(0, 0, 0)
-        self.pos_backup = Pos(0, 0, 0)
         self.last_d = 20 # ne pas mettre trop grand
         self.nb_pos_received = 0
         self.speed = Speed(0, 0, 0)
@@ -251,14 +250,6 @@ class Robot:
 # ---------------------------- #
 #           CONTROL            #
 # ____________________________ #
-
-    @staticmethod
-    def normalize(angle):
-        while angle >= pi:
-            angle-=2*pi
-        while angle < -pi:
-            angle += 2*pi
-        return angle
     
     def hasReachedTarget(self):
         d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
@@ -279,7 +270,7 @@ class Robot:
             pos += self.pos
         elif frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
-        pos.theta = Robot.normalize(pos.theta)
+        pos.theta = normalize_angle(pos.theta)
         self.locomotion.set_target_pos(pos)
         self.last_target = pos
         
