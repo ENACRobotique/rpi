@@ -298,10 +298,18 @@ class Robot:
         """ Rotation en relatif
          \nArgs, float:theta en radians """
         self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
+
+    def set_speed(self, speed: Speed, duration=1):
+        """
+        Set robot speed in robot reference frame.
+        Useful e.g. to move until a sensor triggers
+        """
+        self.locomotion.set_speed(speed, duration)
     
     def resetPos(self, position: Pos, timeout=2):
         self.logger.info(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
+        self.locomotion.reset_pos(position)
         last_time = time.time()
         while True:
             if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):

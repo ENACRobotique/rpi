@@ -138,6 +138,12 @@ class Locomotion(Thread):
         self.loco_state = LocoState.RUNNING
         self.total_dist = self.pos.distance(self.target_pos)
         print(f"set target to {self.target_pos}")
+    
+    def reset_pos(self, pos: Pos):
+        self.pos = pos
+        # en cas de recalage on annule tous les déplacements en cours
+        self.loco_state = LocoState.IDLE
+        self.speed_pub.send(hgpb.Speed(vx=0, vy=0, vtheta=0))
 
     def on_odom_pos(self, topic, msg, timestamp):
         self.pos = Pos(msg.x, msg.y, msg.theta)
@@ -147,9 +153,7 @@ class Locomotion(Thread):
         self.set_target_pos(Pos.from_proto(msg))
     
     def on_reset_pos(self, topic, msg, timestamp):
-        # en cas de recalage on annule tous les déplacements en cours
-        self.loco_state = LocoState.IDLE
-        self.speed_pub.send(hgpb.Speed(vx=0, vy=0, vtheta=0))
+        self.reset_pos(Pos.from_proto(msg))
         
     
     def run(self):
