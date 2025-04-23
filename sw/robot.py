@@ -12,6 +12,7 @@ import generated.messages_pb2 as base_pb
 from sw.IO.actionneurs import * 
 import common
 from common import Pos, Speed, dist_to_line, next_path
+import locomotion
 import musics
 import random as rd
 
@@ -90,6 +91,8 @@ class Robot:
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
         self.actionneurs = IO_Manager()
+        self.locomotion = locomotion.Locomotion()
+        self.locomotion.start()
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
         #self.proximityStatus = None
@@ -154,7 +157,6 @@ class Robot:
         # self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
         
         ### PUB ECAL ###
-        self.set_target_pos_pub = ProtoPublisher("set_position", robot_pb.Position)
         self.reset_pos_pub = ProtoPublisher("reset", robot_pb.Position)
 
         # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
@@ -268,7 +270,6 @@ class Robot:
             #self.setTargetPos(self.last_target)
 
         hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
-        print(f"dist = {d} \t dtheta = {degrees(self.pos.theta - self.last_target.theta)} \t Reached = {hrt}")
         return hrt 
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
@@ -279,9 +280,7 @@ class Robot:
         elif frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
         pos.theta = Robot.normalize(pos.theta)
-        pb_pos = pos.to_proto()
-        #self.logger.info(f"go to: {pos}")
-        self.set_target_pos_pub.send(pb_pos)
+        self.locomotion.set_target_pos(pos)
         self.last_target = pos
         
         if blocking :
@@ -454,7 +453,6 @@ class Robot:
                 return True
             
         return False
-    
 
 # ---------------------------- #
 #              IO              #
