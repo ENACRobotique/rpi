@@ -10,7 +10,7 @@ from math import cos, sin, atan2, sqrt
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
-from common import Pos, clamp
+from common import Pos, Speed, clamp, normalize_angle
 from enum import Enum
 
 RATE = 10
@@ -31,7 +31,8 @@ class LocoState(Enum):
 
 class Locomotion:
     def __init__(self):
-        ecal_core.initialize(sys.argv, "locomotion")
+        if not ecal_core.is_initialized():
+            ecal_core.initialize(sys.argv, "locomotion")
         self.speed_pub = ProtoPublisher("speed_cons", hgpb.Speed)
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
         self.odom_pos_sub = ProtoSubscriber("odom_pos", hgpb.Position)
@@ -49,7 +50,7 @@ class Locomotion:
         self.pos = Pos(0,0,0)
         self.target_pos = Pos(0,0,0)
         self.loco_state = LocoState.IDLE
-        self.last_speed = Pos(0, 0, 0)
+        self.last_speed = Speed(0, 0, 0)
         self.last_speed_norm = 0
         self.traj_duration = 10
 
@@ -58,16 +59,15 @@ class Locomotion:
     
     def update(self):
         if self.loco_state == LocoState.RUNNING:
-            if self.pos.distance(self.target_pos) < XY_ACCURACY*0 and abs(self.pos.theta - self.target_pos.theta) < THETA_ACCURACY:
-                #self.loco_state = LocoState.IDLE
+            if self.pos.distance(self.target_pos) < XY_ACCURACY and abs(self.pos.theta - self.target_pos.theta) < THETA_ACCURACY:
+                self.loco_state = LocoState.IDLE
                 self.speed_pub.send(hgpb.Speed(vx=0, vy=0, vtheta=0))
                 print("Arrivé!")
             else:
-                carrot = self.target_pos
-                self.carrot_pos_pub.send(carrot.to_proto())
-                dpos = carrot - self.pos
-                distance = carrot.distance(self.pos)
-                azimut = atan2(dpos.y, dpos.x)
+                dpos_r = self.target_pos.to_frame(self.pos)
+                print(dpos_r)
+                distance = dpos_r.norm()
+                azimut = atan2(dpos_r.y, dpos_r.x)
 
                 xy_cons_norm = min(distance * self.kp, VMAX)        # limit VMAX
                 min_speed = self.last_speed_norm - ACCEL_MAX/RATE
@@ -75,17 +75,18 @@ class Locomotion:
 
                 xy_cons_norm = clamp(min_speed, xy_cons_norm, max_speed)    # limit accel
 
-                vang = clamp(-ANG_VMAX, (carrot.theta - self.pos.theta) * self.kp_ang, ANG_VMAX)
-                vang = clamp(self.last_speed.theta - ANG_ACCEL_MAX/RATE, vang, self.last_speed.theta + ANG_ACCEL_MAX/RATE)
+                d_theta = normalize_angle(self.target_pos.theta - self.pos.theta)
+                
+                vang = clamp(-ANG_VMAX, d_theta * self.kp_ang, ANG_VMAX)
+                vang = clamp(self.last_speed.vtheta - ANG_ACCEL_MAX/RATE, vang, self.last_speed.vtheta + ANG_ACCEL_MAX/RATE)
 
-                self.last_speed = Pos(xy_cons_norm*cos(azimut), xy_cons_norm*sin(azimut), vang)
+                self.last_speed = Speed(xy_cons_norm*cos(azimut), xy_cons_norm*sin(azimut), vang)
                 self.last_speed_norm = xy_cons_norm
-                print(xy_cons_norm)
 
-                speed_msg = hgpb.Speed(vx=self.last_speed.x,
-                                       vy=self.last_speed.y,
-                                       vtheta=self.last_speed.theta)
-                print(f"speed cons: {self.last_speed}")
+                speed_msg = hgpb.Speed(vx=self.last_speed.vx,
+                                       vy=self.last_speed.vy,
+                                       vtheta=self.last_speed.vtheta)
+                # print(f"speed cons: {self.last_speed}")
                 self.speed_pub.send(speed_msg)
 
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from math import cos,sin,sqrt
+from math import cos,sin,sqrt, pi
 import numpy as np
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
@@ -41,6 +41,9 @@ class Pos:
 
     def distance(self, other):
         return sqrt((other.x - self.x)**2 + (other.y - self.y)**2)
+    
+    def norm(self):
+        return sqrt(self.x**2 + self.y**2)
 
     def to_proto(self):
         return robot_pb.Position(x=self.x, y=self.y, theta=self.theta) # type: ignore
@@ -129,6 +132,12 @@ def add(v,w):
     X,Y = w
     return (x+X, y+Y)
 
+def normalize_angle(a):
+    while a > pi:
+        a -= 2*pi
+    while a < -pi:
+        a+= 2*pi
+    return a
 
 # Given a line with coordinates 'start' and 'end' and the
 # coordinates of a point 'pnt' the proc returns the shortest 
