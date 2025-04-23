@@ -16,7 +16,7 @@ class Pos:
         return Pos(self.x + other.x, self.y + other.y, self.theta + other.theta)
     
     def __sub__(self, other):
-        return Pos(self.x - other.x, self.y - other.y, self.theta - other.theta)
+        return Pos(self.x - other.x, self.y - other.y, normalize_angle(self.theta - other.theta))
     
     def __mul__(self, other):
         if isinstance(other, int) or isinstance(other, float):
@@ -92,11 +92,14 @@ class Speed:
     vtheta: float
 
     def to_proto(self):
-        return robot_pb.Speed(x=self.vx, y=self.vy, theta=self.vtheta) # type: ignore
+        return robot_pb.Speed(vx=self.vx, vy=self.vy, vtheta=self.vtheta) # type: ignore
     
     @staticmethod
     def from_proto(s: robot_pb.Speed):
         return Speed(s.vx, s.vy, s.vtheta) # type: ignore
+    
+    def xy_norm(self):
+        return sqrt(self.vx**2 + self.vy**2)
 
 def clamp(lo, val, hi):
     return min(hi, max(val, lo))
