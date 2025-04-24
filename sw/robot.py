@@ -15,6 +15,7 @@ from common import Pos, Speed, dist_to_line, next_path, normalize_angle
 import locomotion
 import musics
 import random as rd
+from scipy.stats import linregress
 
 from enum import Enum
 from dataclasses import dataclass
@@ -145,11 +146,10 @@ class Robot:
         #self.proximitySub.set_callback(self.onProximityStatus)
 
 
-        self.vl53_started = {Actionneur.AimantBasDroit: False, Actionneur.AimantBasGauche: False}
+        self.vl53_0_sub = ProtoSubscriber("vl53_0",lidar_pb.Lidar)
+        self.vl53_0_sub.set_callback(lambda topic_name, msg, timestamp : self.on_vl53(Actionneur.AimantBasGauche, topic_name, msg, timestamp))
         self.vl53_1_sub = ProtoSubscriber("vl53_1",lidar_pb.Lidar)
-        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.AimantBasGauche))
-        self.vl53_2_sub = ProtoSubscriber("vl53_2",lidar_pb.Lidar)
-        self.vl53_2_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.AimantBasDroit))
+        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.on_vl53(Actionneur.AimantBasDroit, topic_name, msg, timestamp))
         # self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
         # self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince3))
         # self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
@@ -452,136 +452,104 @@ class Robot:
 
 
         
-
-
-    
-    def vl53_detect_plante(self, msg, id):
-        self.vl53_started[id] = True
-        distances = list(msg.distances)
-        #distance_matrix = np.empty((8,8))
-
-        def idx(x, y):
-            return (7 - y) * 8 + (7 - x)
+    def detect_best_conserve(self, actionneur):
+        if self.vl53_data[actionneur] is None:
+            return None
         
-        self.vl53_data[id] = None
+        def idx(x, y):
+            #return (7 - y) * 8 + (7 - x)
+            return (8*x+(7-y))
+        
+        def find_min_loc(tab):
+            min_loc = []
+            n = len(tab)
 
-        index_mins = []
-        for y in range(3, 6):
-            index_min = min(range(8), key=lambda x: distances[idx(x, y)])
-            index_mins.append(index_min)
-        index_min = sorted(index_mins)[len(index_mins)//2]
-        dist = distances[idx(index_min, index_mins.index(index_min))]
-        if dist < 300:
-            self.vl53_data[id] = ((index_min - 3.5) * 5.625, dist)
-        return
+            for i in range(n):
+                if (i == 0 or tab[i] < tab[i-1]) and (i == n-1 or tab[i] < tab[i+1]):
+                    min_loc.append((i,tab[i]))
 
+            return min_loc
+
+
+        def remove_same_min(mini):
+            for (ind1,val1) in mini:
+                for (ind2, val2) in mini:
+                    if ind1 == ind2 + 2:
+                        mini.remove(min((ind1,val1),(ind2,val2), key=lambda a : a[0]))
+            return mini                    
+
+        def select_best_conserve(mini):
+            dist2_center = [abs(3.5-ind) for (ind,val) in mini]
+            ind_min = min(enumerate(dist2_center), key=lambda x: x[1])[0]
+            return mini[ind_min]
+
+
+
+        y_cons = [0 for _ in range (8)]
+        for x in range (8):
+            for y in range(2,8):
+                y_cons[x]+= (self.vl53_data[actionneur])[idx(x,y)]
+
+        min_loc = find_min_loc(y_cons)
+        min_loc = remove_same_min(min_loc)
+        indice_x,distance_capteur_conserve = select_best_conserve(min_loc) 
+        return indice_x, distance_capteur_conserve/6
+    
+
+    def vl53_planche(self, actionneur):
+        def curved_linspace_sin(base, amplitude, num):
+            """
+            Génère num points variant selon base + amplitude * (1 - cos(theta)) / 2
+            où theta va de 0 à 2π.
+            Résultat : de base -> base+amplitude -> base.
+            """
+            theta = np.linspace(0, 2*np.pi, num, endpoint=True)
+            # (1 - cosθ)/2 fait une bosse normalisée de 0 à 1 puis à 0
+            bump = (1 - np.cos(theta)) / 2
+            return base + amplitude * bump
+        
+        pixel_angles = np.array([(i-3.5)*radians(45)/8 for i in range(8)])
+        distortion = curved_linspace_sin(1, -0.05, 8)
+        distance_matrix = np.empty((8,8))
+        def idx(x, y):
+            return (8*x+(7-y))
         
         for y in range(8):
             for x in range(8):
-                distance_matrix[y,x] = distances[idx(x,y)]
+                distance_matrix[y,x] = self.vl53_data[actionneur][idx(x,y)]
 
-        x_mins_lines = []
-        ys = []
-        for y in range(1,6):
-            line = distance_matrix[y]
-            x_mins_before = set()
-            x_mins_after = {0,1,2,3,4,5,6,7}
-            while x_mins_after != x_mins_before:
-                x_mins_before = x_mins_after
-                x_mins_after = set()
-                for x in x_mins_before:
-                    if x == 0:
-                        x_mins_after.add(min([x,x+1], key = lambda a: line[a]))
-                    elif x == 7:
-                        x_mins_after.add(min([x-1,x], key = lambda a: line[a]))
-                    else:
-                        x_mins_after.add(min([x-1,x,x+1], key = lambda a: line[a]))
-            
-            to_remove = []
-            for x in x_mins_after:
-                if line[x] > 200:
-                    to_remove.append(x)
-            
-            for x in to_remove:
-                x_mins_after.remove(x)
-
-            if 0 < len(x_mins_after) <= 2:
-                ground = False
-                if y == 5:
-                    for x in x_mins_after:
-                        if line[x] > 90: ground = True
-
-                if ground == False:
-                    x_mins_lines.append(x_mins_after)
-                    ys.append(y)
+        def reg_line(dists):
+            dists = dists * distortion
+            xs = dists * np.sin(pixel_angles)
+            ys = dists * np.cos(pixel_angles)
+            return linregress(xs, ys)
         
-        # self.logger.info("#############")
-        # self.logger.info(ys)
-        # self.logger.info(x_mins_lines)
-        # for y,x in zip(ys,self.x_mins_lines) :
-        #     self.logger.info(f"y={y} mins={x} val={[self.distance_matrix[y][a] for a in x]}")
-        # for y in ys:
-        #     self.logger.info(f"y={y} distances= {self.distance_matrix[y]}")
+        lin1 = [(y, *reg_line(distance_matrix[y])) for y in range(8)]
 
+        y, slope_best, _, r_best, _, stderr = min(lin1, key=lambda l: abs(l[5]))
 
-        if len(x_mins_lines) < 3:
-            self.vl53_angle[id] = []
-            self.vl53_distance[id] = []
-            return
-        
-        single = []
-        for i in range(len(x_mins_lines)):
-            x = x_mins_lines[i]
-            if len(x) == 1:
-                single = [i]
-        
-        if single:
-            # self.logger.info("Single plant")
-            number_of_line = len(x_mins_lines)
-            x_moy = x_mins_lines[single[0]].pop()
-            distance_moy = distance_matrix[ys[single[0]]][x_moy]
-            for i in range(number_of_line):
-                if i != single[0]:
-                    if i in single:
-                        x = x_mins_lines[i].pop()
-                        x_moy += x
-                        distance_moy += distance_matrix[ys[i]][x]
-            x_moy = x_moy / len(single)
-            distance_moy = distance_moy / len(single)
-            # self.logger.info(f"Position_x: {x_moy} Distance: {distance_moy}")
-            self.vl53_angle[id] = [(x_moy - 3.5) * 5.625]
-            self.vl53_distance[id] = [distance_moy]
+        angle = np.arctan2(slope_best, 1)
 
-        else:
-            # self.logger.info("Two plant")
-            number_of_line = len(x_mins_lines)
-            xs_0 = list(x_mins_lines[0])
-            xs_0.sort()
-            x_moy_0 = xs_0[0]
-            distance_moy_0 = distance_matrix[ys[0]][x_moy_0]
-            x_moy_1 = xs_0[1]
-            distance_moy_1 = distance_matrix[ys[0]][x_moy_1]
-            for i in range(1,number_of_line):
-                xs = list(x_mins_lines[i])
-                xs.sort()
-                x_moy_0 += xs[0]
-                distance_moy_0 += distance_matrix[ys[0]][xs[0]]
-                x_moy_1 += xs[1]
-                distance_moy_1 += distance_matrix[ys[0]][xs[1]]
-            x_moy_0 = x_moy_0 / number_of_line
-            x_moy_1 = x_moy_1 / number_of_line
-            distance_moy_0 = distance_moy_0 / number_of_line
-            distance_moy_1 = distance_moy_1 / number_of_line
-            # self.logger.info(f"Position_x: {x_moy_0} Distance: {distance_moy_0}")
-            # self.logger.info(f"Position_x: {x_moy_1} Distance: {distance_moy_1}")
-            if distance_moy_0 < distance_moy_1:
-                self.vl53_angle[id] = [(x_moy_0 - 3.5) * 5.625, (x_moy_1 - 3.5) * 5.625]
-                self.vl53_distance[id] = [distance_moy_0, distance_moy_1]
-            else:
-                self.vl53_angle[id] = [(x_moy_1 - 3.5) * 5.625, (x_moy_0 - 3.5) * 5.625]
-                self.vl53_distance[id] = [distance_moy_1, distance_moy_0]
+        dist = np.mean(distance_matrix[y])
 
+        #print(f"{y} -> {degrees(angle):+03.0f} : {slope_best:+05.2f} : {r_best:.2f}  sdterr:{stderr:.2f}")
+        return angle, dist, r_best, stderr
 
+    def vl53_planches2(self):
+        if self.vl53_data[Actionneur.AimantBasGauche] is None or self.vl53_data[Actionneur.AimantBasDroit] is None:
+            return None
+        angle1, dist1, _, stderr1 = self.vl53_planche(Actionneur.AimantBasGauche)
+        angle2, dist2, _, stderr2 = self.vl53_planche(Actionneur.AimantBasDroit)
+        w1 = 1 / stderr1**2
+        w2 = 1 / stderr2**2
+        angle = (w1 * angle1 + w2 * angle2) / (w1 + w2)
+        dist = (w1 * dist1 + w2 * dist2) / (w1 + w2)
+        stderr = (w1 * stderr1 + w2 * stderr2) / (w1 + w2)
+        #print(f"{degrees(angle):+03.0f} : {dist:+05.2f} : sdterr:{stderr:.2f}")
+        return angle, dist, stderr
+
+    def on_vl53(self, actionneur, topic_name, msg, timestamp):
+        self.vl53_data[actionneur] = list(msg.distances)
 
 
 if __name__ == "__main__":
