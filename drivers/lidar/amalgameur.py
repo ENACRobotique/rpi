@@ -17,7 +17,7 @@ MAX_SIZE = 500
 
 class Amalgameur:
     def __init__(self) -> None:
-        ecal_core.initialize(sys.argv, "lid_amalgameur")
+        ecal_core.initialize(sys.argv, "lidar_amalgameur")
 
         self.sub_lidar = ProtoSubscriber("lidar_data", lidar_pb.Lidar)
         self.sub_lidar.set_callback(self.on_lidar)
