@@ -46,7 +46,7 @@ public:
     int readResponseLevel(uint8_t id);
 
 
-    int readMoving(uint8_t id);
+    SmartServo::Status isMoving(uint8_t id, bool& moving);
 
 private:
     SmartServo::Status writeRegisterEPROM(uint8_t id, uint8_t reg, uint8_t value);

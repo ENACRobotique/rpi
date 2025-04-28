@@ -52,7 +52,7 @@ int move(const std::string& method_,
   switch (msg.command())
   {
       case SS::CommandType::SmartServo_CommandType_SET_ID:
-          p_servo->setID(msg.id(), msg.newid());
+          p_servo->setID(msg.id(), msg.new_id());
           response_ = request_;
           break;
       
@@ -122,8 +122,15 @@ int move(const std::string& method_,
 
       case SS::CommandType::SmartServo_CommandType_IS_MOVING:
         if (msg.type() == SS::ServoType::SmartServo_ServoType_STS) {
-          int moving = ((STS3032*)p_servo)->readMoving(msg.id());
-          msg.set_moving(moving);
+          bool moving;
+          SmartServo::Status status = ((STS3032*)p_servo)->isMoving(msg.id(), moving);
+          if(status == SmartServo::Status::OK) {
+            msg.set_moving(moving);
+          } else {
+            msg.set_moving(false);
+          }
+          msg.set_status((uint32_t)status);
+          
           msg.SerializeToString(&response_);
         }
         break;
