@@ -45,6 +45,9 @@ public:
     // Read response level and update smart_servo accordingly.
     int readResponseLevel(uint8_t id);
 
+
+    int readMoving(uint8_t id);
+
 private:
     SmartServo::Status writeRegisterEPROM(uint8_t id, uint8_t reg, uint8_t value);
 

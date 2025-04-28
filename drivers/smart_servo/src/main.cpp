@@ -109,17 +109,25 @@ int move(const std::string& method_,
           response_ = request_;
           break;
 
-        case SS::CommandType::SmartServo_CommandType_SET_MULTITURN:
-          if(msg.unlock_eeprom()) {
-            p_servo->lock_eprom(msg.id(), false);
-          }
-          p_servo->setMultiturn(msg.id(), msg.multiturn_factor());
-          if(msg.unlock_eeprom()) {
-            p_servo->lock_eprom(msg.id(), true);
-          }
-          response_ = request_;
-          break;
+      case SS::CommandType::SmartServo_CommandType_SET_MULTITURN:
+        if(msg.unlock_eeprom()) {
+          p_servo->lock_eprom(msg.id(), false);
+        }
+        p_servo->setMultiturn(msg.id(), msg.multiturn_factor());
+        if(msg.unlock_eeprom()) {
+          p_servo->lock_eprom(msg.id(), true);
+        }
+        response_ = request_;
+        break;
 
+      case SS::CommandType::SmartServo_CommandType_IS_MOVING:
+        if (msg.type() == SS::ServoType::SmartServo_ServoType_STS) {
+          int moving = ((STS3032*)p_servo)->readMoving(msg.id());
+          msg.set_moving(moving);
+          msg.SerializeToString(&response_);
+        }
+        break;
+         
       default:
           std::cerr << " Unknown command : " << msg.command() << std::endl;
           break;
