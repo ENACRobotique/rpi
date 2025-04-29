@@ -56,6 +56,9 @@ class Pos:
     def from_np(p: np.array): # type: ignore
         return Pos(p[0], p[1], p[2])
     
+    def to_np(self):
+        return np.array([self.x, self.y, self.theta])
+    
     def to_frame(self, new_frame):
         """
         pos: position in the current frame
@@ -81,7 +84,7 @@ class Pos:
                         [-st, ct, 0],
                         [0,   0,  1]])
         rot = rot.transpose()
-        pos = rot.dot(np.array([self.x, self.y, self.theta]))
+        pos = rot.dot(self.to_np())
         pos = Pos.from_np(pos) + pos_frame
         return pos
 
