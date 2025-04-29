@@ -1,10 +1,11 @@
 from enum import Enum
-from gpiozero import Button
 import sys
-sys.path.append("../")
-from drivers.smart_servo.test.ecalServoIO import servoIO
-import generated.actionneurs_pb2 as actionneurs_pb
+sys.path.append("../../")
+from drivers.smart_servo.ecalServoIO import servoIO
+from generated import actionneurs_pb2 as actionneurs_pb
 import time
+
+
 class Actionneur(Enum):
     #todo : Droit = la droite du robot par rapport à son axe X
     AimantBasDroit = 4

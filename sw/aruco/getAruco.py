@@ -7,7 +7,8 @@ import time
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 import sys
-import generated.robot_state_pb2 as hlm
+sys.path.append("../..")
+from generated import robot_state_pb2 as hlm
 
 # load the ArUCo dictionary and grab the ArUCo parameters
 arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_1000)
