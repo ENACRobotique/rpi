@@ -1,24 +1,45 @@
-from itertools import combinations
-import ecal.core.core as ecal_core
 import math
+import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
 import numpy as np
-import time, os, sys
 from numpy import typing as npt
-import generated.robot_state_pb2 as robot_pb
-import generated.lidar_data_pb2 as lidar_pb
 import itertools
 from collections import namedtuple
-RealBeacon = namedtuple('RealBeacon',['id','x','y'])
 from scipy.optimize import least_squares
+import time, os, sys
+sys.path.append("../")
+from generated import robot_state_pb2 as robot_pb
+from generated import lidar_data_pb2 as lidar_pb
+from common import Pos
+
+
+# class Beacon:
+#     def __init__(self, id:int, pos:Pos) -> None:
+#         self.pos = pos
+#         self.id = id
+
+class Amalgame:
+    def __init__(self, pos: Pos, size) -> None:
+        self.pos = pos
+        self.size = size
+
+
+RealBeacon = namedtuple('RealBeacon',['id','x','y'])
 
 REAL_BEACONS_T = [[-94, 1000], [3094, 50], [3094, 1950]]
 B0 = RealBeacon(0,  -94, 1000)
 B1 = RealBeacon(1, 3094,   50)
 B2 = RealBeacon(2, 3094, 1950)
-# B3 = RealBeacon(3,    ?,    ?)
 RealBeacons = [B0, B1, B2]
+
+BEACONS = {
+    0: Pos(-94, 1000, 0),
+    1: Pos(3094, 50, 0),
+    2: Pos(3094, 1950, 0)
+}
+
+
 MAX_COST = 15000
 TOLERANCE = 500 #mm
 BEACON_MAX_SIZE = 150 # mm 
@@ -26,56 +47,62 @@ BEACON_MIN_SIZE = 50 # mm
 LOST = False
 OK = True
 
-def normalize_angle(a):
-    while a > np.pi:
-        a -= 2*np.pi
-    while a < -np.pi:
-        a+= 2*np.pi
-    return a
 
 class BeaconFinder:
     def __init__(self):
         self.odom_pos = (0, 0)
-        ecal_core.initialize(sys.argv, "balises")
+        if not ecal_core.is_initialized():
+            ecal_core.initialize(sys.argv, "balises")
+        
+        # last odom_pos received
+        self.odom_pos = Pos(0, 0, 0)
+
+        # estimated pos using lidar and odometry
+        self.estimated_pos = Pos(0, 0, 0)
+
+        #self.odomBeacon = [(0, 0),(0, 0),(0, 0)]#,(0, 0)]
+        self.lastOdom = robot_pb.Position(x=0,y=0,theta=0)
+        self.lidarPos = robot_pb.Position(x=500,y=500,theta=0)
+        self.visibleBeacons = []
+        #self.estimatedBeacons = [(0, 0),(0, 0),(0, 0)]#,(0, 0)]
+        self.predictions = [(0, 0),(0, 0),(0, 0)]#,(0, 0)]
+        self.dx,self.dy,self.dtheta = 0,0,0
+
+
+        
 
         # Subscribers
         self.sub_lidar = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
         self.sub_lidar.set_callback(self.amalgames_cb)
         
         self.sub_odom = ProtoSubscriber("odom_pos", robot_pb.Position)
-        self.sub_odom.set_callback(self.get_balises_odom)
-
-        self.pub_lidar = ProtoPublisher("lidar_pos", robot_pb.Position)
+        self.sub_odom.set_callback(self.odom_pos_cb)
 
         # Publishers
+        self.pub_lidar = ProtoPublisher("lidar_pos", robot_pb.Position)
         self.pub_balises_odom = ProtoPublisher("balises_odom", lidar_pb.Balises)
         self.pub_closest_to_odom_beacons = ProtoPublisher("balises_near_odom", lidar_pb.Balises)
 
-        self.initialized = False
-        self.odomBeacon = [(0, 0),(0, 0),(0, 0)]#,(0, 0)]
-        self.lastOdom = robot_pb.Position(x=0,y=0,theta=0)
-        self.lidarPos = robot_pb.Position(x=500,y=500,theta=0)
-        self.visibleBeacons = []
-        self.lostBeacons = []
-        self.estimatedBeacons = [(0, 0),(0, 0),(0, 0)]#,(0, 0)]
-        self.predictions = [(0, 0),(0, 0),(0, 0)]#,(0, 0)]
-        self.updated = False
-        self.dx,self.dy,self.dtheta = 0,0,0
-    def get_balises_odom(self, topic_name, msg, time):
+
+        
+
+    def odom_pos_cb(self, topic_name, msg, time):
         """ Calcule la position des balises à partir de l'odométrie\n"""
+
+        self.odom_pos = Pos.from_proto(msg)
+
         xs = []
         ys = []
         ids = []
     
-        for id, balise in enumerate(RealBeacons):
-            dx = balise.x - msg.x
-            dy = balise.y - msg.y
-            x_b_rr = dx * np.cos(msg.theta) + dy * np.sin(msg.theta)
-            y_b_rr = dy * np.cos(msg.theta) - dx * np.sin(msg.theta)
-            ids.append(balise.id)
-            xs.append(x_b_rr)
-            ys.append(y_b_rr)
-            self.odomBeacon[id] = x_b_rr,y_b_rr
+        for beacon_id, beacon_pos in BEACONS.items():
+            b_rr = beacon_pos.to_frame(self.odom_pos)
+
+            ids.append(beacon_id)
+            xs.append(b_rr.x)
+            ys.append(b_rr.y)
+
+            #self.odomBeacon[id] = x_b_rr,y_b_rr
         self.lastOdom = msg
         
         # Pour les afficher sur radarQT
@@ -208,59 +235,61 @@ class BeaconFinder:
 
         return dist_12_close and dist_13_close and dist_23_close
     
-    def closest_amalgamme(self, point, amalgames):
+    def closest_amalgamme(self, pos: Pos, amalgames: list[Amalgame]) -> tuple[Amalgame, float]:
         """Returns index and dist of the closest amalgame in the list"""
-        dists = [self.dist_2_pts(point, amalgame) for amalgame in amalgames]
+        dists = [pos.distance(amalgame.pos) for amalgame in amalgames]
         index = np.argmin(dists)
-        return index, dists[index]
+        return amalgames[index], dists[index]
 
     def amalgames_cb(self, topic_name, msg, time):
-        self.estimate_beacons_pos(msg)
-        self.estimate(np.array(self.estimatedBeacons))
+        estimatedBeacons = self.estimate_beacons_pos(msg)
+        self.estimate(np.array(estimatedBeacons))
 
-    def estimate_beacons_pos(self, msg):
+    def estimate_beacons_pos(self, msg) -> dict[int, Amalgame]:
         # On filtre les amalgames qui ne sont pas des balises
-        amalgames = [(x, y) for (x, y, size) in zip(msg.x, msg.y, msg.size) if  size < BEACON_MAX_SIZE]
+        amalgames = [Amalgame(Pos(x, y, 0), size) for (x, y, size) in zip(msg.x, msg.y, msg.size) if  size < BEACON_MAX_SIZE]
         
-        #Méthode naïve
-        self.visibleBeacons = []
-        self.lostBeacons = []
+        # {beacon_id: Amalgame}
+        estimatedBeacons: dict[int, Amalgame] = {}
         
-        for beacon in RealBeacons:
-            id = beacon.id
-            last_estimation = self.to_robot_frame(beacon, self.lidarPos)# Replace lastOdom by la position lidar précédement calculée
-            indexMin, dist = self.closest_amalgamme(last_estimation, amalgames)
-            if dist <= TOLERANCE:
-                self.visibleBeacons.append(id)
-                self.estimatedBeacons[id] = amalgames[indexMin]
-            else:
-                self.lostBeacons.append(id)
-                # on essai de le déduire de l'odom
-                indexMin, dist = self.closest_amalgamme(self.odomBeacon[id], amalgames)
-                if dist <= TOLERANCE:
-                    self.estimatedBeacons[id] = amalgames[indexMin]
-                    self.visibleBeacons.append(id)
-                    print(f"Guessed {id}")
+        for beacon_id, beacon_pos in BEACONS.items():
+            # estimated position of the beacon in robot frame (using best estimated robot pos)
+            beacon_pos_r = beacon_pos.to_frame(self.estimated_pos)
+            # best candidate (Amalgame), and its distance to the theoretical position
+            candidate, dist = self.closest_amalgamme(beacon_pos_r, amalgames)
 
-        if len(self.visibleBeacons) < 2:
+            if dist <= TOLERANCE:
+                estimatedBeacons[beacon_id] = candidate
+            
+            # KESQUECEST ?????
+            # else:
+            #     # on essai de le déduire de l'odom
+            #     indexMin, dist = self.closest_amalgamme(self.odomBeacon[id], amalgames)
+            #     if dist <= TOLERANCE:
+            #         self.estimatedBeacons[id] = amalgames[indexMin]
+            #         self.visibleBeacons.append(id)
+            #         print(f"Guessed {id}")
+
+
+        if len(estimatedBeacons) < 2:
             print("OSCOUR JE SUIS PERDU")
-        if len(self.visibleBeacons) == 3:
+        if len(estimatedBeacons) == 3:
             print("") # utile pour debug
             
-        if len(self.visibleBeacons) > 0:
-            self.updated = True
+        if len(estimatedBeacons) > 0:
             # On ne publie que les balises trouvée
             ids = []
             xs = []
             ys = []
-            for id in self.visibleBeacons:
-                x,y = self.estimatedBeacons[id]
-                ids.append(id)
-                xs.append(x)
-                ys.append(y)
+            for beacon_id, am in estimatedBeacons.items():
+                ids.append(beacon_id)
+                xs.append(am.pos.x)
+                ys.append(am.pos.y)
             msg = lidar_pb.Balises(
                 index=ids, x=xs, y=ys)
             self.pub_closest_to_odom_beacons.send(msg)
+        
+        return estimatedBeacons
     
     def rotation_matrix(self,theta):
         return np.array([
@@ -268,7 +297,7 @@ class BeaconFinder:
             [np.sin(theta),np.cos(theta)]
         ])
     
-    def objective_function(self,pos_t, detected_beacons_r, real_beacons_t):
+    def objective_function(self, pos_t, detected_beacons_r, real_beacons_t):
         theta=pos_t[0]
         tx,ty=pos_t[1],pos_t[2]
         R= self.rotation_matrix(theta)
@@ -276,11 +305,21 @@ class BeaconFinder:
         residuals = (detected_beacons_t - real_beacons_t).flatten()
         return residuals
     
-    def estimate(self, detected_beacons_r):
+    def estimate(self, detected_beacons_r: dict[int, Amalgame]):
+        # create numpy array with [x,y] pos of detected beacons in robot frame, and theoretical beacons position in table frame
+        am_pos_r_np = []
+        beacon_pos_np = []
+        for beacon_id, am in detected_beacons_r.items():
+            b = BEACONS[beacon_id]
+            am_pos_r_np.append([am.pos.x, am.pos.y])
+            beacon_pos_np.append([b.x, b.y])
+        am_pos_r_np = np.array(am_pos_r_np)
+        beacon_pos_np = np.array(beacon_pos_np)
+
         result = least_squares(
             fun = self.objective_function,
             x0=(self.lastOdom.theta, self.lastOdom.x,self.lastOdom.y),
-            args=(detected_beacons_r,REAL_BEACONS_T),
+            args=(am_pos_r_np, REAL_BEACONS_T),
             method='lm'
         )
 
