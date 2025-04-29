@@ -25,16 +25,15 @@ class servoIO:
     self.client.add_response_callback(self.response_cb)
     self.q = Queue()
     self.message = SmartServo()
-    self.z_init1 = 0
-    self.z_init2 = 0
-    self.delta1H = 3850
-    self.delta2H = 3800
+
   
   def response_cb(self, service_info, response):
     msg_resp = SmartServo()
     msg_resp.ParseFromString(response)
 
     if msg_resp.command == SmartServo.CommandType.READ_POS:
+      self.q.put(msg_resp)
+    if msg_resp.command == SmartServo.CommandType.IS_MOVING:
       self.q.put(msg_resp)
     
 
@@ -141,6 +140,19 @@ class servoIO:
       msg_resp = self.q.get(timeout=RESP_TIMEOUT)
       if msg_resp.id == id:
         return msg_resp.position
+    except Empty:
+      print("no response...")
+
+  def isMoving(self, id, type=default):
+    self.message.id = id
+    self.message.type = type
+    self.message.command = SmartServo.CommandType.IS_MOVING
+    msg_bin = self.message.SerializeToString()
+    self.client.call_method("read_pos", msg_bin)
+    try:
+      msg_resp = self.q.get(timeout=RESP_TIMEOUT)
+      if msg_resp.id == id:
+        return msg_resp.moving
     except Empty:
       print("no response...")
 

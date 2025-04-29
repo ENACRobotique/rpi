@@ -236,3 +236,15 @@ int STS3032::readResponseLevel(uint8_t id) {
 		return -1;
 	}
 }
+
+SmartServo::Status STS3032::isMoving(uint8_t id, bool& moving) {
+	SmartServo::record_t rec = {
+		.id = id,
+		.reg = R_Moving,
+		.len = 1,
+		.data = {0}
+	};
+	SmartServo::Status status = read(&rec);
+	moving = rec.data[0] == 1;
+	return status;
+}

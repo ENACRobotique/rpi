@@ -16,8 +16,8 @@ def main_bt(robot:Robot):
     ramasseGradin.add_children([
         LiftPlanche(robot.actionneurs, UP),
         WaitSeconds(0.5),
-        GrabHighConserve(robot.actionneurs, False),
-        GrabLowConserve(robot.actionneurs, True),
+        GrabHighConserve(False),
+        GrabLowConserve(True),
         WaitSeconds(0.3),
         LiftConserve(robot.actionneurs, UP),
         WaitSeconds(2),
