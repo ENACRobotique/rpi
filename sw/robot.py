@@ -451,8 +451,21 @@ class Robot:
 # ____________________________ #
 
 
-
-
+    def detect_one_conserve(self, actionneur):
+        if self.vl53_data[actionneur] is None:
+            return None
+        
+        def idx(x, y):
+            #return (7 - y) * 8 + (7 - x)
+            return (8*x+(7-y))
+        
+        x_dist = [0 for _ in range (8)]
+        for x in range (8):
+            for y in range(2,8):
+                x_dist[x]+= (self.vl53_data[actionneur])[idx(x,y)]
+        
+        min_x = min(enumerate(x_dist), key=lambda x: x[1])
+        return min_x[0], min_x[1]/6
         
     def detect_best_conserve(self, actionneur):
         if self.vl53_data[actionneur] is None:
@@ -484,8 +497,6 @@ class Robot:
             dist2_center = [abs(3.5-ind) for (ind,val) in mini]
             ind_min = min(enumerate(dist2_center), key=lambda x: x[1])[0]
             return mini[ind_min]
-
-
 
         y_cons = [0 for _ in range (8)]
         for x in range (8):
