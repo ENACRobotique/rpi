@@ -46,7 +46,7 @@ class ValeurActionneur(Enum):
     VerrouPinceLOCK = 2400
     VerrouPinceUNLOCK = 3100
 
-    PlancheDELTA = 2700
+    PlancheDELTA = 2600
 
     
 servoPosError = 20 # on prend large
@@ -104,10 +104,10 @@ class IO_Manager:
                 fd = True
                 break
 
-        self.liftD_up = self.liftD_init//4
-        self.liftD_down = self.liftD_init//4+ValeurActionneur.PlancheDELTA.value+100
+        self.liftD_up = self.liftD_init//4+100
+        self.liftD_down = self.liftD_init//4+ValeurActionneur.PlancheDELTA.value+200
         
-        self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value
+        self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value-100
         self.liftG_down = self.liftG_init//4
         
         self.liftCalibrated = True
@@ -164,11 +164,11 @@ class IO_Manager:
         Si fdc non calibrés la fonction ne fera rien"""
         if self.liftCalibrated:
             if up:
-                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_up)
-                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_up)     
+                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up, 4000)
+                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_up, 4000)     
             else:
-                self.Servo_IO.move(Actionneur.PlancheGauche.value, self.liftG_down)
-                self.Servo_IO.move(Actionneur.PlancheDroit.value, self.liftD_down)                  
+                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_down, 4000)
+                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_down, 4000)                  
         
     def lockPlanche(self, lock:bool, sync:bool = False):
         """ Tenir ou lâcher la planche du haut"""
