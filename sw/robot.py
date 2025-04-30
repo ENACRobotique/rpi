@@ -9,7 +9,7 @@ import logging
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
-from sw.IO.actionneurs import * 
+from IO.actionneurs import * 
 import common
 from common import Pos, Speed, dist_to_line, next_path, normalize_angle
 import locomotion
@@ -252,9 +252,10 @@ class Robot:
 # ____________________________ #
     
     def hasReachedTarget(self):
-        d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
-        hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
-        return hrt 
+        return self.locomotion.hasReachedTarget()
+        # d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
+        # hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
+        # return hrt 
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
@@ -275,12 +276,13 @@ class Robot:
                 time.sleep(0.1)
             return False
 
-    def move(self, distance, direction, blocking=False, timeout = 10):
+    def move(self, distance, direction, speed, blocking=False, timeout = 10):
         """
         avance de distance dans la direction direction, repère robot 
         """
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
+        self.locomotion.set_move_speed(speed)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
     def move_rel(self,x,y,blocking=False, timeout = 10):
