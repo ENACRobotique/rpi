@@ -25,7 +25,7 @@ BEACONS = {
 }
 
 
-MAX_COST = 15000
+MAX_COST = (150**2) * 6
 TOLERANCE = 500 #mm
 BEACON_MAX_SIZE = 150 # mm 
 BEACON_MIN_SIZE = 50 # mm 
@@ -35,7 +35,7 @@ BEACON_MIN_SIZE = 50 # mm
 class LidarLoca:
     def __init__(self):
         if not ecal_core.is_initialized():
-            ecal_core.initialize(sys.argv, "balises")
+            ecal_core.initialize(sys.argv, "loca_lidar")
         
         # last odom_pos received
         self.odom_pos = Pos(0, 0, 0)
@@ -90,6 +90,8 @@ class LidarLoca:
             if result.cost <  MAX_COST and len(estimatedBeacons) >= 2:
                 # only use the result if the cost is low enough and at least 2 beacons where associated.
                 self.estimated_pos = Pos.from_np(result.x)
+            else:
+                print(f"cost too high: {int(result.cost)}/{MAX_COST}")
             self.pub_lidar.send(self.estimated_pos.to_proto())
 
     @staticmethod
@@ -122,22 +124,36 @@ class LidarLoca:
         
         return estimatedBeacons
     
+    @staticmethod
+    def jacobienne(x: np.ndarray, am_beacon_pairs: list[tuple[Pos, Pos]]):
+        c = np.cos(x[2])
+        s = np.sin(x[2])
+        jac = np.zeros((2*len(am_beacon_pairs), 3))
+        for i, (am_pos_r, _) in enumerate(am_beacon_pairs):
+            jac[i,0] = 1
+            jac[i,1] = 0
+            jac[i,2] = -s*am_pos_r.x + c*am_pos_r.y
+            jac[i+1,0] = 0
+            jac[i+1,1] = 1
+            jac[i+1,2] = -c*am_pos_r.x - s*am_pos_r.y
+        return jac
+
+    @staticmethod
+    def objective_function(x: np.ndarray, am_beacon_pairs: list[tuple[Pos, Pos]]):
+        # for each pair (amalgame, beacon), get the distance between the beacon position (in table frame)
+        # and the amalgame position, originaly expressed in frame pos_t.
+        # if pos_t is the current robot position, the distance should be small.
+        pos_t = Pos.from_np(x)
+        #residuals = [am_pos_r.from_frame(pos_t).distance(beacon_pos_t) for am_pos_r, beacon_pos_t in am_beacon_pairs]
+        residuals = []
+        for am_pos_r, beacon_pos_t in am_beacon_pairs:
+            pos_error = am_pos_r.from_frame(pos_t) - beacon_pos_t
+            residuals.append(pos_error.x)
+            residuals.append(pos_error.y)
+        #print (residuals)
+        return residuals
+
     def estimate(self, detected_beacons_r: dict[int, Amalgame]) -> OptimizeResult:
-
-        def objective_function(x: np.ndarray, am_beacon_pairs: list[tuple[Pos, Pos]]):
-            # for each pair (amalgame, beacon), get the distance between the beacon position (in table frame)
-            # and the amalgame position, originaly expressed in frame pos_t.
-            # if pos_t is the current robot position, the distance should be small.
-            pos_t = Pos.from_np(x)
-            #residuals = [am_pos_r.from_frame(pos_t).distance(beacon_pos_t) for am_pos_r, beacon_pos_t in am_beacon_pairs]
-            residuals = []
-            for am_pos_r, beacon_pos_t in am_beacon_pairs:
-                pos_error = am_pos_r.from_frame(pos_t) - beacon_pos_t
-                residuals.append(pos_error.x)
-                residuals.append(pos_error.y)
-            #print (residuals)
-            return residuals
-
         # list of tuples: (am_pos_r, beacon_pos_t)
         # associate amalgame pos in robot frame to theoretical beacon pos in table frame
         am_beacon_pairs: list[tuple[Pos, Pos]] = []
@@ -146,8 +162,9 @@ class LidarLoca:
             am_beacon_pairs.append((am.pos, b))
 
         result = least_squares(
-            fun = objective_function,
+            fun = self.objective_function,
             x0 = self.estimated_pos.to_np(),          # start from latest estimated position
+            jac=self.jacobienne,
             args = (am_beacon_pairs,),
             method = 'lm'
         )
