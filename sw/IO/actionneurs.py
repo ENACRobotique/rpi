@@ -37,6 +37,7 @@ class ValeurActionneur(Enum):
     # MULTITURN FACTOR 2
     AscenseurAimantUP = 3950
     AscenseurAimantDOWN = 110
+    AscenseurAimantRAISED = 310
 
     
     RentreurIN = 20
@@ -198,13 +199,9 @@ class IO_Manager:
             self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurOUT.value)
             
         
-    def liftConserve(self,up:bool, sync:bool = False):
+    def liftConserve(self, pos:ValeurActionneur, sync:bool = False):
         self.Servo_IO.setEndless(Actionneur.AscenseurAimant.value, False)
-        if up:
-            self.Servo_IO.move(Actionneur.AscenseurAimant.value, ValeurActionneur.AscenseurAimantUP.value)
-            
-        else:
-            self.Servo_IO.move(Actionneur.AscenseurAimant.value, ValeurActionneur.AscenseurAimantDOWN.value)
+        self.Servo_IO.move(Actionneur.AscenseurAimant.value, pos.value)
             
             
     def grabLowConserve(self, grab : bool, sync:bool = False):

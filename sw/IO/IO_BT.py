@@ -21,6 +21,7 @@ class LiftPlanche(py_trees.behaviour.Behaviour):
     def initialise(self) -> None:
         print(f"Lift {self.pos} planche")
         self.robot.actionneurs.liftPlanches(self.up)
+        
     def update(self):
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheDroit.value):
             return py_trees.common.Status.RUNNING
@@ -30,22 +31,17 @@ class LiftPlanche(py_trees.behaviour.Behaviour):
 
 
 class LiftConserve(py_trees.behaviour.Behaviour):
-    def __init__(self, up:bool):
-        pos = "DOWN"
-        if up:
-            pos = "UP"
-        super().__init__(name=f"Lift {pos} Conserve")
+    def __init__(self, pos:ValeurActionneur):
+        super().__init__(name=f"Lift {pos.name} Conserve")
         self.bb, self.robot = get_bb_robot(self)
-        self.up = up
-        self.done = False
         self.pos = pos
 
     def initialise(self) -> None:
         print(f"Lift {self.pos} Conserve")
-        self.robot.actionneurs.liftConserve(self.up)
+        self.robot.actionneurs.liftConserve(self.pos)
 
     def update(self):
-        if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value):
+        if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AscenseurAimant.value):
             return py_trees.common.Status.RUNNING
         else:
             return py_trees.common.Status.SUCCESS
@@ -73,17 +69,17 @@ class MoveRentreur(py_trees.behaviour.Behaviour):
 
 class GrabHighConserve(py_trees.behaviour.Behaviour):
     def __init__(self, grab : bool):
-        status = "Dropping"
+        stat = "Dropping"
         if grab:
-            status = "Grabbing"
-        super().__init__(name=f"{status} High Conserve")
+            stat = "Grabbing"
+        super().__init__(name=f"{stat} High Conserve")
         self.bb, self.robot = get_bb_robot(self)
         self.grab = grab
         self.done = False
-        self.status= status
+        self.stat= stat
 
     def initialise(self) -> None:
-        print(f"{self.status} High Conserve")
+        print(f"{self.stat} High Conserve")
         self.robot.actionneurs.grabHighConserve(self.grab)
 
     def update(self):
@@ -96,17 +92,17 @@ class GrabHighConserve(py_trees.behaviour.Behaviour):
 
 class GrabLowConserve(py_trees.behaviour.Behaviour):
     def __init__(self, grab : bool):
-        status = "Dropping"
+        stat = "Dropping"
         if grab:
-            status = "Grabbing"
-        super().__init__(name=f"{status} Low Conserve")
+            stat = "Grabbing"
+        super().__init__(name=f"{stat} Low Conserve")
         self.bb, self.robot = get_bb_robot(self)
         self.grab = grab
         self.done = False
-        self.status = status
+        self.stat = stat
     
     def initialise(self) -> None:
-        print(f"{self.status} Low Conserve")
+        print(f"{self.stat} Low Conserve")
         self.robot.actionneurs.grabLowConserve(self.grab) 
 
     def update(self):
@@ -117,17 +113,17 @@ class GrabLowConserve(py_trees.behaviour.Behaviour):
     
 class LockPlanche(py_trees.behaviour.Behaviour):
     def __init__(self, lock : bool):
-        status = "Unlocking"
+        stat = "Unlocking"
         if lock:
-            status = "Locking"
-        super().__init__(name=f"{status} Upper Planche")
+            stat = "Locking"
+        super().__init__(name=f"{stat} Upper Planche")
         self.bb, self.robot = get_bb_robot(self)
         self.lock = lock
         self.done = False
-        self.status = status
+        self.stat = stat
 
     def initialise(self) -> None:
-        print(f"{self.status} Upper Planche")
+        print(f"{self.stat} Upper Planche")
         self.robot.actionneurs.lockPlanche(self.lock)
 
     def update(self):
