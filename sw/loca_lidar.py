@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
@@ -38,9 +39,8 @@ class LidarLoca:
         
         # last odom_pos received
         self.odom_pos = Pos(0, 0, 0)
-
         # estimated pos using lidar and odometry
-        self.estimated_pos = Pos(500, 500, 0)
+        self.estimated_pos = Pos(0, 0, 0)
 
         # Subscribers
         self.sub_lidar = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
@@ -49,13 +49,20 @@ class LidarLoca:
         self.sub_odom = ProtoSubscriber("odom_pos", robot_pb.Position)
         self.sub_odom.set_callback(self.odom_pos_cb)
 
+        self.sub_reset_pos = ProtoSubscriber("reset", robot_pb.Position)
+        self.sub_reset_pos.set_callback(self.reset_pos_cb)
+
         # Publishers
         self.pub_lidar = ProtoPublisher("lidar_pos", robot_pb.Position)
         self.pub_balises_odom = ProtoPublisher("balises_odom", lidar_pb.Balises)
         self.pub_closest_to_odom_beacons = ProtoPublisher("balises_near_odom", lidar_pb.Balises)
 
+    def recalage(self, pos_recalage: Pos):
+        self.odom_pos = pos_recalage
+        self.estimated_pos = pos_recalage
 
-        
+    def reset_pos_cb(self, topic_name, msg, time):
+        self.recalage(Pos.from_proto(msg))
 
     def odom_pos_cb(self, topic_name, msg, time):
         """ 
@@ -68,6 +75,7 @@ class LidarLoca:
 
         # add the odometry move to the last estimated position
         self.estimated_pos += dpos
+        self.pub_lidar.send(self.estimated_pos.to_proto())
 
         # send the positions in robot frame where we expect the beacons to be
         beacon_odom = {beacon_id: bpos.to_frame(self.estimated_pos) for beacon_id, bpos in BEACONS.items()}
@@ -75,12 +83,14 @@ class LidarLoca:
     
     def amalgames_cb(self, topic_name, msg, time):
         estimatedBeacons = self.estimate_beacons_pos(msg)
-        result = self.estimate(estimatedBeacons)
-        # TODO test result.success, and tune ftol (in least_squares args)?
-        if result.cost <  MAX_COST and len(estimatedBeacons) >= 2:
-            # only use the result if the cost is low enough and at least 2 beacons where associated.
-            self.estimated_pos = result.x
-        self.pub_lidar.send(self.estimated_pos.to_proto)
+
+        if len(estimatedBeacons) >=2:
+            result = self.estimate(estimatedBeacons)
+            # TODO test result.success, and tune ftol (in least_squares args)?
+            if result.cost <  MAX_COST and len(estimatedBeacons) >= 2:
+                # only use the result if the cost is low enough and at least 2 beacons where associated.
+                self.estimated_pos = Pos.from_np(result.x)
+            self.pub_lidar.send(self.estimated_pos.to_proto())
 
     @staticmethod
     def closest_amalgame(beacon_pos_r: Pos, amalgames: list[Amalgame]) -> tuple[Amalgame, float]:
@@ -119,7 +129,13 @@ class LidarLoca:
             # and the amalgame position, originaly expressed in frame pos_t.
             # if pos_t is the current robot position, the distance should be small.
             pos_t = Pos.from_np(x)
-            residuals = [am_pos_r.from_frame(pos_t).distance(beacon_pos_t) for am_pos_r, beacon_pos_t in am_beacon_pairs]
+            #residuals = [am_pos_r.from_frame(pos_t).distance(beacon_pos_t) for am_pos_r, beacon_pos_t in am_beacon_pairs]
+            residuals = []
+            for am_pos_r, beacon_pos_t in am_beacon_pairs:
+                pos_error = am_pos_r.from_frame(pos_t) - beacon_pos_t
+                residuals.append(pos_error.x)
+                residuals.append(pos_error.y)
+            #print (residuals)
             return residuals
 
         # list of tuples: (am_pos_r, beacon_pos_t)
@@ -132,7 +148,7 @@ class LidarLoca:
         result = least_squares(
             fun = objective_function,
             x0 = self.estimated_pos.to_np(),          # start from latest estimated position
-            args = am_beacon_pairs,
+            args = (am_beacon_pairs,),
             method = 'lm'
         )
 
