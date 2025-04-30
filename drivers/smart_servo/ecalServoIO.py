@@ -6,7 +6,7 @@ import ecal.core.service as ecal_service
 from ecal.core.publisher import ProtoPublisher
 from queue import Queue, Empty
 
-sys.path.append("../../../")
+sys.path.append("../../")
 
 from generated.actionneurs_pb2 import SmartServo
 
