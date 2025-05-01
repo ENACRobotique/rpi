@@ -77,7 +77,6 @@ class Robot:
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav()
         self.command_sent = False
-        self.lidar_pos = Pos(0,0,0)
         self.vl53_data: dict[Actionneur,None|tuple] = {Actionneur.AimantBasDroit: None,
                            Actionneur.AimantBasGauche: None
                            }
@@ -134,9 +133,6 @@ class Robot:
         
         self.amalgame_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
         self.amalgame_sub.set_callback(self.detection)
-
-        self.lidar_sub = ProtoSubscriber("smooth_pos", robot_pb.Position)
-        self.lidar_sub.set_callback(self.onLidar)
 
         # When Using Robokontrol
         self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
@@ -324,7 +320,6 @@ class Robot:
                 last_time = time.time()
             time.sleep(0.1)
     
-
     def onSetTargetPostition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
         self.last_target = Pos.from_proto(msg)
@@ -389,24 +384,10 @@ class Robot:
         self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
         #self.logger.info("Pos's are : ",self.nav_pos)
 
-        
-    
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
         Nécéssite de vider continuement la liste des points de nav !"""
         return self.nav_pos == []
-    
-    def onLidar(self, topic_name, msg, timestamp):
-        self.lidar_pos = Pos.from_proto(msg)
-    
-    def recallageLidar(self,tolerance, using_theta : bool = False):
-        if using_theta:
-            theta = self.lidar_pos.theta
-        else:
-            theta = self.pos.theta
-        if self.pos.distance(self.lidar_pos) < tolerance :
-            self.resetPos(Pos(self.lidar_pos.x,self.lidar_pos.y,theta))
-        
         
     def detection(self, topic_name, msg, timestamp):
         """ Try to find ennemies 
@@ -428,7 +409,6 @@ class Robot:
         for i,ob in enumerate(self.obstacles) :
             if i < 3:
                 self.objects_pubs[i].send(ob[0].to_proto())
-    
 
     def obstacle_in_way(self, target_pos: Pos):
         """Return True if obstacles in bounds towards target_pos"""

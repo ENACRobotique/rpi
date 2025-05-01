@@ -40,13 +40,24 @@ class Locomotion(Thread):
         Thread.__init__(self)
         if not ecal_core.is_initialized():
             ecal_core.initialize(sys.argv, "locomotion")
+
         self.speed_pub = ProtoPublisher("speed_cons", hgpb.Speed)
+        self.reset_pos_pub = ProtoPublisher("reset", hgpb.Position)
+
+        self.odom_speed_sub = ProtoSubscriber("odom_speed", hgpb.Speed)
+        self.odom_speed_sub.set_callback(self.on_odom_speed)
+
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
-        self.odom_pos_sub = ProtoSubscriber("odom_pos", hgpb.Position)
-        self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
-        self.odom_pos_sub.set_callback(self.on_odom_pos)
         self.target_pos_sub.set_callback(self.on_target_pos)
+        
+        self.odom_pos_sub = ProtoSubscriber("odom_pos", hgpb.Position)
+        self.odom_pos_sub.set_callback(self.on_odom_pos)
+        
+        self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
         self.reset_pos_sub.set_callback(self.on_reset_pos)
+        
+        self.lidar_sub = ProtoSubscriber("lidar_pos", hgpb.Position)
+        self.lidar_sub.set_callback(self.on_lidar_pos)
 
         self.kp = 3
         self.kp_ang = 1.5
@@ -54,11 +65,12 @@ class Locomotion(Thread):
         self.speed = VMAX
         
         #self.integral = Pos(0, 0, 0)
-
+        self.lidar_pos = Pos(0,0,0)
         self.pos = Pos(0,0,0)
         self.target_pos = Pos(0,0,0)
         self.loco_state = LocoState.IDLE
         self.last_speed = Speed(0, 0, 0)
+        self.odom_speed = Speed(0, 0, 0)
         self.last_speed_norm = 0
         self.total_dist = 0
         self.time_threshold = 0
@@ -172,6 +184,16 @@ class Locomotion(Thread):
     
     def set_move_speed(self, speed: float):
         self.speed = min(abs(speed), VMAX)
+
+    def on_odom_speed(self, topic_name, msg, timestamp):
+        self.odom_speed = Speed.from_proto(msg)
+
+    def on_lidar_pos(self, topic_name, msg, timestamp):
+        self.lidar_pos = Pos.from_proto(msg)
+        if abs(self.last_speed.vtheta) <= 0.2 and abs(self.odom_speed.vtheta) <= 0.2 :
+            self.pos = self.lidar_pos
+            self.reset_pos_pub.send(msg)
+
 
 if __name__ == '__main__':
     loco = Locomotion()
