@@ -17,15 +17,15 @@ from threading import Thread
 
 RATE = 10
 #ROBOT_RADIUS = 130.5
-ACCEL_MAX = 500
-ANG_ACCEL_MAX = 3
+ACCEL_MAX = 1000
+ANG_ACCEL_MAX = 4
 VMAX = 300
 ANG_VMAX = 2
 
-XY_ACCURACY = 20
+XY_ACCURACY = 10
 THETA_ACCURACY = radians(2)
 
-FINALIZING_TIME = 2
+FINALIZING_TIME = 1
 
 
 class LocoState(Enum):
@@ -48,8 +48,10 @@ class Locomotion(Thread):
         self.target_pos_sub.set_callback(self.on_target_pos)
         self.reset_pos_sub.set_callback(self.on_reset_pos)
 
-        self.kp = 4
-        self.kp_ang = 2
+        self.kp = 3
+        self.kp_ang = 1.5
+
+        self.speed = VMAX
         
         #self.integral = Pos(0, 0, 0)
 
@@ -110,7 +112,7 @@ class Locomotion(Thread):
         route = atan2(dpos_r.y, dpos_r.x)
 
         # XY speed
-        speed_cons_norm = min(distance * self.kp, VMAX)        # limit VMAX
+        speed_cons_norm = min(distance * self.kp, self.speed)        # limit VMAX
         min_speed = self.last_speed_norm - ACCEL_MAX/RATE
         max_speed = self.last_speed_norm + ACCEL_MAX/RATE
         speed_cons_norm = clamp(min_speed, speed_cons_norm, max_speed)    # limit accel
@@ -164,6 +166,12 @@ class Locomotion(Thread):
     def stop(self):
         self.stop_requested = True
         self.join()
+    
+    def hasReachedTarget(self):
+        return self.loco_state == LocoState.IDLE #or self.loco_state == LocoState.FINALIZING
+    
+    def set_move_speed(self, speed: float):
+        self.speed = min(abs(speed), VMAX)
 
 if __name__ == '__main__':
     loco = Locomotion()

@@ -2,7 +2,14 @@ import py_trees
 import sys
 import time
 sys.path.append("../..")
-from robot import Robot
+from robot import Robot, Pos
+
+def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot]:
+    bb = behavior.attach_blackboard_client(name="Foo Global")
+    bb.register_key(key="robot", access=py_trees.common.Access.WRITE)
+    robot: Robot = bb.robot
+    return bb, robot
+
 
 class WaitSeconds(py_trees.behaviour.Behaviour):
     """Non blocking waiting"""
@@ -36,25 +43,52 @@ class EndMatch(py_trees.behaviour.Behaviour):
     
 class Navigate(py_trees.behaviour.Behaviour):
     """TODO"""
-    def __init__(self, robot: Robot, dest, orientation):
+    def __init__(self, dest, orientation):
         super().__init__(name=f"Navigating")
-        self.robot = robot
+        self.bb = self.attach_blackboard_client(name="Foo Global")
+        self.bb.register_key(key="robot", access=py_trees.common.Access.WRITE)
+        self.robot: Robot = self.bb.robot
         self.dest = dest
         self.orientation = orientation
+        
+
 
     def initialise(self):
+        print("navigator init")
         self.robot.pathFinder(self.dest, self.orientation)
+        self.robot.setTargetPos(self.robot.nav_pos[0])
 
     def update(self):
-        self.robot.setTargetPos(self.robot.nav_pos[0])
         if self.robot.hasReachedTarget():
             del self.robot.nav_pos[0]
             if self.robot.isNavDestReached():
-                # print(f"{self.dest} reached !\n")
                 return py_trees.common.Status.SUCCESS
+            else:
+                self.robot.setTargetPos(self.robot.nav_pos[0])
+            
         # Moving
         return py_trees.common.Status.RUNNING
- 
+    
+
+class Move(py_trees.behaviour.Behaviour):
+    """TODO"""
+    def __init__(self, robot: Robot, distance, direction, speed):
+        super().__init__(name=f"Navigating")
+        self.robot = robot
+        self.distance = distance
+        self.direction = direction
+        self.speed = speed
+
+    def initialise(self):
+        self.robot.move(self.distance, self.direction, self.speed)
+
+    def update(self):
+        if self.robot.hasReachedTarget():
+            return py_trees.common.Status.SUCCESS
+        # Moving
+        return py_trees.common.Status.RUNNING
+
+
 class Evitement(py_trees.behaviour.Behaviour):
     """TODO:
     - evitement basique : on s'arrete DONE  !

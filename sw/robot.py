@@ -9,7 +9,7 @@ import logging
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
-from sw.IO.actionneurs import * 
+from IO.actionneurs import * 
 import common
 from common import Pos, Speed, dist_to_line, next_path, normalize_angle
 import locomotion
@@ -252,9 +252,10 @@ class Robot:
 # ____________________________ #
     
     def hasReachedTarget(self):
-        d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
-        hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
-        return hrt 
+        return self.locomotion.hasReachedTarget()
+        # d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
+        # hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
+        # return hrt 
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
@@ -275,12 +276,13 @@ class Robot:
                 time.sleep(0.1)
             return False
 
-    def move(self, distance, direction, blocking=False, timeout = 10):
+    def move(self, distance, direction, speed, blocking=False, timeout = 10):
         """
         avance de distance dans la direction direction, repère robot 
         """
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
+        self.locomotion.set_move_speed(speed)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
     def move_rel(self,x,y,blocking=False, timeout = 10):
@@ -449,8 +451,21 @@ class Robot:
 # ____________________________ #
 
 
-
-
+    def detect_one_conserve(self, actionneur):
+        if self.vl53_data[actionneur] is None:
+            return None
+        
+        def idx(x, y):
+            #return (7 - y) * 8 + (7 - x)
+            return (8*x+(7-y))
+        
+        x_dist = [0 for _ in range (8)]
+        for x in range (8):
+            for y in range(2,8):
+                x_dist[x]+= (self.vl53_data[actionneur])[idx(x,y)]
+        
+        min_x = min(enumerate(x_dist), key=lambda x: x[1])
+        return min_x[0], min_x[1]/6
         
     def detect_best_conserve(self, actionneur):
         if self.vl53_data[actionneur] is None:
@@ -482,8 +497,6 @@ class Robot:
             dist2_center = [abs(3.5-ind) for (ind,val) in mini]
             ind_min = min(enumerate(dist2_center), key=lambda x: x[1])[0]
             return mini[ind_min]
-
-
 
         y_cons = [0 for _ in range (8)]
         for x in range (8):
