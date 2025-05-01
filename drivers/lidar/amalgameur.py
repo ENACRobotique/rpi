@@ -63,8 +63,8 @@ class Amalgameur:
         i_center = len(distances) // 2
         d = distances[i_center]
         ar = angles[i_center]
-        x = d * np.cos(ar)
-        y = d * np.sin(ar)
+        x = (d+50) * np.cos(ar)
+        y = (d+50) * np.sin(ar)
         return x, y, size
 
     def find_amalgames(self, distances, angles) -> list[np.ndarray]:
