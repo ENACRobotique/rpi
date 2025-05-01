@@ -164,7 +164,7 @@ class LidarLoca:
         result = least_squares(
             fun = self.objective_function,
             x0 = self.estimated_pos.to_np(),          # start from latest estimated position
-            jac=self.jacobienne,
+            # jac=self.jacobienne,
             args = (am_beacon_pairs,),
             method = 'lm'
         )
