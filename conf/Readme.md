@@ -98,11 +98,11 @@ ExecStart=/home/robot/rpi/virtualEnv/btEnv/bin/python /home/robot/rpi/python_pro
 
 Run `../build.sh`
 
-## Python path
+## Python venv
 
-To add directories to python path, copy `robot_enac.pth` to `/usr/lib/python3/dist-packages/`:
+Run `setup_venv.sh` to setup the python virtual environnement and install the dependencies.
 
-`cp robot_enac.pth /usr/lib/python3/dist-packages/`
+Add path to directories that should be included in the PYTHONPATH in `robot_enac.pth`.
 
 
 ## Manette Bluetooth
