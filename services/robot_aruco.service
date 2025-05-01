@@ -6,7 +6,7 @@ After=network.target network-online.target
 Type=simple
  
 WorkingDirectory=/home/robot/rpi/sw/aruco
-ExecStart=python3 /home/robot/rpi/sw/aruco/getAruco.py
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/aruco/getAruco.py
  
 Restart=on-failure
 RestartSec=2 

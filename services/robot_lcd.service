@@ -7,7 +7,7 @@ Type=simple
 Restart=on-failure
 
 WorkingDirectory=/home/robot/rpi/drivers/lcd
-ExecStart=python3 /home/robot/rpi/drivers/lcd/ecal_lcd.py
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/drivers/lcd/ecal_lcd.py
 #RestartSec=2 
 # Configures the time to wait before service is stopped forcefully.
 TimeoutStopSec=300

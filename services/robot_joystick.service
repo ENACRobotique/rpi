@@ -7,7 +7,7 @@ Type=simple
 Restart=on-failure
 
 WorkingDirectory=/home/robot/rpi/drivers/joystick
-ExecStart=/home/robot/rpi/virtualEnv/btEnv/bin/python /home/robot/rpi/drivers/joystick/joystick.py
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/drivers/joystick/joystick.py
 #ExecStart=python3 /home/robot/rpi/drivers/joystick/joystick.py
 KillSignal=SIGKILL
 #RestartSec=2 
