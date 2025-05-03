@@ -162,3 +162,107 @@ class waitCalibration(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         print("Waiting Calibration")
         return py_trees.common.Status.FAILURE
+
+
+class AlignPlanches(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__(name="Align Planches")
+        self.bb, self.robot = get_bb_robot(self)
+
+    def update(self):
+        a, d, _ = self.robot.vl53_planches2()
+        if a < radians(-3):
+            # rotate left
+            self.robot.locomotion.set_speed(Speed(0, 0, -0.1))
+        elif a > radians(3):
+            # rotate right
+            self.robot.locomotion.set_speed(Speed(0, 0, 0.1))
+        else:
+            print("Planches aligned")
+            self.robot.locomotion.set_speed(Speed(0, 0, 0))
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+        
+
+
+class AlignConserves(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__(name="Align Conserves")
+        self.bb, self.robot = get_bb_robot(self)
+
+    def update(self):
+        ix, d = self.robot.detect_best_conserve(Actionneur.AimantBasGauche)
+        ix2, d = self.robot.detect_best_conserve(Actionneur.AimantBasDroit)
+        if (ix < 3 and ix2 > 4) or (ix > 4 and ix2 < 3):
+            return py_trees.common.Status.FAILURE
+
+        if ix < 3 or ix2 < 3:
+            # move left
+            self.robot.locomotion.set_speed(Speed(0, 15, 0))
+        elif ix > 4 or ix2 > 4:
+            # move right
+            self.robot.locomotion.set_speed(Speed(0, -15, 0))
+        else:
+            print("Conserves aligned")
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+
+
+class Aligne_conserve_seul(py_trees.behaviour.Behaviour):
+    def __init__(self, actionneur:Actionneur):
+        super().__init__(name="Align Conserve Seul")
+        self.bb, self.robot = get_bb_robot(self)
+        self.actionneur = actionneur
+        if self.actionneur == Actionneur.AimantBasGauche:
+            self.sign = 1
+        else:
+            self.sign = -1
+    def update(self):
+        ix, d = self.robot.detect_one_conserve(self.actionneur)
+        if d > 200:
+            self.robot.locomotion.set_speed(Speed(0, 0, self.sign *0.5))  
+        else:
+            if ix < 3:
+                # move left
+                self.robot.locomotion.set_speed(Speed(0, 0, 0.2))
+            elif ix > 4:
+                # move right
+                self.robot.locomotion.set_speed(Speed(0, 0, -0.2))
+            else:
+                print("Conserve aligned")
+                return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+
+
+
+class AvanceConserve(py_trees.behaviour.Behaviour):
+    def __init__(self, actionneur:Actionneur):
+        super().__init__(name="Avance Conserve")
+        self.bb, self.robot = get_bb_robot(self)
+        self.actionneur = actionneur
+    
+    def initialise(self):
+        _, d = self.robot.detect_one_conserve(self.actionneur)
+        self.robot.move(d-40, 0, 200)
+
+    def update(self):
+        if self.robot.hasReachedTarget():
+            print("Avance Conserve done")
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+    
+
+class AvancePlanches(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__(name="Avance Planches")
+        self.bb, self.robot = get_bb_robot(self)
+    
+    def initialise(self):
+        _, d, _ = self.robot.vl53_planches2()
+        self.robot.move(d-40, 0, 100)
+
+    def update(self):
+        if self.robot.hasReachedTarget():
+            print("Avance Planches done")
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING

@@ -474,6 +474,10 @@ class Robot:
             return mini                    
 
         def select_best_conserve(mini):
+            min_val = min(mini, key=lambda x: x[1])[1]
+            for ind, val in mini:
+                if val > min_val + 600:
+                    mini.remove((ind,val))
             dist2_center = [abs(3.5-ind) for (ind,val) in mini]
             ind_min = min(enumerate(dist2_center), key=lambda x: x[1])[0]
             return mini[ind_min]
