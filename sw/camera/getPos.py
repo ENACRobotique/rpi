@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 plt.ion()
 fig, ax = plt.subplots(figsize=(5, 5))
 ax.set_title("Vue de dessus")
-ax.set_xlabel("x (m)")
-ax.set_ylabel("z (m)")
+ax.set_xlabel("x (mm)")
+ax.set_ylabel("z (mm)")
 dim = 500
 ax.set_xlim(-dim/2, dim/2)
 ax.set_ylim(0, dim)
@@ -63,69 +63,70 @@ while True:
             cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], 0.03)
 
         # Extraction des positions 3D des ArUco
-        points = np.array([tv[0] for tv in tvecs])  # [x, y, z] pour chaque ArUco
+        if tvecs is not None:
+            points = np.array([tv[0] for tv in tvecs])  # [x, y, z] pour chaque ArUco
 
-        # Groupement en cylindres (selon x, z)
-        clustering = DBSCAN(eps=0.055, min_samples=1).fit(points[:, [0, 2]])
-        labels = clustering.labels_
+            # Groupement en cylindres (selon x, z)
+            clustering = DBSCAN(eps=0.055, min_samples=1).fit(points[:, [0, 2]])
+            labels = clustering.labels_
 
-        # Moyenne des positions pour chaque cylindre
-        cyl_positions = []
-        for label in set(labels):
-            group = points[labels == label]
-            center = group.mean(axis=0)
-            cyl_positions.append(center)
+            # Moyenne des positions pour chaque cylindre
+            cyl_positions = []
+            for label in set(labels):
+                group = points[labels == label]
+                center = group.mean(axis=0)
+                cyl_positions.append(center)
 
-        cyl_positions = np.array(cyl_positions)
-        # Actualiser la vue matplotlib
-        ax.clear()
-        ax.set_title("Vue de dessus")
-        ax.set_xlabel("x (m)")
-        ax.set_ylabel("z (m)")
-        ax.set_xlim(-dim/2, dim/2)
-        ax.set_ylim(0, dim)
-        ax.grid(True)
-        
-        # Cylindres visibles
-        for pos in cyl_positions:
-            ax.add_patch(plt.Circle((pos[0]*1000, pos[2]*1000), 73/2, color='blue', alpha=0.5))
+            cyl_positions = np.array(cyl_positions)
+            # Actualiser la vue matplotlib
+            ax.clear()
+            ax.set_title("Vue de dessus")
+            ax.set_xlabel("x (mm)")
+            ax.set_ylabel("z (mm)")
+            ax.set_xlim(-dim/2, dim/2)
+            ax.set_ylim(0, dim)
+            ax.grid(True)
+            
+            # Cylindres visibles
+            for pos in cyl_positions:
+                ax.add_patch(plt.Circle((pos[0]*1000, pos[2]*1000), 73/2, color='blue', alpha=0.5))
 
-        if len(cyl_positions) >= 2:
-            # Trier selon x
-            cyl_positions = cyl_positions[np.argsort(cyl_positions[:, 0])]
+            if len(cyl_positions) >= 2:
+                # Trier selon x
+                cyl_positions = cyl_positions[np.argsort(cyl_positions[:, 0])]
 
-            # Centre de la ligne des cylindres
-            center_line = cyl_positions.mean(axis=0)
+                # Centre de la ligne des cylindres
+                center_line = cyl_positions.mean(axis=0)
 
-            # Orientation (angle)
-            dir_vector = cyl_positions[-1] - cyl_positions[0]
-            angle_to_line = np.arctan2(dir_vector[0], dir_vector[2])
+                # Orientation (angle)
+                dir_vector = cyl_positions[-1] - cyl_positions[0]
+                angle_to_line = np.arctan2(dir_vector[0], dir_vector[2])
 
-            # Affichage console
-            print("\n--- Position du robot par rapport au centre de la ligne ---")
-            print(f"Position du centre : x = {center_line[0]*1000:.2f} mm, z = {center_line[2]*1000:.2f} mm")
-            print(f"Angle robot ↔ ligne : {np.degrees(angle_to_line):.1f}°")
+                # Affichage console
+                print("\n--- Position du robot par rapport au centre de la ligne ---")
+                print(f"Position du centre : x = {center_line[0]*1000:.2f} mm, z = {center_line[2]*1000:.2f} mm")
+                print(f"Angle robot ↔ ligne : {np.degrees(angle_to_line):.1f}°")
 
-            # Affichage image
-            pos = f"x: {center_line[0]*1000:.0f}, z: {center_line[2]*1000:.0f} "
-            angle = f"angle: {np.degrees(angle_to_line):.1f}"
-            cv2.putText(frame, pos, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            cv2.putText(frame, angle, (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                # Affichage image
+                pos = f"x: {center_line[0]*1000:.0f}, z: {center_line[2]*1000:.0f} "
+                angle = f"angle: {90-np.degrees(angle_to_line):.1f}"
+                cv2.putText(frame, pos, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(frame, angle, (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-            # Centre ligne
-            ax.plot(center_line[0]*1000, center_line[2]*1000, 'gx', markersize=10, label='Centre ligne')
+                # Centre ligne
+                ax.plot(center_line[0]*1000, center_line[2]*1000, 'gx', markersize=10, label='Centre ligne')
 
-            # Direction (flèche entre les extrêmes)
-            ax.arrow(cyl_positions[0][0]*1000, cyl_positions[0][2]*1000,
-                    dir_vector[0]*1000, dir_vector[2]*1000,
-                    head_width=0.01*1000, head_length=0.02*1000, fc='green', ec='green', label='Orientation')
+                # Direction (flèche entre les extrêmes)
+                ax.arrow(cyl_positions[0][0]*1000, cyl_positions[0][2]*1000,
+                        dir_vector[0]*1000, dir_vector[2]*1000,
+                        head_width=0.01*1000, head_length=0.02*1000, fc='green', ec='green', label='Orientation')
 
-        ax.plot(0, 0, 'ro', label='Camera')
-        ax.legend()
-        plt.pause(0.001)
+            ax.plot(0, 0, 'ro', label='Camera')
+            ax.legend()
+            plt.pause(0.001)
 
-        nb = f"Visible:{len(cyl_positions)}"
-        cv2.putText(frame, nb, (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            nb = f"Visible:{len(cyl_positions)}"
+            cv2.putText(frame, nb, (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         
     # Affichage image
     cv2.imshow("ArUco Positioning", frame)
