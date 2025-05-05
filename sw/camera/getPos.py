@@ -4,134 +4,171 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 
 import matplotlib.pyplot as plt
+import sys
+sys.path.append("../..")
+import ecal.core.core as ecal_core
+from ecal.core.subscriber import ProtoSubscriber
+from ecal.core.publisher import ProtoPublisher
+from generated.robot_state_pb2 import Position
 
-# Fenêtre persistante de matplotlib
-plt.ion()
-fig, ax = plt.subplots(figsize=(5, 5))
-ax.set_title("Vue de dessus")
-ax.set_xlabel("x (mm)")
-ax.set_ylabel("z (mm)")
-dim = 500
-ax.set_xlim(-dim/2, dim/2)
-ax.set_ylim(0, dim)
-sc = None
-arrow = None
-center_dot = None
-robot_dot = ax.plot(0, 0, 'ro', label='Caméra')[0]
-ax.grid(True)
+ARUCO_SIZE = 0.022  # 22 mm
+TARGET_ARUCO_ID = 47 # Aruco ciblé
+DIM = 500
 
-TARGET_ID = 47 # Aruco ciblé
+class ArucoFinder:
+    def __init__(self, camera):
 
-# Charger la calibration
-camera_matrix = np.load('camera_matrix.npy')
-dist_coeffs = np.load('dist_coeffs.npy')
-marker_length = 0.022  # 22 mm
-
-# ArUco settings (API OpenCV 4.7+)
-aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-aruco_params = cv2.aruco.DetectorParameters()
-aruco_detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-
-# Capture vidéo
-cap = cv2.VideoCapture(2)
-cv2.namedWindow('ArUco Positioning', cv2.WINDOW_NORMAL)
-cv2.resizeWindow('ArUco Positioning', 800, 600)
-
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # Détection ArUco
-    corners, ids, rejected = aruco_detector.detectMarkers(gray)
-
-    if ids is not None and len(ids) > 0:
+        if not ecal_core.is_initialized():
+            ecal_core.initialize(sys.argv, "aruco")
         
-        # Filtrer la target ID
-        indices = [i for i, id_ in enumerate(ids) if id_[0] == TARGET_ID]
-        corners = np.array([corners[i] for i in indices])
-        ids = np.array([ids[i] for i in indices])
+        self.conserve_pub = ProtoPublisher("Conserve", Position)
         
-        # Estimation de la pose
-        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, marker_length, camera_matrix, dist_coeffs)
+        self.visu = False
+        self.camera_Id = camera
+        # ArUco settings (API OpenCV 4.7+)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        self.aruco_params = cv2.aruco.DetectorParameters()
+        self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
+
+
+    def getCalibration(self, matrix, coefs):
+        # Charger la calibration
+        self.camera_matrix = np.load(matrix)
+        self.dist_coeffs = np.load(coefs)
+        
+
+    def run(self):
+        # Capture vidéo
+        self.cap = cv2.VideoCapture(self.camera_Id)
+            
+    def visualize(self):
+        # Fenêtre persistante de matplotlib
+        if not self.visu:
+            plt.ion()
+            self.fig, self.ax = plt.subplots(figsize=(5, 5))
+            cv2.namedWindow('ArUco Positioning', cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('ArUco Positioning', 800, 600)
+            self.visu = True
+        self.ax.clear()
+        # Actualiser la vue matplotlib
+        self.ax.set_title("Vue de dessus")
+        self.ax.set_xlabel("y (mm)")
+        self.ax.set_ylabel("x (mm)")
+        self.ax.set_xlim(-DIM/2, DIM/2)
+        self.ax.set_ylim(0, DIM)
+        self.ax.grid(True)
 
         # Dessin des marqueurs
-        cv2.aruco.drawDetectedMarkers(frame, corners, ids)
-        for i in range(len(ids)):
-            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], 0.03)
+        cv2.aruco.drawDetectedMarkers(self.frame, self.corners, self.ids)
+        for i in range(len(self.ids)):
+            cv2.drawFrameAxes(self.frame, self.camera_matrix, self.dist_coeffs, self.rvecs[i], self.tvecs[i], 0.03)
 
-        # Extraction des positions 3D des ArUco
-        if tvecs is not None:
-            points = np.array([tv[0] for tv in tvecs])  # [x, y, z] pour chaque ArUco
+        # Cylindres visibles
+        for pos in self.cyl_positions:
+            self.ax.add_patch(plt.Circle((pos[0]*1000, pos[2]*1000), 73/2, color='blue', alpha=0.5))
 
-            # Groupement en cylindres (selon x, z)
-            clustering = DBSCAN(eps=0.055, min_samples=1).fit(points[:, [0, 2]])
-            labels = clustering.labels_
 
-            # Moyenne des positions pour chaque cylindre
-            cyl_positions = []
-            for label in set(labels):
-                group = points[labels == label]
-                center = group.mean(axis=0)
-                cyl_positions.append(center)
+        # Affichage image
+        pos = f"x: {self.posCentre.x:.0f}, y: {self.posCentre.y:.0f} "
+        angle = f"angle: {np.degrees(self.posCentre.theta):.1f}"
+        cv2.putText(self.frame, pos, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        cv2.putText(self.frame, angle, (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-            cyl_positions = np.array(cyl_positions)
-            # Actualiser la vue matplotlib
-            ax.clear()
-            ax.set_title("Vue de dessus")
-            ax.set_xlabel("x (mm)")
-            ax.set_ylabel("z (mm)")
-            ax.set_xlim(-dim/2, dim/2)
-            ax.set_ylim(0, dim)
-            ax.grid(True)
+        # Centre ligne
+        self.ax.plot(self.posCentre.y, self.posCentre.x, 'gx', markersize=10, label='Centre ligne')
+
+        # Direction (flèche entre les extrêmes)
+        self.ax.arrow(self.cyl_positions[0][0]*1000, self.cyl_positions[0][2]*1000,
+                self.dir_vector[0]*1000, self.dir_vector[2]*1000,
+                head_width=0.01*1000, head_length=0.02*1000, fc='green', ec='green', label='Orientation')
+        self.ax.plot(0, 0, 'ro', label='Camera')
+        self.ax.legend()
+        plt.pause(0.001)
+
+        nb = f"Visible:{len(self.cyl_positions)}"
+        cv2.putText(self.frame, nb, (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             
-            # Cylindres visibles
-            for pos in cyl_positions:
-                ax.add_patch(plt.Circle((pos[0]*1000, pos[2]*1000), 73/2, color='blue', alpha=0.5))
+        # Affichage image
+        cv2.imshow("ArUco Positioning", self.frame)
 
-            if len(cyl_positions) >= 2:
-                # Trier selon x
-                cyl_positions = cyl_positions[np.argsort(cyl_positions[:, 0])]
 
-                # Centre de la ligne des cylindres
-                center_line = cyl_positions.mean(axis=0)
+    def update(self):
+        self.ret, self.frame = self.cap.read()
+        if not self.ret:
+            return
 
-                # Orientation (angle)
-                dir_vector = cyl_positions[-1] - cyl_positions[0]
-                angle_to_line = np.arctan2(dir_vector[0], dir_vector[2])
+        gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
 
-                # Affichage console
-                print("\n--- Position du robot par rapport au centre de la ligne ---")
-                print(f"Position du centre : x = {center_line[0]*1000:.2f} mm, z = {center_line[2]*1000:.2f} mm")
-                print(f"Angle robot ↔ ligne : {np.degrees(angle_to_line):.1f}°")
+        # Détection ArUco
+        self.corners, self.ids, rejected = self.aruco_detector.detectMarkers(gray)
 
-                # Affichage image
-                pos = f"x: {center_line[0]*1000:.0f}, z: {center_line[2]*1000:.0f} "
-                angle = f"angle: {90-np.degrees(angle_to_line):.1f}"
-                cv2.putText(frame, pos, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                cv2.putText(frame, angle, (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        if self.ids is not None and len(self.ids) > 0:
+            
+            # Filtrer la target ID
+            indices = [i for i, id_ in enumerate(self.ids) if id_[0] == TARGET_ARUCO_ID]
+            self.corners = np.array([self.corners[i] for i in indices])
+            self.ids = np.array([self.ids[i] for i in indices])
+            
+            # Estimation de la pose
+            self.rvecs, self.tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(self.corners, ARUCO_SIZE, self.camera_matrix, self.dist_coeffs)
 
-                # Centre ligne
-                ax.plot(center_line[0]*1000, center_line[2]*1000, 'gx', markersize=10, label='Centre ligne')
+            # Extraction des positions 3D des ArUco
+            if self.tvecs is not None:
+                points = np.array([tv[0] for tv in self.tvecs])  # [x, y, z] pour chaque ArUco
 
-                # Direction (flèche entre les extrêmes)
-                ax.arrow(cyl_positions[0][0]*1000, cyl_positions[0][2]*1000,
-                        dir_vector[0]*1000, dir_vector[2]*1000,
-                        head_width=0.01*1000, head_length=0.02*1000, fc='green', ec='green', label='Orientation')
+                # Groupement en cylindres (selon x, z)
+                clustering = DBSCAN(eps=0.055, min_samples=1).fit(points[:, [0, 2]])
+                labels = clustering.labels_
 
-            ax.plot(0, 0, 'ro', label='Camera')
-            ax.legend()
-            plt.pause(0.001)
+                # Moyenne des positions pour chaque cylindre
+                self.cyl_positions = []
+                for label in set(labels):
+                    group = points[labels == label]
+                    center = group.mean(axis=0)
+                    self.cyl_positions.append(center)
 
-            nb = f"Visible:{len(cyl_positions)}"
-            cv2.putText(frame, nb, (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        
-    # Affichage image
-    cv2.imshow("ArUco Positioning", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+                self.cyl_positions = np.array(self.cyl_positions)
 
-cap.release()
-cv2.destroyAllWindows()
+
+                if len(self.cyl_positions) >= 2:
+                    # Trier selon x
+                    self.cyl_positions = self.cyl_positions[np.argsort(self.cyl_positions[:, 0])]
+
+                    # Centre de la ligne des cylindres
+                    x,y,z = self.cyl_positions.mean(axis=0)
+
+                    # Orientation (angle)
+                    self.dir_vector = self.cyl_positions[-1] - self.cyl_positions[0]
+                    self.angle_to_line = np.pi-np.arctan2(self.dir_vector[0], self.dir_vector[2])
+                    
+                    self.posCentre = Position(x=z*1000,y=x*1000,theta=self.angle_to_line)
+
+                    # Affichage console
+                    print("\n--- Position du robot par rapport au centre de la ligne ---")
+                    print(f"Position du centre : x = {self.posCentre.x:.2f} mm, y = {self.posCentre.y:.2f} mm")
+                    print(f"Angle robot ↔ ligne : {np.degrees(self.posCentre.theta):.1f}°")
+
+                    self.conserve_pub.send(self.posCentre)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            self.end()
+            return
+
+    def end(self):
+        self.cap.release()
+        cv2.destroyAllWindows()
+
+
+
+
+
+
+if __name__ == "__main__":
+    jesus = ArucoFinder(2)
+    jesus.getCalibration('camera_matrix.npy','dist_coeffs.npy')
+    jesus.run()
+    while ecal_core.ok():
+        jesus.update()
+        jesus.visualize()
+
+    
