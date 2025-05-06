@@ -18,10 +18,17 @@ class Amalgame:
         self.size = size
 
 
-BEACONS = {
+BEACONS_BLUE = {
     0: Pos(-94, 1000, 0),
     1: Pos(3094, 50, 0),
-    2: Pos(3094, 1950, 0)
+    2: Pos(3094, 1950, 0),
+    3: Pos(1275, 2100, 0)
+}
+BEACONS_YELLOW = {
+    0: Pos(3094, 1000, 0),
+    1: Pos(-94, 50, 0),
+    2: Pos(-94, 1950, 0),
+    3: Pos(1725, 2100, 0)
 }
 
 
@@ -52,10 +59,20 @@ class LidarLoca:
         self.sub_reset_pos = ProtoSubscriber("reset", robot_pb.Position)
         self.sub_reset_pos.set_callback(self.reset_pos_cb)
 
+        self.sub_color = ProtoSubscriber("color",robot_pb.Side)
+        self.sub_color.set_callback(self.color_cb)
         # Publishers
         self.pub_lidar = ProtoPublisher("lidar_pos", robot_pb.Position)
         self.pub_balises_odom = ProtoPublisher("balises_odom", lidar_pb.Balises)
         self.pub_closest_to_odom_beacons = ProtoPublisher("balises_near_odom", lidar_pb.Balises)
+        self.BEACONS = BEACONS_BLUE
+
+    def color_cb(self, topic_name, msg, time):
+        self.color = msg.color
+        if self.color == robot_pb.Side.Color.BLUE:
+            self.BEACONS = BEACONS_BLUE
+        else:
+            self.BEACONS = BEACONS_YELLOW
 
     def recalage(self, pos_recalage: Pos):
         self.odom_pos = pos_recalage
@@ -78,7 +95,7 @@ class LidarLoca:
         self.pub_lidar.send(self.estimated_pos.to_proto())
 
         # send the positions in robot frame where we expect the beacons to be
-        beacon_odom = {beacon_id: bpos.to_frame(self.estimated_pos) for beacon_id, bpos in BEACONS.items()}
+        beacon_odom = {beacon_id: bpos.to_frame(self.estimated_pos) for beacon_id, bpos in self.BEACONS.items()}
         self.send_beacons_pos(beacon_odom, self.pub_balises_odom)
     
     def amalgames_cb(self, topic_name, msg, time):
@@ -108,7 +125,7 @@ class LidarLoca:
         # {beacon_id: Amalgame}
         estimatedBeacons: dict[int, Amalgame] = {}
         
-        for beacon_id, beacon_pos in BEACONS.items():
+        for beacon_id, beacon_pos in self.BEACONS.items():
             # estimated position of the beacon in robot frame (using best estimated robot pos)
             beacon_pos_r = beacon_pos.to_frame(self.estimated_pos)
             # best candidate (Amalgame), and its distance to the theoretical position
@@ -158,7 +175,7 @@ class LidarLoca:
         # associate amalgame pos in robot frame to theoretical beacon pos in table frame
         am_beacon_pairs: list[tuple[Pos, Pos]] = []
         for beacon_id, am in detected_beacons_r.items():
-            b = BEACONS[beacon_id]
+            b = self.BEACONS[beacon_id]
             am_beacon_pairs.append((am.pos, b))
 
         result = least_squares(
