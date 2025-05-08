@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import numpy as np
-import time
 from sklearn.cluster import DBSCAN
 import matplotlib.pyplot as plt
 import sys
@@ -8,41 +7,71 @@ sys.path.append("../../..")
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
-from robot_state_pb2 import Position_aruco
+from generated.robot_state_pb2 import Position_aruco
 
-DIM = 500
-delta = 30 # écart entre les caméras en mm
-conserveradius = 73/2 # mm
+DIM = 500 # affichage matplotlib mm
+
+CAM_DELTA = 30 # écart entre les caméras en mm
+CLUSTER_DIST = 50 # mm à régler
+
+CYLINDER_RADIUS = 73/2 # rayon des conserves mm
+CONSERVE_ID = 47 # aruco code des conserves
 
 class visu:
     def __init__(self):
         if not ecal_core.is_initialized():
                 ecal_core.initialize(sys.argv, "arucoVisu")
 
-        aruco_sub = ProtoSubscriber("Arucos", Position_aruco)
+        aruco_sub = ProtoSubscriber("Arucos", Position_aruco) # en mm
         aruco_sub.set_callback(self.getAruco)
         self.MabelArucos = []
         self.DipperArucos = []
+        self.DipperCylinder = []
+        self.MabelCylinder = []
 
     def getAruco(self, topic_name, msg, time):
         camName = msg.cameraName
-        ids = np.array(msg.index)
+        indexes = np.array(msg.index)
         xs = np.array(msg.x)
         ys = np.array(msg.y)
         zs = np.array(msg.z)
         Arucos = np.array(msg.ArucoId)
         
         if camName == "dipper":
-            self.DipperArucos = [ids, xs, ys, zs, Arucos]
+            self.DipperArucos = [indexes, xs, ys, zs, Arucos]
+            self.DipperCylinder = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
         else:
-            self.MabelArucos = [ids, xs, ys, zs, Arucos]
+            self.MabelArucos = [indexes, xs, ys, zs, Arucos]
+            self.MabelCylinder = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
 
+    def arucoCluster(self, xs, ys, zs, Arucos, filterID):
+        points = []
+        for i in range(len(Arucos)):
+            if Arucos[i] == filterID :
+                points.append([xs[i], ys[i], zs[i]])
+        points = np.array(points)
 
+        if points.ndim == 1:
+            points = points.reshape(1, -1)
+        # Groupement en cylindres (selon x, y)
+        clustering = DBSCAN(eps=CLUSTER_DIST, min_samples=1).fit(points[:, [0, 1]])
+        labels = clustering.labels_
+
+        # Moyenne des positions pour chaque cylindre
+        cyl_positions = []
+        for label in set(labels):
+            group = points[labels == label]
+            center = group.mean(axis=0)
+            cyl_positions.append(center)
+
+        cyl_positions = np.array(cyl_positions)
+        return cyl_positions
+    
     def init(self):
         plt.ion()
         self.fig, self.ax = plt.subplots(figsize=(5, 5))
-
-    def visualize(self):
+    
+    def visualize(self, clusterize = True):
         # Fenêtre persistante de matplotlib
         self.ax.clear()
 
@@ -53,22 +82,32 @@ class visu:
         self.ax.set_xlim(-DIM/2, DIM/2)
         self.ax.set_ylim(0, DIM)
         self.ax.grid(True)
-        self.ax.plot(-delta, 0, 'o', label='Dipper', color = "blue")
-        self.ax.plot(delta, 0, 'o', label='Mabel', color = "pink")
-
-        # Aruco visibles
-        if self.DipperArucos != []:
-            xs = self.DipperArucos[1]
-            ys = self.DipperArucos[2]
-            for i in range(len(xs)):
-                self.ax.add_patch(plt.Circle((ys[i]-delta,xs[i]-delta), conserveradius, color='blue', alpha=0.5))
+        self.ax.plot(-CAM_DELTA, 0, 'o', label='Dipper', color = "blue")
+        self.ax.plot(CAM_DELTA, 0, 'o', label='Mabel', color = "pink")
         
-        if self.MabelArucos != []:
-            xs = self.MabelArucos[1]
-            ys = self.MabelArucos[2]
-            for i in range(len(xs)):
-                self.ax.add_patch(plt.Circle((ys[i]-delta,xs[i]-delta), conserveradius, color='blue', alpha=0.5))
-                 
+        if clusterize :
+            for cyl in self.DipperCylinder:
+                x = cyl[0]
+                y = cyl[1]
+                self.ax.add_patch(plt.Circle((y-CAM_DELTA,x-CAM_DELTA), CYLINDER_RADIUS, color='blue', alpha=0.5))
+            for cyl in self.MabelCylinder:
+                x = cyl[0]
+                y = cyl[1]
+                self.ax.add_patch(plt.Circle((y+CAM_DELTA,x+CAM_DELTA), CYLINDER_RADIUS, color='pink', alpha=0.5))
+
+        else :
+            # Aruco visibles
+            if self.DipperArucos != []:
+                xs = self.DipperArucos[1]
+                ys = self.DipperArucos[2]
+                for i in range(len(xs)):
+                    self.ax.add_patch(plt.Circle((ys[i]-CAM_DELTA,xs[i]-CAM_DELTA), CYLINDER_RADIUS, color='blue', alpha=0.5))
+            if self.MabelArucos != []:
+                xs = self.MabelArucos[1]
+                ys = self.MabelArucos[2]
+                for i in range(len(xs)):
+                    self.ax.add_patch(plt.Circle((ys[i]+CAM_DELTA,xs[i]+CAM_DELTA), CYLINDER_RADIUS, color='pink', alpha=0.5))
+        
         self.ax.legend()
         plt.pause(0.001)
 
