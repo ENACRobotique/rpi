@@ -11,7 +11,7 @@ from generated.robot_state_pb2 import Position_aruco
 
 DIM = 500 # affichage matplotlib mm
 
-CAM_DELTA = 30 # écart entre les caméras en mm
+CAM_DELTA = 100 # écart entre les caméras en mm
 CLUSTER_DIST = 50 # mm à régler
 
 CYLINDER_RADIUS = 73/2 # rayon des conserves mm
@@ -82,18 +82,18 @@ class visu:
         self.ax.set_xlim(-DIM/2, DIM/2)
         self.ax.set_ylim(0, DIM)
         self.ax.grid(True)
-        self.ax.plot(-CAM_DELTA, 0, 'o', label='Dipper', color = "blue")
-        self.ax.plot(CAM_DELTA, 0, 'o', label='Mabel', color = "pink")
+        self.ax.plot(-CAM_DELTA/2, 0, 'o', label='Dipper', color = "blue")
+        self.ax.plot(CAM_DELTA/2, 0, 'o', label='Mabel', color = "pink")
         
         if clusterize :
             for cyl in self.DipperCylinder:
                 x = cyl[0]
                 y = cyl[1]
-                self.ax.add_patch(plt.Circle((y-CAM_DELTA,x-CAM_DELTA), CYLINDER_RADIUS, color='blue', alpha=0.5))
+                self.ax.add_patch(plt.Circle((y-CAM_DELTA/2,x+CYLINDER_RADIUS), CYLINDER_RADIUS, color='blue', alpha=0.5))
             for cyl in self.MabelCylinder:
                 x = cyl[0]
                 y = cyl[1]
-                self.ax.add_patch(plt.Circle((y+CAM_DELTA,x+CAM_DELTA), CYLINDER_RADIUS, color='pink', alpha=0.5))
+                self.ax.add_patch(plt.Circle((y+CAM_DELTA/2,x+CYLINDER_RADIUS), CYLINDER_RADIUS, color='pink', alpha=0.5))
 
         else :
             # Aruco visibles
@@ -101,12 +101,12 @@ class visu:
                 xs = self.DipperArucos[1]
                 ys = self.DipperArucos[2]
                 for i in range(len(xs)):
-                    self.ax.add_patch(plt.Circle((ys[i]-CAM_DELTA,xs[i]-CAM_DELTA), CYLINDER_RADIUS, color='blue', alpha=0.5))
+                    self.ax.add_patch(plt.Circle((ys[i]-CAM_DELTA/2,xs[i]+CYLINDER_RADIUS), CYLINDER_RADIUS, color='blue', alpha=0.5))
             if self.MabelArucos != []:
                 xs = self.MabelArucos[1]
                 ys = self.MabelArucos[2]
                 for i in range(len(xs)):
-                    self.ax.add_patch(plt.Circle((ys[i]+CAM_DELTA,xs[i]+CAM_DELTA), CYLINDER_RADIUS, color='pink', alpha=0.5))
+                    self.ax.add_patch(plt.Circle((ys[i]+CAM_DELTA/2,xs[i]+CYLINDER_RADIUS), CYLINDER_RADIUS, color='pink', alpha=0.5))
         
         self.ax.legend()
         plt.pause(0.001)

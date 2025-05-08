@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 import sys
-sys.path.append("../../..")
+sys.path.append("../..")
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
@@ -89,11 +89,18 @@ class ArucoFinder:
 
 if __name__ == "__main__":
     
-    jesus = ArucoFinder(2, "dipper")
-    jesus.getCalibration('dipper_matrix.npy','dipper_coeffs.npy')
-    jesus.start({47:0.022})
+    dipper = ArucoFinder(0, "dipper")
+    dipper.getCalibration('dipper_matrix.npy','dipper_coeffs.npy')
+    dipper.start({47:0.022})
+
+    mabel = ArucoFinder(2, "mabel")
+    mabel.getCalibration('mabel_matrix.npy','mabel_coeffs.npy')
+    mabel.start({47:0.022})
+
     while ecal_core.ok():
-        jesus.update()
-        jesus.visualize()
+        dipper.update()
+        mabel.update()
+       # dipper.visualize()
+       # mabel.visualize()
 
     

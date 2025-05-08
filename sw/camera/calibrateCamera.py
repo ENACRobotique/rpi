@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import os
 
-# Paramètres du da#!/usr/bin/env python3mier
+# Paramètres du damier
 nb_corners_x = 9  # coins internes horizontalement
 nb_corners_y = 6  # coins internes verticalement
 square_size_mm = 17.5  # taille réelle d’un carré en mm (à ajuster)
