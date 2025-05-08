@@ -17,7 +17,7 @@ CLUSTER_DIST = 50 # mm à régler
 CYLINDER_RADIUS = 73/2 # rayon des conserves mm
 CONSERVE_ID = 47 # aruco code des conserves
 
-class visu:
+class visuConserve:
     def __init__(self):
         if not ecal_core.is_initialized():
                 ecal_core.initialize(sys.argv, "arucoVisu")
@@ -26,8 +26,8 @@ class visu:
         aruco_sub.set_callback(self.getAruco)
         self.MabelArucos = []
         self.DipperArucos = []
-        self.DipperCylinder = []
-        self.MabelCylinder = []
+        self.DipperClusters = []
+        self.MabelClusters = []
 
     def getAruco(self, topic_name, msg, time):
         camName = msg.cameraName
@@ -39,10 +39,30 @@ class visu:
         
         if camName == "dipper":
             self.DipperArucos = [indexes, xs, ys, zs, Arucos]
-            self.DipperCylinder = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
+            self.DipperClusters = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
         else:
             self.MabelArucos = [indexes, xs, ys, zs, Arucos]
-            self.MabelCylinder = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
+            self.MabelClusters = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
+
+    def getCylinders(self):
+        camCylinders = {}
+        cyl = []
+        for cluster in self.DipperClusters:
+            x = cluster[0]+CYLINDER_RADIUS
+            y = cluster[1]-CAM_DELTA/2
+            z = cluster[2]
+            cyl.append([x,y,z])
+        camCylinders["dipper"] =  cyl
+        
+        cyl = []
+        for cluster in self.MabelClusters:
+            x = cluster[0]+CYLINDER_RADIUS
+            y = cluster[1]-CAM_DELTA/2
+            z = cluster[2]
+            cyl.append([x,y,z])
+        camCylinders["mabel"] =  cyl
+        
+        return camCylinders
 
     def arucoCluster(self, xs, ys, zs, Arucos, filterID):
         points = []
@@ -67,11 +87,13 @@ class visu:
         cyl_positions = np.array(cyl_positions)
         return cyl_positions
     
-    def init(self):
+    def initVisualize(self):
+        """Call once before calling visualize"""
         plt.ion()
         self.fig, self.ax = plt.subplots(figsize=(5, 5))
     
     def visualize(self, clusterize = True):
+        """Call in a for loop"""
         # Fenêtre persistante de matplotlib
         self.ax.clear()
 
@@ -86,11 +108,11 @@ class visu:
         self.ax.plot(CAM_DELTA/2, 0, 'o', label='Mabel', color = "pink")
         
         if clusterize :
-            for cyl in self.DipperCylinder:
+            for cyl in self.DipperClusters:
                 x = cyl[0]
                 y = cyl[1]
                 self.ax.add_patch(plt.Circle((y-CAM_DELTA/2,x+CYLINDER_RADIUS), CYLINDER_RADIUS, color='blue', alpha=0.5))
-            for cyl in self.MabelCylinder:
+            for cyl in self.MabelClusters:
                 x = cyl[0]
                 y = cyl[1]
                 self.ax.add_patch(plt.Circle((y+CAM_DELTA/2,x+CYLINDER_RADIUS), CYLINDER_RADIUS, color='pink', alpha=0.5))
@@ -112,7 +134,8 @@ class visu:
         plt.pause(0.001)
 
 if __name__ == "__main__":
-    v = visu()
-    v.init()
+    v = visuConserve()
+    v.initVisualize()
     while ecal_core.ok():
         v.visualize()
+        print(v.getCylinders())
