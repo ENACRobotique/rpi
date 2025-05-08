@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import cv2
 import numpy as np
-import sys
-sys.path.append("../..")
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
