@@ -266,3 +266,39 @@ class AvancePlanches(py_trees.behaviour.Behaviour):
             print("Avance Planches done")
             return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
+
+class LiftBanderole(py_trees.behaviour.Behaviour):
+    def __init__(self,up:bool):
+        super().__init__(name="Lift Bandeole")
+        self.bb, self.robot = get_bb_robot(self)
+        self.up = up
+    
+    def initialise(self):
+        self.robot.actionneurs.liftBanderole(self.up)
+
+    def update(self):
+        if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AscenseurBanderolle.value):
+            return py_trees.common.Status.RUNNING
+        else:
+            return py_trees.common.Status.SUCCESS
+        
+        
+class Deplace_toi (py_trees.behaviour.Behaviour):
+    def __init__(self, distance, direction_deg, vitesse):
+        super().__init__(name="Deplace toi un peu en reculant")
+        self.bb, self.robot = get_bb_robot(self)
+        self.distance = distance
+        self.direction = direction_deg
+        self.vitesse = vitesse
+    
+    def initialise(self):
+        print("Deplace toi un peu en reculant")
+        self.robot.move(self.distance, radians(self.direction), self.vitesse)
+
+    def update(self):
+        if self.robot.hasReachedTarget():
+            print("Deplacement fini")
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+
+

@@ -49,7 +49,7 @@ class servoIO:
     self.message.id = id
     self.message.type = type
     self.message.command = SmartServo.CommandType.SET_ID
-    self.message.newID = newID
+    self.message.new_id = newID
     msg_bin = self.message.SerializeToString()
     self.client.call_method("read_pos", msg_bin)
   

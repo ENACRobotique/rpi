@@ -8,6 +8,11 @@ from bt_essentials import*
 def main_bt(robot:Robot):
     
     poserBanderolle = py_trees.composites.Sequence("Poser la banderolle", True)
+    poserBanderolle.add_children([
+        Deplace_toi(80,-120-4,50),
+        LiftBanderole(False),
+        Deplace_toi(-250,-120-4,100)
+    ])
 
     chercherGradin = py_trees.composites.Sequence("Recherche d'un Gradin", True)
 

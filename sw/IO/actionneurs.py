@@ -112,9 +112,26 @@ class IO_Manager:
         self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value-100
         self.liftG_down = self.liftG_init//4
         
+        
+        self.Servo_IO.setEndless(Actionneur.AscenseurBanderolle.value, False)
+        b = 0
+        fb = False
+        self.liftB_init = -1
+        while self.liftB_init == -1:
+            b = b+ 1
+            self.liftB_init = self.Servo_IO.readPos(Actionneur.AscenseurBanderolle.value)
+            if b > 5: # In case of timeout reading, number of checks are arbitrary
+                print("Cannot calibrate liftG, check connections")
+                fb = True
+                break
+        self.liftB_up = self.liftB_init//2 + 3500
+        self.liftB_down = self.liftB_init//2+1400
+
         self.liftCalibrated = True
-        if not fg or not fd:
+        if not fg or not fd or not fb:
+            self.liftBanderole(True)
             print("Lift calibration sucessfull !")
+
 
     def liftPlancheContinu(self, direction, sync:bool =False):
         """ 
@@ -274,3 +291,11 @@ class IO_Manager:
         time.sleep(0.5)
         self.grabLowConserve(False)         # lache les conserves du bas
 
+    def liftBanderole(self, up:bool, sync:bool = False):
+        """Monter ou descendre la banderole\n
+        Si fdc non calibrés la fonction ne fera rien"""
+        if self.liftCalibrated:
+            if up:
+                self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, self.liftB_up, 4000)
+            else:
+                self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, self.liftB_down, 4000)
