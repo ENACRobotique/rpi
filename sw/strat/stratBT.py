@@ -61,20 +61,23 @@ def main_bt(robot:Robot):
     # todo: strat très basique 
     basicStrat = py_trees.composites.Sequence("Strat basique", True)
     basicStrat.add_children([
-        poserBanderolle,
-        chercherGradin,
-        ramasseGradin,
-        chercherDepose,
-        construitGradin,# 2 fois ? 
-        goZoneDeFin,
-        EndMatch()])
+        WaitMatchStart()
+        
+        # poserBanderolle,
+        # chercherGradin,
+        # ramasseGradin,
+        # chercherDepose,
+        # construitGradin,# 2 fois ? 
+        # goZoneDeFin,
+        # EndMatch()
+        
+        ])
     
     mainBt = py_trees.composites.Selector("Main BT", False)
     mainBt.add_children([
-        DeployMacon(),
-        # EndMatch(10),
-        # basicStrat
+        EndMatch(10),
         #Evitement(robot),
+        basicStrat
     ])
     
     return mainBt
@@ -82,7 +85,7 @@ def main_bt(robot:Robot):
 # === Boucle principale ===
 if __name__ == "__main__":
     r = Robot()
-    blackboard = py_trees.blackboard.Client(name="Global")
+    blackboard = py_trees.blackboard.Client(name="Foo Global")
     blackboard.register_key(key="robot", access=py_trees.common.Access.WRITE)
     blackboard.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
     blackboard.robot = r
@@ -92,7 +95,7 @@ if __name__ == "__main__":
     tree = py_trees.trees.BehaviourTree(main_bt(r))
     tree.setup(timeout=15)
 
-    r.actionneurs.calibrateLift()
+    # r.actionneurs.calibrateLift()
     time.sleep(1)
     
 

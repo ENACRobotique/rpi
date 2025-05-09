@@ -2,7 +2,7 @@ import py_trees
 import sys
 import time
 sys.path.append("../..")
-from robot import Robot, Pos
+from robot import Robot, Pos, Tirette
 
 def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot]:
     bb = behavior.attach_blackboard_client(name="Foo Global")
@@ -31,14 +31,20 @@ class EndMatch(py_trees.behaviour.Behaviour):
     """TODO: \n 
     - update score\n
     - stop robot"""
-    def __init__(self):
+    def __init__(self, matchDuration):
         super().__init__(name=f"Match End ?")
+        self.matchDuration=matchDuration
         self.MatchEnd = False
+        self.bb, self.robot = get_bb_robot(self)
+        self.bb.register_key(key="matchTime", access=py_trees.common.Access.READ)
     
     def update(self):
-        if self.MatchEnd:
-            print("Achievement Made! The End ?")
-            return py_trees.common.Status.SUCCESS
+        if self.bb.matchTime > 0:
+            print(f"{abs(self.bb.matchTime-time.time())}")
+            if abs(self.bb.matchTime-time.time()) >= self.matchDuration :
+                print("Achievement Made! The End ?")
+                self.robot.shuffle_play()
+                return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.FAILURE
     
 class Navigate(py_trees.behaviour.Behaviour):
@@ -117,3 +123,28 @@ class Evitement(py_trees.behaviour.Behaviour):
             if self.evitement: # on verifie qu'on a evité quelque chose pour ne pas perturber le robot
                 self.robot.setTargetPos(self.last_target) # le robot repart
                 print(self.last_target)
+
+class WaitMatchStart(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__(name=f"WaitMatchStart")
+        self.bb, self.robot = get_bb_robot(self)
+        self.bb.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
+        self.firstIN = False
+        self.matchStarted = False
+
+    def update(self):
+        if self.robot.tirette == Tirette.IN:
+            if not self.firstIN:
+                print("Tirette in for first time")
+                self.robot.buzz(ord('B'))
+            self.firstIN = True
+        
+        if self.firstIN :
+            if not self.matchStarted:
+                if self.robot.ready_to_go():
+                    print("Match Started !")
+                    self.bb.matchTime = time.time()
+                    self.robot.buzz(ord('E')+7)
+                    self.matchStarted = True
+                    return py_trees.common.Status.RUNNING   
+        return py_trees.common.Status.RUNNING

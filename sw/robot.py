@@ -251,7 +251,12 @@ class Robot:
         self.actionneurs.calibrateLift()
         self.calibration_lift_state.set_text(f"Lifts Cal:",f"{self.actionneurs.liftCalibrated}")
         self.lcd.set_page(self.calibration_lift_state)
-
+    
+    def ready_to_go(self):
+        """ Rassembler les conditions nécéssaires pour que le robot commence son match"""
+        a = self.color != Team.AUCUNE
+        b = self.tirette == Tirette.OUT
+        return a and b
 # ---------------------------- #
 #           CONTROL            #
 # ____________________________ #
