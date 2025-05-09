@@ -37,6 +37,7 @@ class ValeurActionneur(Enum):
     # MULTITURN FACTOR 2
     AscenseurAimantUP = 3950
     AscenseurAimantDOWN = 110
+    AscenseurAimantINTERMEDIAIRE = 2800
     AscenseurAimantRAISED = 310
 
     
@@ -109,7 +110,7 @@ class IO_Manager:
         self.liftD_up = self.liftD_init//4+100
         self.liftD_down = self.liftD_init//4+ValeurActionneur.PlancheDELTA.value+200
         
-        self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value-100
+        self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value+100
         self.liftG_down = self.liftG_init//4
         
         
@@ -157,7 +158,7 @@ class IO_Manager:
     
     def stockConserveContinu(self, direction, sync:bool =False):
         self.Servo_IO.setEndless(Actionneur.Rentreur.value,True)
-        if direction == 1 :
+        if direction == 1:
             self.Servo_IO.turn(Actionneur.Rentreur.value,0,ValeurActionneur.STSLowSpeed.value)
 
         elif direction == -1:

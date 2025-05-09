@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import py_trees
 import sys
 sys.path.append("../..")
@@ -16,49 +17,43 @@ def main_bt(robot:Robot):
 
     chercherGradin = py_trees.composites.Sequence("Recherche d'un Gradin", True)
 
-
     ramasseGradin = py_trees.composites.Sequence("Rammasser un Gradin", True)
     ramasseGradin.add_children([
-        LiftPlanche(robot.actionneurs, UP),
-        WaitSeconds(0.5),
+        AlignPlanches(),
+        AlignConserves(),
+        AvancePlanches(),
+        GrabLowConserve(True),
+        LiftPlanche(UP),
         GrabHighConserve(False),
         GrabLowConserve(True),
-        WaitSeconds(0.3),
-        LiftConserve(robot.actionneurs, UP),
-        WaitSeconds(2),
-        MoveRentreur(robot.actionneurs, OUTSIDE),
-        WaitSeconds(0.1),
-        GrabHighConserve(robot.actionneurs, True),
-        WaitSeconds(1.5),
-        GrabLowConserve(robot.actionneurs, False),
-        WaitSeconds(0.25),
-        LockPlanche(robot.actionneurs, True),
-        LiftConserve(robot.actionneurs, DOWN),
-        WaitSeconds(0.5),
-
-        GrabLowConserve(robot.actionneurs, True),
-        WaitSeconds(0.7),
-
-        MoveRentreur(robot.actionneurs, INSIDE),
-        WaitSeconds(0.3),
-        GrabLowConserve(robot.actionneurs, False)
+        LiftConserve(ValeurActionneur.AscenseurAimantUP),
+        MoveRentreur(OUTSIDE),
+        GrabHighConserve(True),
+        GrabLowConserve(False),
+        LockPlanche(True),
+        LiftConserve(ValeurActionneur.AscenseurAimantINTERMEDIAIRE), #2 lignes pas 2 definitives
+        GrabLowConserve(True),
+        LiftConserve(ValeurActionneur.AscenseurAimantDOWN),
+        GrabLowConserve(True),
+        MoveRentreur(INSIDE),
+        Aligne_conserve_seul(Actionneur.AimantBasDroit),
+        AvanceConserve(Actionneur.AimantBasDroit),
+        Aligne_conserve_seul(Actionneur.AimantBasGauche),
+        AvanceConserve(Actionneur.AimantBasGauche),
+        LiftConserve(ValeurActionneur.AscenseurAimantRAISED)
     ])
 
     chercherDepose = py_trees.composites.Sequence("Recherche d'une depose de Gradin", True)
 
     construitGradin = py_trees.composites.Sequence("Construire un Gradin", True)
     construitGradin.add_children([
-            LiftPlanche(robot.actionneurs,DOWN),
-            WaitSeconds(2.5),
-            MoveRentreur(robot.actionneurs, OUTSIDE),
-            WaitSeconds(1.8),
-            GrabHighConserve(robot.actionneurs, False),
-            WaitSeconds(0.3),
-            MoveRentreur(robot.actionneurs, INSIDE),
-            WaitSeconds(0.5),
-            LockPlanche(robot.actionneurs, False),
-            WaitSeconds(0.5),
-            GrabLowConserve(robot.actionneurs, False) 
+        LiftConserve(ValeurActionneur.AscenseurAimantDOWN),
+        LiftPlanche(DOWN),
+        MoveRentreur(OUTSIDE),
+        GrabHighConserve( False),
+        MoveRentreur(INSIDE),
+        LockPlanche(False),
+        GrabLowConserve(False),
     ])
 
     goZoneDeFin = py_trees.composites.Sequence("Je vais en zone de fin", True)
@@ -76,7 +71,10 @@ def main_bt(robot:Robot):
     
     mainBt = py_trees.composites.Selector("Main BT", False)
     mainBt.add_children([
-        Evitement(robot)
+        DeployMacon(),
+        # EndMatch(10),
+        # basicStrat
+        #Evitement(robot),
     ])
     
     return mainBt
@@ -84,9 +82,26 @@ def main_bt(robot:Robot):
 # === Boucle principale ===
 if __name__ == "__main__":
     r = Robot()
+    blackboard = py_trees.blackboard.Client(name="Global")
+    blackboard.register_key(key="robot", access=py_trees.common.Access.WRITE)
+    blackboard.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
+    blackboard.robot = r
+    blackboard.matchTime = 0
+    # blackboard.register_key(key="robot", access=py_trees.common.Access.READ)
+    
     tree = py_trees.trees.BehaviourTree(main_bt(r))
     tree.setup(timeout=15)
 
-    while True:
+    r.actionneurs.calibrateLift()
+    time.sleep(1)
+    
+
+    while tree.root.status != py_trees.common.Status.SUCCESS:
         tree.tick()
-        time.sleep(0.1)
+        time.sleep(0.01)
+        #p = r.actionneurs.Servo_IO.readPos(Actionneur.PlancheGauche.value)
+        #print(p)
+    print("Fin de l'arbre")
+    ecal_core.finalize()
+    r.actionneurs.Servo_IO.client.destroy()
+    r.locomotion.stop()
