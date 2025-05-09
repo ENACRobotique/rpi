@@ -108,9 +108,13 @@ class Robot:
         self.pos_page = lcd.Text("Position", m, "---")
         self.status_page = lcd.Text("Status", m, "---")
         self.score_page = lcd.Text("Score", m, "0")
+        calibration_menu = lcd.Menu("Calibrations", m)
         pid_page = lcd.Menu("PID", m)
-        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page)
-        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page)
+        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page, calibration_menu)
+
+        self.calibration_lift_state = lcd.Text("State", calibration_menu, str(self.actionneurs.liftCalibrated))
+        calibration_lift_choice = lcd.Choice("Lifts", calibration_menu, ["Push to cal"], self.calibrateLift)
+        calibration_menu.add_subpages(calibration_lift_choice, self.calibration_lift_state)
 
         kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
         ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
@@ -242,6 +246,11 @@ class Robot:
         for tone, duration in music:
             self.buzz(tone)
             time.sleep(duration)
+    
+    def calibrateLift(self, dummy):
+        self.actionneurs.calibrateLift()
+        self.calibration_lift_state.set_text(f"Lifts Cal:",f"{self.actionneurs.liftCalibrated}")
+        self.lcd.set_page(self.calibration_lift_state)
 
 # ---------------------------- #
 #           CONTROL            #
