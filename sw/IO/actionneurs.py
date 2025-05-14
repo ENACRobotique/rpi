@@ -27,29 +27,35 @@ class ValeurActionneur(Enum):
     STSLowSpeed = 3000
     AimantBasDroitGRAB = 3100
     AimantBasDroitDROP = 3800
+
     AimantBasGaucheGRAB = 2950
     AimantBasGaucheDROP = 2285
-    AimantHautDroitGRAB = 1800
-    AimantHautDroitDROP = 3000
-    AimantHautGaucheGRAB = 1800
-    AimantHautGaucheDROP = 700
+
+    AimantHautDroitGRAB = 1550
+    AimantHautDroitDROP = 2400
+
+    AimantHautGaucheGRAB = 1740
+    AimantHautGaucheDROP = 1030
     
     # MULTITURN FACTOR 2
-    AscenseurAimantUP = 3950
-    AscenseurAimantDOWN = 110
+    AscenseurAimantUP = 4150
+    AscenseurAimantDOWN = 390
     AscenseurAimantINTERMEDIAIRE = 2800
-    AscenseurAimantRAISED = 310
+    AscenseurAimantRAISED = 600
 
     
-    RentreurIN = 20
-    RentreurOUT = 4090
+    RentreurIN = 500
+    RentreurOUT = 3980
 
     BrasPinceIN = 450
     BrasPinceOUT = 200
-    VerrouPinceLOCK = 2400
-    VerrouPinceUNLOCK = 3100
+    VerrouPinceLOCK = 1860
+    VerrouPinceUNLOCK = 2500
 
     PlancheDELTA = 2600
+
+    BanderolleUp = 3900
+    BanderolleDown = 600
 
     
 servoPosError = 20 # on prend large
@@ -112,25 +118,10 @@ class IO_Manager:
         
         self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value+100
         self.liftG_down = self.liftG_init//4
-        
-        
-        self.Servo_IO.setEndless(Actionneur.AscenseurBanderolle.value, False)
-        b = 0
-        fb = False
-        self.liftB_init = -1
-        while self.liftB_init == -1:
-            b = b+ 1
-            self.liftB_init = self.Servo_IO.readPos(Actionneur.AscenseurBanderolle.value)
-            if b > 5: # In case of timeout reading, number of checks are arbitrary
-                print("Cannot calibrate liftG, check connections")
-                fb = True
-                break
-        self.liftB_up = self.liftB_init//2 + 3500
-        self.liftB_down = self.liftB_init//2+1400
 
         self.liftCalibrated = True
-        if not fg or not fd or not fb:
-            self.liftBanderole(True)
+        if not fg or not fd:
+            self.liftBanderole(UP)
             print("Lift calibration sucessfull !")
 
 
@@ -294,9 +285,8 @@ class IO_Manager:
 
     def liftBanderole(self, up:bool, sync:bool = False):
         """Monter ou descendre la banderole\n
-        Si fdc non calibrés la fonction ne fera rien"""
-        if self.liftCalibrated:
-            if up:
-                self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, self.liftB_up, 4000)
-            else:
-                self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, self.liftB_down, 4000)
+        Si fdc non calibrés la fonction ne fera rien"""        
+        if up:
+            self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, ValeurActionneur.BanderolleUp.value, 4000)
+        else:
+            self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, ValeurActionneur.BanderolleDown.value, 4000)

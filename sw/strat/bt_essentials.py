@@ -146,5 +146,6 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                     self.bb.matchTime = time.time()
                     self.robot.buzz(ord('E')+7)
                     self.matchStarted = True
-                    return py_trees.common.Status.RUNNING   
+        if self.matchStarted:    
+            return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING

@@ -61,7 +61,9 @@ def main_bt(robot:Robot):
     # todo: strat très basique 
     basicStrat = py_trees.composites.Sequence("Strat basique", True)
     basicStrat.add_children([
-        WaitMatchStart()
+        WaitMatchStart(),
+        poserBanderolle
+        # DeployMacon()
         
         # poserBanderolle,
         # chercherGradin,
@@ -69,7 +71,6 @@ def main_bt(robot:Robot):
         # chercherDepose,
         # construitGradin,# 2 fois ? 
         # goZoneDeFin,
-        # EndMatch()
         
         ])
     
@@ -90,20 +91,12 @@ if __name__ == "__main__":
     blackboard.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
     blackboard.robot = r
     blackboard.matchTime = 0
-    # blackboard.register_key(key="robot", access=py_trees.common.Access.READ)
     
     tree = py_trees.trees.BehaviourTree(main_bt(r))
     tree.setup(timeout=15)
-
-    # r.actionneurs.calibrateLift()
-    time.sleep(1)
-    
-
     while tree.root.status != py_trees.common.Status.SUCCESS:
         tree.tick()
         time.sleep(0.01)
-        #p = r.actionneurs.Servo_IO.readPos(Actionneur.PlancheGauche.value)
-        #print(p)
     print("Fin de l'arbre")
     ecal_core.finalize()
     r.actionneurs.Servo_IO.client.destroy()
