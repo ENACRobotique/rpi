@@ -9,11 +9,18 @@ from generated import CompressedImage_pb2 as cipb
 from google.protobuf.timestamp_pb2 import Timestamp
 import time
 
+if len(sys.argv) < 2:
+    print("Usage: ./cam_cv2ecal.py <nb>")
+    exit(1)
+
 ecal_core.initialize([], "test_opencv")
 
 pub = ProtoPublisher("images", cipb.CompressedImage)
-
-cam = cv2.VideoCapture(8)
+try:
+    cam_nb =int(sys.argv[1])
+except ValueError:
+    cam_nb = sys.argv[1]
+cam = cv2.VideoCapture(cam_nb)
 if not cam.isOpened():
     print("Can't open camera!!!")
     exit(-1)
