@@ -9,14 +9,14 @@ from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
 from generated.robot_state_pb2 import Position_aruco
 
-DIM = 500 # affichage matplotlib mm
+DIM = 400 # affichage matplotlib mm
 
 CAM_DELTA = 100 # écart entre les caméras en mm
-CLUSTER_DIST = 50 # mm à régler
+CLUSTER_DIST = 40 # mm à régler
 
 CYLINDER_RADIUS = 73/2 # rayon des conserves mm
 CONSERVE_ID = 47 # aruco code des conserves
-
+BORDER_DIST = 90
 class visuConserve:
     def __init__(self):
         if not ecal_core.is_initialized():
@@ -45,10 +45,11 @@ class visuConserve:
             self.MabelClusters = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
 
     def getCylinders(self):
+        """Position des centres des cylindres par rapport au centre des deux caméras"""
         camCylinders = {}
         cyl = []
         for cluster in self.DipperClusters:
-            x = cluster[0]+CYLINDER_RADIUS
+            x = cluster[0]+CYLINDER_RADIUS-BORDER_DIST
             y = cluster[1]-CAM_DELTA/2
             z = cluster[2]
             cyl.append([x,y,z])
@@ -56,8 +57,8 @@ class visuConserve:
         
         cyl = []
         for cluster in self.MabelClusters:
-            x = cluster[0]+CYLINDER_RADIUS
-            y = cluster[1]-CAM_DELTA/2
+            x = cluster[0]+CYLINDER_RADIUS-BORDER_DIST
+            y = cluster[1]+CAM_DELTA/2
             z = cluster[2]
             cyl.append([x,y,z])
         camCylinders["mabel"] =  cyl
@@ -133,9 +134,70 @@ class visuConserve:
         self.ax.legend()
         plt.pause(0.001)
 
+
+    def move_far(self):
+        """On considère que le robot est bien orienté et plutot loin des conserves!\n
+        les bras doivent être relevé sinon on voit rien !!!"""
+        cyl = self.getCylinders()
+        dip_cyl = sorted(cyl["dipper"], key=lambda pos: pos[1],) # trier par y
+        mab_cyl = sorted(cyl["mabel"], key=lambda pos: pos[1], reverse=True) # trier par y à l'envers
+        
+        ld = len(dip_cyl)
+        lm = len(mab_cyl)
+        
+        easy = (ld == 4 and lm==4) or (ld == 4 and lm==3) or (ld == 3 and lm==4)
+        _3_3_chiant = ld == 3 and lm ==3
+        _2_3_droite = ld == 2 and lm==3
+        _3_2_gauche = ld == 3 and lm==2
+
+        def get_cons(dip_index, mab_index, trust_check=0):
+            xd, yd, _ = dip_cyl[dip_index]
+            yd = yd+CAM_DELTA/2
+            xm, ym, _ = mab_cyl[mab_index]
+            ym = ym-CAM_DELTA/2
+            xcons = (xm+xd)/2
+            ycons = (yd+ym)/2
+            if trust_check:
+                if abs(abs(yd)-abs(ym)) >= trust_check :
+                    if abs(yd)<abs(ym):
+                        ycons = ym
+                    else:
+                        ycons = yd
+                    #print("TRUST ISSUES")
+            #print(f'dipper:{round(xd,2)}  {round(yd,2)}\tmabel {round(xm,2)}  {round(ym,2)}\tmoy {round(xcons,2)}  {round(ycons,2)}\n')
+            return xcons, ycons
+        
+        xcons, ycons =  None, None
+        if easy:
+            xcons, ycons = get_cons(1,1) # on prend le 2e en partant du coté désigné
+        if _3_3_chiant:
+            xcons, ycons = get_cons(1,1,20) # on prend le 2e en partant du coté désigné ou alors on fait confiance à celui qui donne la plus grande distance
+        if _2_3_droite:
+            xcons, ycons = get_cons(1,0) # on prend le 2e et 1er 
+        if _3_2_gauche:
+            xcons, ycons = get_cons(0,1) # on prend le 1er et 2e
+        if xcons is not None and ycons is not None:
+            print(f'cons: {round(xcons,2)}  {round(ycons,2)}\n')
+        return xcons, ycons
+        
+        # on devrait pas avoir à les prendre en compte (j'espère)
+        # goright = ld == 1 and lm==2
+        # goleft = ld == 2 and lm==1
+        # if goright:
+        #     # on va un peu vers la droite
+        #     xcons, ycons = get_cons(0,-1)
+        #     ycons+=100                    
+        # if goleft:
+            # # on va un peu vers la gauche
+            # xcons, ycons = get_cons(-1,0)
+            # ycons-=100
+
+
+
 if __name__ == "__main__":
     v = visuConserve()
     v.initVisualize()
     while ecal_core.ok():
         v.visualize()
-        print(v.getCylinders())
+        # print(v.getCylinders())
+        v.move_far()
