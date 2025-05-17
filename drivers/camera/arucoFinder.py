@@ -23,7 +23,7 @@ class ArucoFinder:
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
         self.arucoFound = None
         self.arucosInUse = {}
-        self.resolution = (640, 480)
+        self.resolution = (640, 480) #width, height
 
     def getCalibration(self, matrix, coefs, resolution = (640,480)):
         """Provide Calibration Matrix and distance coefs as .npy file"""
@@ -40,11 +40,14 @@ class ArucoFinder:
         self.arucosInUse = arucosToUse
         self.cap = cv2.VideoCapture(self.camera_Id)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[0])
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+        w, h = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        print(f"Opened camera with resolution {w}x{h}!\n")
+
         
-    def init_visu(self,h=640,w=480):
+    def init_visu(self,w=640,h=480):
         cv2.namedWindow("ArUco Positioning", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("ArUco Positioning", h, w)
+        cv2.resizeWindow("ArUco Positioning", w, h)
     def end(self):
         self.cap.release()
         cv2.destroyAllWindows()
@@ -52,7 +55,18 @@ class ArucoFinder:
     def visualize(self):
         if self.corners:
             cv2.aruco.drawDetectedMarkers(self.frame, self.corners, self.ids)
-        cv2.imshow("ArUco Positioning", self.frame)
+        
+        w, h = self.resolution[0],self.resolution[1]
+        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (w,h), 0, (w,h))
+        
+        # undistort
+        dst = cv2.undistort(self.frame, self.camera_matrix, self.dist_coeffs, None, newcameramtx)
+        
+        # crop the image
+        x, y, w, h = roi
+        dst = dst[y:y+h, x:x+w]
+        
+        cv2.imshow("ArUco Positioning", dst)
     
     def update(self):
         """Call it in a while true loop"""
