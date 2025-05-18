@@ -11,23 +11,32 @@ import time
 
 
 class Rcv:
-    def __init__(self) -> None:
+    def __init__(self,name='') -> None:
         self.img = np.zeros((480, 640, 3))
         ecal_core.initialize([], "test_opencv_receiver")
-        self.sub = ProtoSubscriber("images", cipb.CompressedImage)
+        self.sub = ProtoSubscriber("images"+str(name), cipb.CompressedImage)
         self.sub.set_callback(self.on_img)
 
     def on_img(self, topic, msg: cipb.CompressedImage, t):
         # Reconvertit les bytes en tableau numpy
         nparr = np.frombuffer(msg.data, np.uint8)
         # Décode l'image
-        self.img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        self.img = cv2.rotate(img, cv2.ROTATE_180)
 
 
 
 
 if __name__ == "__main__":
-    rcv = Rcv()
+    if len(sys.argv) < 1:
+        print("Usage: ./cam_ecal_rcv.py <name>")
+        exit(1)
+
+    try:
+        cam_name ='_' + str(sys.argv[1])
+        rcv = Rcv(cam_name)
+    except IndexError:
+        rcv=Rcv()
 
     while True:
         cv2.imshow('Camera', rcv.img)
