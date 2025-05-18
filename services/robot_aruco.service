@@ -6,7 +6,8 @@ After=network.target network-online.target
 Type=simple
  
 WorkingDirectory=/home/robot/rpi/drivers/camera/
-ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/drivers/camera/arucoFinder.py
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/drivers/camera/arucoFinder.py 2 dipper 0 0 mabel 0
+
  
 Restart=on-failure
 RestartSec=2 

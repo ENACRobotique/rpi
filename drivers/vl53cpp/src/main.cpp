@@ -18,13 +18,16 @@ extern "C"{
 #define GPIO_CHIP "gpiochip4"
 
 #define RESULT_LENGTH (VL53L5CX_RESOLUTION_8X8*VL53L5CX_NB_TARGET_PER_ZONE)
-
-
+// dans le sens des écritures I2C :
+//16 haut gauche 
+//17 bas droit
+//18 bas gauche
+//26 haut droit
 int main(int argc, char* argv[]) {
     std::array sensors = {
-        VL53L5CX(17, 0x30),
-        VL53L5CX(18, 0x32),
-        // VL53L5CX(26, 0x34),
+	VL53L5CX(16, 0x30),//conserveDroit
+        VL53L5CX(26, 0x32),//conserveGauche
+        VL53L5CX(18, 0x34),//banderollle
         // VL53L5CX(16, 0x36),
     };
 
