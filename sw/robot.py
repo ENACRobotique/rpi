@@ -14,6 +14,7 @@ import common
 from common import Pos, Speed, dist_to_line, next_path, normalize_angle
 import locomotion
 import musics
+from camera.conserveVisu import visuConserve
 import random as rd
 from scipy.stats import linregress
 

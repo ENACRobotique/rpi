@@ -191,21 +191,40 @@ class AlignConserves(py_trees.behaviour.Behaviour):
         self.bb, self.robot = get_bb_robot(self)
 
     def update(self):
-        ix, d = self.robot.detect_best_conserve(Actionneur.AimantBasGauche)
-        ix2, d = self.robot.detect_best_conserve(Actionneur.AimantBasDroit)
-        if (ix < 3 and ix2 > 4) or (ix > 4 and ix2 < 3):
-            return py_trees.common.Status.FAILURE
-
-        if ix < 3 or ix2 < 3:
-            # move left
-            self.robot.locomotion.set_speed(Speed(0, 15, 0))
-        elif ix > 4 or ix2 > 4:
-            # move right
-            self.robot.locomotion.set_speed(Speed(0, -15, 0))
+        x,y = self.robot.cameras.cam_cons()
+        
+        if y is not None:
+            if abs(y) < 8: # mm, à régler
+                print("Je suis aligné !!!")
+                self.robot.move(0, 0, 0)
+                # self.robot.buzz(ord('G'))
+                return py_trees.common.Status.RUNNING # remplacer par succes
+            else:
+                dir = -y/abs(y)
+                print(f"Bouge de {y} direction {'droite' if dir<0 else 'gauche'}\n")
+                self.robot.move(abs(y), dir*radians(90), 80)
         else:
-            print("Conserves aligned")
-            return py_trees.common.Status.SUCCESS
+            #On voit rien du tout
+            print("Je vois rien")
+            self.robot.move(0, 0, 0)
+            return py_trees.common.Status.FAILURE
         return py_trees.common.Status.RUNNING
+    
+        # ix, d = self.robot.detect_best_conserve(Actionneur.AimantBasGauche)
+        # ix2, d = self.robot.detect_best_conserve(Actionneur.AimantBasDroit)
+        # if (ix < 3 and ix2 > 4) or (ix > 4 and ix2 < 3):
+        #     return py_trees.common.Status.FAILURE
+
+        # if ix < 3 or ix2 < 3:
+        #     # move left
+        #     self.robot.locomotion.set_speed(Speed(0, 15, 0))
+        # elif ix > 4 or ix2 > 4:
+        #     # move right
+        #     self.robot.locomotion.set_speed(Speed(0, -15, 0))
+        # else:
+        #     print("Conserves aligned")
+        #     return py_trees.common.Status.SUCCESS
+        # return py_trees.common.Status.RUNNING
 
 
 class Aligne_conserve_seul(py_trees.behaviour.Behaviour):
@@ -269,7 +288,7 @@ class AvancePlanches(py_trees.behaviour.Behaviour):
 
 class LiftBanderole(py_trees.behaviour.Behaviour):
     def __init__(self,up:bool):
-        super().__init__(name="Lift Bandeole")
+        super().__init__(name="Lift Banderole")
         self.bb, self.robot = get_bb_robot(self)
         self.up = up
     
