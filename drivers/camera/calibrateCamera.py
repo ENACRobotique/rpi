@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import cv2
 import numpy as np
-import os
+import os, sys
 
 # Paramètres du damier
 nb_corners_x = 9  # coins internes horizontalement
@@ -17,9 +17,24 @@ objp *= square_size_mm / 1000.0  # en mètres
 objpoints = []  # points 3D
 imgpoints = []  # points 2D
 
-cap = cv2.VideoCapture(2)  # modifie l'index si besoin
-cv2.namedWindow('Calibration', cv2.WINDOW_NORMAL) 
-cv2.resizeWindow('Calibration', 800, 600)
+if len(sys.argv) < 2:
+    print("Usage: ./cam_cv2ecal.py <nb>")
+    exit(1)
+
+try:
+    cam_nb =int(sys.argv[1])
+except ValueError:
+    cam_nb = sys.argv[1]
+cap = cv2.VideoCapture(cam_nb)
+
+# cv2.namedWindow('Calibration', cv2.WINDOW_NORMAL) 
+
+# cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_FPS, 30)
+w,h,f = cap.get(cv2.CAP_PROP_FRAME_WIDTH),cap.get(cv2.CAP_PROP_FRAME_HEIGHT),cap.get(cv2.CAP_PROP_FPS)
+print(f"w:{w}, h: {h},f{f}\n")
+#cv2.resizeWindow('Calibration', 800, 600)
 
 print("Appuie sur 'espace' pour capturer une image, 'q' pour quitter.")
 

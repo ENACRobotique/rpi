@@ -23,12 +23,14 @@ class ArucoFinder:
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
         self.arucoFound = None
         self.arucosInUse = {}
+        self.resolution = (640, 480) #width, height
 
-    def getCalibration(self, matrix, coefs):
+    def getCalibration(self, matrix, coefs, resolution = (640,480)):
         """Provide Calibration Matrix and distance coefs as .npy file"""
         # Charger la calibration
         self.camera_matrix = np.load(matrix)
         self.dist_coeffs = np.load(coefs)
+        self.resolution = resolution
 
     def start(self, arucosToUse:dict):
         """Call once to start video capture\n
@@ -37,14 +39,34 @@ class ArucoFinder:
         # Capture vidéo
         self.arucosInUse = arucosToUse
         self.cap = cv2.VideoCapture(self.camera_Id)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+        w, h = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        print(f"Opened camera with resolution {w}x{h}!\n")
+
         
+    def init_visu(self,w=640,h=480):
+        cv2.namedWindow("ArUco Positioning", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("ArUco Positioning", w, h)
     def end(self):
         self.cap.release()
         cv2.destroyAllWindows()
     
     def visualize(self):
-        cv2.aruco.drawDetectedMarkers(self.frame, self.corners, self.ids)
-        cv2.imshow("ArUco Positioning", self.frame)
+        if self.corners:
+            cv2.aruco.drawDetectedMarkers(self.frame, self.corners, self.ids)
+        
+        w, h = self.resolution[0],self.resolution[1]
+        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (w,h), 0, (w,h))
+        
+        # undistort
+        dst = cv2.undistort(self.frame, self.camera_matrix, self.dist_coeffs, None, newcameramtx)
+        
+        # crop the image
+        x, y, w, h = roi
+        dst = dst[y:y+h, x:x+w]
+        
+        cv2.imshow("ArUco Positioning", dst)
     
     def update(self):
         """Call it in a while true loop"""
@@ -89,18 +111,72 @@ class ArucoFinder:
 
 if __name__ == "__main__":
     
-    dipper = ArucoFinder(0, "dipper")
-    dipper.getCalibration('dipper_matrix.npy','dipper_coeffs.npy')
-    dipper.start({47:0.022})
+    if len(sys.argv) < 2:
+        print("Usage: ./arucoFinder.py <nb> <camera_name> <visu> <nb2> <cam_name2> <visu2>")
+        exit(1)
+    name = sys.argv[2]
+    try:
+        name2 = sys.argv[5]
+    except IndexError:
+        name2 = name
+    visu = 0
+    visu2 = 0
+    try:
+        visu = int(sys.argv[3])
+        if visu:
+            print("Visualization on")
+    except IndexError:
+        pass
+    try:
+        visu2 = int(sys.argv[6])
+        if visu2:
+            print("Visualization on")
+    except IndexError:
+        pass
+    try:
+        cam_nb =int(sys.argv[1])
+    except ValueError:
+        cam_nb = sys.argv[1]
+    try:
+        cam_nb2 =int(sys.argv[4])
+    except ValueError:
+        cam_nb2 = sys.argv[4]
+    except IndexError:
+        cam_nb2 = cam_nb
 
-    mabel = ArucoFinder(2, "mabel")
-    mabel.getCalibration('mabel_matrix.npy','mabel_coeffs.npy')
-    mabel.start({47:0.022})
+    dip, mab = False, False
+    if name == 'dipper':
+        dip = True
+    if name2 == 'mabel':
+        mab = True
+    if name == 'both':
+        dip, mab = True, True
 
-    while ecal_core.ok():
-        dipper.update()
-        mabel.update()
-       # dipper.visualize()
-       # mabel.visualize()
-
+    if dip:
+        print("Starting dipper")
+        dipper = ArucoFinder(cam_nb, name)
+        dipper.getCalibration('dipper_matrix_1920x1080.npy','dipper_coeffs_1920x1080.npy', (1920,1080))
+        dipper.start({47:0.022})
+        if visu:
+            dipper.init_visu(1920,1080)
+    if mab :
+        print("Starting mabel")
+        mabel = ArucoFinder(cam_nb2, name2)
+        mabel.getCalibration('mabel_matrix_1920x1080.npy','mabel_coeffs_1920x1080.npy', (1920,1080))
+        mabel.start({47:0.022})
+        if visu2:
+            mabel.init_visu(1920,1080)
     
+    if not mab and not dip:
+        print("Unregistered camera")
+        print("Registerd cameras are 'dipper' 'mabel'")
+    
+    while ecal_core.ok():
+        if dip :
+            dipper.update()
+            if visu:
+                dipper.visualize()
+        if mab:
+            mabel.update()
+            if visu2:
+                mabel.visualize()
