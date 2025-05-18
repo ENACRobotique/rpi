@@ -7,7 +7,8 @@ import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
 from generated.robot_state_pb2 import Position_aruco
-
+from generated import CompressedImage_pb2 as cipb
+from google.protobuf.timestamp_pb2 import Timestamp
 class ArucoFinder:
     def __init__(self, cameraId, name):
         """Provide Camera ID"""
@@ -15,6 +16,7 @@ class ArucoFinder:
             ecal_core.initialize(sys.argv, "arucoFinder")
         
         self.aruco_pub = ProtoPublisher("Arucos", Position_aruco)
+        self.cam_pub = ProtoPublisher("images_"+str(name), cipb.CompressedImage)
         self.camera_Id = cameraId
         self.name = name
         # ArUco settings (API OpenCV 4.7+)
@@ -24,6 +26,7 @@ class ArucoFinder:
         self.arucoFound = None
         self.arucosInUse = {}
         self.resolution = (640, 480) #width, height
+        self.visu_to_ecal = False
 
     def getCalibration(self, matrix, coefs, resolution = (640,480)):
         """Provide Calibration Matrix and distance coefs as .npy file"""
@@ -45,16 +48,23 @@ class ArucoFinder:
         print(f"Opened camera with resolution {w}x{h}!\n")
 
         
-    def init_visu(self,w=640,h=480):
-        cv2.namedWindow("ArUco Positioning", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("ArUco Positioning", w, h)
+    def init_visu(self,w=640,h=480, visu_mode=0):
+        
+        if visu_mode == 2:
+            self.visu_to_ecal = True
+        
+        else :
+            cv2.namedWindow("ArUco Positioning", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("ArUco Positioning", w, h)
+        
     def end(self):
         self.cap.release()
         cv2.destroyAllWindows()
     
     def visualize(self):
         if self.corners:
-            cv2.aruco.drawDetectedMarkers(self.frame, self.corners, self.ids)
+            if not self.visu_to_ecal:
+                cv2.aruco.drawDetectedMarkers(self.frame, self.corners, self.ids)
         
         w, h = self.resolution[0],self.resolution[1]
         newcameramtx, roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (w,h), 0, (w,h))
@@ -65,8 +75,14 @@ class ArucoFinder:
         # crop the image
         x, y, w, h = roi
         dst = dst[y:y+h, x:x+w]
-        
-        cv2.imshow("ArUco Positioning", dst)
+        if self.visu_to_ecal:
+            img_encode = cv2.imencode(".jpg", self.frame)[1]
+            byte_encode = img_encode.tobytes()
+            #timestamp = Timestamp()
+            ci = cipb.CompressedImage(timestamp=Timestamp(), data=byte_encode, format='jpeg')
+            self.cam_pub.send(ci)
+        else:
+            cv2.imshow("ArUco Positioning", dst)
     
     def update(self):
         """Call it in a while true loop"""
@@ -158,14 +174,14 @@ if __name__ == "__main__":
         dipper.getCalibration('dipper_matrix_1920x1080.npy','dipper_coeffs_1920x1080.npy', (1920,1080))
         dipper.start({47:0.022})
         if visu:
-            dipper.init_visu(1920,1080)
+            dipper.init_visu(1920,1080,visu)
     if mab :
         print("Starting mabel")
         mabel = ArucoFinder(cam_nb2, name2)
         mabel.getCalibration('mabel_matrix_1920x1080.npy','mabel_coeffs_1920x1080.npy', (1920,1080))
         mabel.start({47:0.022})
         if visu2:
-            mabel.init_visu(1920,1080)
+            mabel.init_visu(1920,1080,visu2)
     
     if not mab and not dip:
         print("Unregistered camera")

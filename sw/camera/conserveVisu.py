@@ -2,13 +2,13 @@
 import numpy as np
 from sklearn.cluster import DBSCAN
 import matplotlib.pyplot as plt
-import sys
-sys.path.append("../../..")
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 import ecal.core.core as ecal_core
 from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
 from generated.robot_state_pb2 import Position_aruco
-
+import time as t
 DIM = 400 # affichage matplotlib mm
 
 CAM_DELTA = 100 # écart entre les caméras en mm
@@ -16,7 +16,9 @@ CLUSTER_DIST = 40 # mm à régler
 
 CYLINDER_RADIUS = 73/2 # rayon des conserves mm
 CONSERVE_ID = 47 # aruco code des conserves
-BORDER_DIST = 90
+BORDER_DIST = 135
+MAX_X = 160 # à régler
+TIMEOUT = 1  # second
 class visuConserve:
     def __init__(self):
         if not ecal_core.is_initialized():
@@ -28,6 +30,7 @@ class visuConserve:
         self.DipperArucos = []
         self.DipperClusters = []
         self.MabelClusters = []
+        self.last_time = 0
 
     def getAruco(self, topic_name, msg, time):
         camName = msg.cameraName
@@ -36,6 +39,7 @@ class visuConserve:
         ys = np.array(msg.y)
         zs = np.array(msg.z)
         Arucos = np.array(msg.ArucoId)
+        self.last_time = t.time()
         
         if camName == "dipper":
             self.DipperArucos = [indexes, xs, ys, zs, Arucos]
@@ -135,12 +139,19 @@ class visuConserve:
         plt.pause(0.001)
 
 
-    def move_far(self):
+    def cam_cons(self):
         """On considère que le robot est bien orienté et plutot loin des conserves!\n
         les bras doivent être relevé sinon on voit rien !!!"""
+        if abs(t.time()-self.last_time) > TIMEOUT:
+            return None, None
         cyl = self.getCylinders()
         dip_cyl = sorted(cyl["dipper"], key=lambda pos: pos[1],) # trier par y
         mab_cyl = sorted(cyl["mabel"], key=lambda pos: pos[1], reverse=True) # trier par y à l'envers
+        
+        all_x = [dip_cyl[i][0] for i in range(len(dip_cyl))] + [mab_cyl[i][0] for i in range(len(mab_cyl))]
+        avg_X = np.inf
+        if len(all_x):
+            avg_X = sum(all_x)/len(all_x)
         
         ld = len(dip_cyl)
         lm = len(mab_cyl)
@@ -164,20 +175,40 @@ class visuConserve:
                     else:
                         ycons = yd
                     #print("TRUST ISSUES")
-            #print(f'dipper:{round(xd,2)}  {round(yd,2)}\tmabel {round(xm,2)}  {round(ym,2)}\tmoy {round(xcons,2)}  {round(ycons,2)}\n')
+            # print(f'dipper:{round(xd,2)}  {round(yd,2)}\tmabel {round(xm,2)}  {round(ym,2)}\tmoy {round(xcons,2)}  {round(ycons,2)}\n')
             return xcons, ycons
         
+        def align_closest():
+            d_cyl = [(cyl[0],cyl[1]+CAM_DELTA/2,cyl[2]) for cyl in dip_cyl]
+            # print(d_cyl)
+            m_cyl = [(cyl[0],cyl[1]-CAM_DELTA/2,cyl[2]) for cyl in mab_cyl]
+            # print(m_cyl)
+            d_i = min(range(len(d_cyl)), key=lambda i: abs(d_cyl[i][1]))
+            m_i = min(range(len(m_cyl)), key=lambda i: abs(m_cyl[i][1]))
+            return get_cons(d_i, m_i)
+        
         xcons, ycons =  None, None
-        if easy:
-            xcons, ycons = get_cons(1,1) # on prend le 2e en partant du coté désigné
-        if _3_3_chiant:
-            xcons, ycons = get_cons(1,1,20) # on prend le 2e en partant du coté désigné ou alors on fait confiance à celui qui donne la plus grande distance
-        if _2_3_droite:
-            xcons, ycons = get_cons(1,0) # on prend le 2e et 1er 
-        if _3_2_gauche:
-            xcons, ycons = get_cons(0,1) # on prend le 1er et 2e
+        if avg_X > MAX_X:
+            #On est loin des conserves on veut s'aligner principalement selon y
+            if easy:
+                xcons, ycons = get_cons(1,1) # on prend le 2e en partant du coté désigné
+            if _3_3_chiant:
+                xcons, ycons = get_cons(1,1,20) # on prend le 2e en partant du coté désigné ou alors on fait confiance à celui qui donne la plus grande distance
+            if _2_3_droite:
+                xcons, ycons = get_cons(1,0) # on prend le 2e et 1er 
+            if _3_2_gauche:
+                xcons, ycons = get_cons(0,1) # on prend le 1er et 2e
+        else:
+            # On es proche des conserve on veut viser celles les plus en face de chaque cam
+            xcons, ycons = align_closest()
+            # print("Close mode")
+
+        
         if xcons is not None and ycons is not None:
-            print(f'cons: {round(xcons,2)}  {round(ycons,2)}\n')
+            # print(f'cons: {round(xcons,2)}  {round(ycons,2)}\n')
+            pass
+
+        
         return xcons, ycons
         
         # on devrait pas avoir à les prendre en compte (j'espère)
@@ -200,4 +231,4 @@ if __name__ == "__main__":
     while ecal_core.ok():
         v.visualize()
         # print(v.getCylinders())
-        v.move_far()
+        v.cam_cons()
