@@ -9,8 +9,18 @@ from ecal.core.publisher import ProtoPublisher
 from generated.robot_state_pb2 import Position_aruco
 from generated import CompressedImage_pb2 as cipb
 from google.protobuf.timestamp_pb2 import Timestamp
+import argparse
+from enum import Enum
+
+
+class VisuMode(Enum):
+    NO_VISU = 0
+    SCREEN = 1
+    ECAL = 2
+
+
 class ArucoFinder:
-    def __init__(self, cameraId, name):
+    def __init__(self, cameraId, name, visu=VisuMode.NO_VISU):
         """Provide Camera ID"""
         if not ecal_core.is_initialized():
             ecal_core.initialize(sys.argv, "arucoFinder")
@@ -26,7 +36,7 @@ class ArucoFinder:
         self.arucoFound = None
         self.arucosInUse = {}
         self.resolution = (640, 480) #width, height
-        self.visu_to_ecal = False
+        self.visu = visu
 
     def getCalibration(self, matrix, coefs, resolution = (640,480)):
         """Provide Calibration Matrix and distance coefs as .npy file"""
@@ -42,18 +52,17 @@ class ArucoFinder:
         # Capture vidéo
         self.arucosInUse = arucosToUse
         self.cap = cv2.VideoCapture(self.camera_Id)
+        if self.cap is None:
+            print(f"Failed to open {self.name} with id {self.camera_Id}")
+            return
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
         w, h = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         print(f"Opened camera with resolution {w}x{h}!\n")
 
         
-    def init_visu(self,w=640,h=480, visu_mode=0):
-        
-        if visu_mode == 2:
-            self.visu_to_ecal = True
-        
-        else :
+    def init_visu(self,w=640,h=480):
+        if self.visu == VisuMode.SCREEN:
             cv2.namedWindow("ArUco Positioning", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("ArUco Positioning", w, h)
         
@@ -62,8 +71,10 @@ class ArucoFinder:
         cv2.destroyAllWindows()
     
     def visualize(self):
+        if self.visu == VisuMode.NO_VISU:
+            return
         if self.corners:
-            if not self.visu_to_ecal:
+            if self.visu == VisuMode.SCREEN:
                 cv2.aruco.drawDetectedMarkers(self.frame, self.corners, self.ids)
         
         w, h = self.resolution[0],self.resolution[1]
@@ -75,7 +86,7 @@ class ArucoFinder:
         # crop the image
         x, y, w, h = roi
         dst = dst[y:y+h, x:x+w]
-        if self.visu_to_ecal:
+        if self.visu == VisuMode.ECAL:
             img_encode = cv2.imencode(".jpg", self.frame)[1]
             byte_encode = img_encode.tobytes()
             #timestamp = Timestamp()
@@ -126,73 +137,24 @@ class ArucoFinder:
 
 
 if __name__ == "__main__":
-    
-    if len(sys.argv) < 2:
-        print("Usage: ./arucoFinder.py <nb> <camera_name> <visu> <nb2> <cam_name2> <visu2>")
-        exit(1)
-    name = sys.argv[2]
-    try:
-        name2 = sys.argv[5]
-    except IndexError:
-        name2 = name
-    visu = 0
-    visu2 = 0
-    try:
-        visu = int(sys.argv[3])
-        if visu:
-            print("Visualization on")
-    except IndexError:
-        pass
-    try:
-        visu2 = int(sys.argv[6])
-        if visu2:
-            print("Visualization on")
-    except IndexError:
-        pass
-    try:
-        cam_nb =int(sys.argv[1])
-    except ValueError:
-        cam_nb = sys.argv[1]
-    try:
-        cam_nb2 =int(sys.argv[4])
-    except ValueError:
-        cam_nb2 = sys.argv[4]
-    except IndexError:
-        cam_nb2 = cam_nb
+    parser=argparse.ArgumentParser()
+    parser.add_argument('-c','--cam',action='append',nargs=3, metavar=('id','name', 'display_mode'),help='help:')
+    args = parser.parse_args()
 
-    dip, mab = False, False
-    if name == 'dipper':
-        dip = True
-    if name2 == 'mabel':
-        mab = True
-    if name == 'both':
-        dip, mab = True, True
+    cams = []
 
-    if dip:
-        print("Starting dipper")
-        dipper = ArucoFinder(cam_nb, name)
-        dipper.getCalibration('dipper_matrix_1920x1080.npy','dipper_coeffs_1920x1080.npy', (1920,1080))
-        dipper.start({47:0.022})
-        if visu:
-            dipper.init_visu(1920,1080,visu)
-    if mab :
-        print("Starting mabel")
-        mabel = ArucoFinder(cam_nb2, name2)
-        mabel.getCalibration('mabel_matrix_1920x1080.npy','mabel_coeffs_1920x1080.npy', (1920,1080))
-        mabel.start({47:0.022})
-        if visu2:
-            mabel.init_visu(1920,1080,visu2)
-    
-    if not mab and not dip:
-        print("Unregistered camera")
-        print("Registerd cameras are 'dipper' 'mabel'")
-    
+    for grp in args.cam:
+        cam_id, cam_name, disp_mode = grp
+        print(f'starting {cam_name}')
+        af = ArucoFinder(int(cam_id), cam_name, VisuMode(int(disp_mode)))
+        af.getCalibration(f'{cam_name}_matrix_1920x1080.npy', f'{cam_name}_coeffs_1920x1080.npy', (1920,1080))
+        af.start({47:0.022})
+        if disp_mode:
+            af.init_visu(1920,1080)
+        cams.append(af)
+
     while ecal_core.ok():
-        if dip :
-            dipper.update()
-            if visu:
-                dipper.visualize()
-        if mab:
-            mabel.update()
-            if visu2:
-                mabel.visualize()
+        for af in cams:
+            af.update()
+            af.visualize()
+
