@@ -6,6 +6,11 @@ The overlays and the network can probably be configured before the first boot.
 
 To begin, use the rpi imager to flash an SD card with Ubuntu 24.04.
 
+## Get this repository
+
+Clone this repository in the home directory:
+
+git clone --recurse-submodules git@github.com:ENACRobotique/rpi.git
 
 ## Overlays (UART, shutdown, bluetooth)
 
@@ -18,7 +23,8 @@ Open /boot/firmware/config.txt and make sure that the UART is enabled:
 At the end of the file, add:
 
 ```
-[all] # will be enabled for all rpi hardware
+# will be enabled for all rpi hardware
+[all]
 
 # Bluetooth: use miniuart to free the good UART for the robot
 dtoverlay=miniuart-bt
@@ -27,26 +33,33 @@ core_freq=250
 # Shutdown button
 dtoverlay=gpio-shutdown,gpio_pin=24
 
-
-[pi4] # will be enabled only  for rpi 4
+# will be enabled only  for rpi 4
+[pi4]
 
 # activate UART 3,4,5
 dtoverlay=uart3
 dtoverlay=uart4
 dtoverlay=uart5
 
-
-[pi5] # will be enabled only for rpi 5
+# will be enabled only for rpi 5
+[pi5]
 
 # activate UART 0,1,2,3,4
-dtoverlay=uart0-pi5 # Enable uart 0 on GPIOs 14-15
-dtoverlay=uart2-pi5 # Enable uart 2 on GPIOs 4-5
-dtoverlay=uart3-pi5 # Enable uart 3 on GPIOs 8-9
-dtoverlay=uart4-pi5 # Enable uart 4 on GPIOs 12-13
+# Enable uart 0 on GPIOs 14-15
+dtoverlay=uart0-pi5
+# Enable uart 2 on GPIOs 4-5
+dtoverlay=uart2-pi5
+# Enable uart 3 on GPIOs 8-9 with CTSRTS for halduplex direction
+dtoverlay=uart3-pi5,ctsrts
+# Enable uart 4 on GPIOs 12-13
+dtoverlay=uart4-pi5
 # SPI0 conflicts with UART3
 dtparam=spi=off
 # Enable RTC backup battery charging
 dtparam=rtc_bbat_vchg=3000000
+
+# a tester sans cette ligne, on ne sait pas si c'est utile
+gpu_mem=128
 
 ```
 
@@ -78,22 +91,6 @@ Copy `80-robot.rules` to `/etc/udev/rules.d/`, and edit it to change the configu
 
 Run `install_packages.sh` to install all necessary packages.
 
-## Virtual Env
-
-You will need to create a venv to use some packages such as `py-trees`. 
-Create a folder `virtualEnv` in root of the repo and in this folder and create the venv. In our case it is called `btEnv`. Use the flag `--system-site-packages` to acces system wide package in the venv so you don't need to reinstall everything.
-
-```
-mkdir virtualEnv
-python3 -m venv --system-site-packages btEnv
-```
-
-When using services you can use the venv as following :
-
-```
-ExecStart=/home/robot/rpi/virtualEnv/btEnv/bin/python /home/robot/rpi/python_program.py
-```
-
 ## Build drivers
 
 Run `../build.sh`
@@ -102,15 +99,9 @@ Run `../build.sh`
 
 Run `setup_venv.sh` to setup the python virtual environnement and install the dependencies.
 
-Add path to directories that should be included in the PYTHONPATH in `robot_enac.pth`.
-
-
 ## Manette Bluetooth
 
-Need the `bluez` package.
-
 ```
-sudo apt install bluez
 sudo bluetoothctl
 > scan on
 # Appuyer 3s sur le bouton share (en haut à droite de la croix gauche) et le bouton home (entre les joysticks). La manette doit flasher en blanc.

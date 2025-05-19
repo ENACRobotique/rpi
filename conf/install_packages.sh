@@ -7,7 +7,9 @@ sudo apt-get install -y fd-find
 # Pour faire un AP wifi
 sudo apt-get install -y network-manager
 # Pour le bluetooth
-sudo apt-get install -y bluez 
+sudo apt-get install -y bluez
+# Venv
+sudo apt-get install -y python3-venv
 # pour le joystick
 sudo apt-get install -y python3-pygame
 # Serial
