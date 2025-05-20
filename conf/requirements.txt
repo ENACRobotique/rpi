@@ -1,5 +1,5 @@
 py-trees
 scikit-learn
-opencv-python
+opencv-contrib-python
 scipy
 
