@@ -79,19 +79,21 @@ class ArucoFinder:
         
         w, h = self.resolution[0],self.resolution[1]
         newcameramtx, roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (w,h), 0, (w,h))
-        
+        src = self.frame.copy()
         # undistort
-        dst = cv2.undistort(self.frame, self.camera_matrix, self.dist_coeffs, None, newcameramtx)
+        dst = cv2.undistort(src, self.camera_matrix, self.dist_coeffs, None, newcameramtx)
         
         # crop the image
         x, y, w, h = roi
         dst = dst[y:y+h, x:x+w]
         if self.visu == VisuMode.ECAL:
-            img_encode = cv2.imencode(".jpg", self.frame)[1]
-            byte_encode = img_encode.tobytes()
-            #timestamp = Timestamp()
-            ci = cipb.CompressedImage(timestamp=Timestamp(), data=byte_encode, format='jpeg')
-            self.cam_pub.send(ci)
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10] # % de 0 à 100 : réduire => augmenter le taux de compression
+            succes, img_encode = cv2.imencode(".jpg", dst, encode_param)
+            if succes:
+                byte_encode = img_encode.tobytes()
+                #timestamp = Timestamp()
+                ci = cipb.CompressedImage(timestamp=Timestamp(), data=byte_encode, format='jpeg')
+                self.cam_pub.send(ci)
         else:
             cv2.imshow("ArUco Positioning", dst)
     
