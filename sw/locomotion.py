@@ -15,11 +15,17 @@ from common import Pos, Speed, clamp, normalize_angle
 from enum import Enum
 from threading import Thread
 
+
+class Velocity(Enum):
+    FAST = (600, 4)
+    NORMAL = (300, 2)
+    SLOW = (100, 1)
+
 RATE = 10
 #ROBOT_RADIUS = 130.5
 ACCEL_MAX = 1000
 ANG_ACCEL_MAX = 4
-VMAX = 300
+VMAX = 600
 ANG_VMAX = 2
 
 XY_ACCURACY = 10
@@ -103,7 +109,7 @@ class Locomotion(Thread):
             if distance < XY_ACCURACY and abs(d_theta) < THETA_ACCURACY:
                 self.loco_state = LocoState.FINALIZING
                 self.time_threshold = time.time()
-                print("Presque arrivé!")
+                # print("Presque arrivé!")
             elif distance > 200:
                     # progression douce du theta sur toute la trajectoire.
                     ratio = 1 - distance / self.total_dist
@@ -116,7 +122,7 @@ class Locomotion(Thread):
             if time.time() - self.time_threshold > FINALIZING_TIME:
                 self.loco_state = LocoState.IDLE
                 self.speed_pub.send(hgpb.Speed(vx=0, vy=0, vtheta=0))
-                print("Arrivé!")
+                # print("Arrivé!")
                 return
         
         # target position dans le repère robot
@@ -138,6 +144,9 @@ class Locomotion(Thread):
         # print(f"speed cons: {speed_cons}")
         self.last_speed = speed_cons
         self.last_speed_norm = speed_cons_norm
+    
+    def is_idle(self):
+        return self.loco_state == LocoState.IDLE
 
 
     def set_speed(self, speed: Speed, timeout=2):
@@ -147,11 +156,11 @@ class Locomotion(Thread):
         self.last_speed = speed
         self.last_speed_norm = speed.xy_norm()
     
-    def set_target_pos(self, target_pos: Pos):
+    def go_to(self, target_pos: Pos, speed=VMAX):
         self.target_pos = target_pos
         self.loco_state = LocoState.RUNNING
         self.total_dist = self.pos.distance(self.target_pos)
-        print(f"set target to {self.target_pos}")
+        # print(f"set target to {self.target_pos}")
     
     def reset_pos(self, pos: Pos):
         self.pos = pos
@@ -164,7 +173,7 @@ class Locomotion(Thread):
         #self.last_odom_pos_time = time.time()
     
     def on_target_pos(self, topic, msg, timestamp):
-        self.set_target_pos(Pos.from_proto(msg))
+        self.go_to(Pos.from_proto(msg))
     
     def on_reset_pos(self, topic, msg, timestamp):
         self.reset_pos(Pos.from_proto(msg))
@@ -184,6 +193,9 @@ class Locomotion(Thread):
     
     def set_move_speed(self, speed: float):
         self.speed = min(abs(speed), VMAX)
+    
+    def select_velocity(self, velocity: Velocity):
+        self.speed, _ = velocity.value
 
     def on_odom_speed(self, topic_name, msg, timestamp):
         self.odom_speed = Speed.from_proto(msg)
