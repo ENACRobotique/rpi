@@ -58,7 +58,7 @@ BATTLETRON = {
     "action_2" : 2, #bouton bumper gauche
 
 }
-
+TIMEOUT_COMMAND = 1
 PLANCHE = 0
 RENTREUR = 1
 ASSCENSEUR = 2
@@ -74,7 +74,8 @@ class JoystickEcal ():
         self.frame = FRAME_R
         self.glisseMode = PLANCHE
         self.glisseState = IDLE
-
+        self.last_time = 0
+        self.cons_timer_on = False
         ecal_core.initialize([], "Joystick")
         time.sleep(1) # on laisse ecal se reveiller
 
@@ -166,11 +167,11 @@ class JoystickEcal ():
                 
             if self.buttons[self.conf["action_1"]] == 1:
                 self.glisseMode = PLANCHE
-                self.IO_manager.ramasseGradin()
+                #self.IO_manager.ramasseGradin()
             
             if self.buttons[self.conf["action_2"]] == 1:
                 self.glisseMode = PLANCHE
-                self.IO_manager.construitGradin()
+                #self.IO_manager.construitGradin()
             
             
 
@@ -178,7 +179,23 @@ class JoystickEcal ():
             self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         
         #print(self.message)
-        self.speed_publisher.send(self.message)
+        cons_at_0 = abs(self.message.vx) < 0.1 and abs(self.message.vy) < 0.1 and abs(self.message.vtheta) <= 0.1
+        if cons_at_0:
+            print("cons at 0")
+            if not self.cons_timer_on:
+                self.last_time = time.time()
+                self.cons_timer_on = True
+                print("started timer")
+            if self.cons_timer_on :
+                timeout = abs(time.time()- self.last_time) > TIMEOUT_COMMAND
+        else:
+            timeout = False
+            self.cons_timer_on = False
+
+        if timeout:
+            print("timeout")
+        else:
+            self.speed_publisher.send(self.message)
         if self.buttons[self.conf["frame_robot"]]:
             # print("LA",self.buttons[self.conf["frame_robot"]])
             self.set_frame(FRAME_R)
@@ -214,9 +231,9 @@ if __name__ == '__main__':
     joysticks_ecal = JoystickEcal()        
     joysticks_ecal.open()
     joysticks_ecal.set_conf(BATTLETRON)
-    tree = py_trees.trees.BehaviourTree(joystick_bt(joysticks_ecal.IO_manager))
-    tree.setup(timeout=15)
-    tick = 0
+    #tree = py_trees.trees.BehaviourTree(joystick_bt(joysticks_ecal.IO_manager))
+    #tree.setup(timeout=15)
+    #tick = 0
     while True :
         for event in pygame.event.get():
             # print(event)
@@ -224,9 +241,9 @@ if __name__ == '__main__':
             # print(f'Glissière :{joysticks_ecal.glisseMode}\n')
             # print(joysticks_ecal)
         joysticks_ecal.publish_command()
-        print(f"Tick {tick} \n")
-        tree.tick()
-        tick = tick + 1
+        #print(f"Tick {tick} \n")
+        #tree.tick()
+        #tick = tick + 1
         time.sleep(0.1)
     
 
