@@ -13,7 +13,7 @@ class LiftPlanche(py_trees.behaviour.Behaviour):
         if up:
             pos = "UP"
         super().__init__(name=f"Lift {pos} planche")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.up = up
         self.done = False
         self.pos = pos
@@ -33,7 +33,7 @@ class LiftPlanche(py_trees.behaviour.Behaviour):
 class LiftConserve(py_trees.behaviour.Behaviour):
     def __init__(self, pos:ValeurActionneur):
         super().__init__(name=f"Lift {pos.name} Conserve")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.pos = pos
 
     def initialise(self) -> None:
@@ -52,7 +52,7 @@ class MoveRentreur(py_trees.behaviour.Behaviour):
         if position:
             pos = "INSIDE"
         super().__init__(name=f"Rentreur going {pos}")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.position = position
         self.done = False
         self.pos = pos
@@ -73,7 +73,7 @@ class GrabHighConserve(py_trees.behaviour.Behaviour):
         if grab:
             stat = "Grabbing"
         super().__init__(name=f"{stat} High Conserve")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.grab = grab
         self.done = False
         self.stat= stat
@@ -96,7 +96,7 @@ class GrabLowConserve(py_trees.behaviour.Behaviour):
         if grab:
             stat = "Grabbing"
         super().__init__(name=f"{stat} Low Conserve")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.grab = grab
         self.done = False
         self.stat = stat
@@ -117,7 +117,7 @@ class LockPlanche(py_trees.behaviour.Behaviour):
         if lock:
             stat = "Locking"
         super().__init__(name=f"{stat} Upper Planche")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.lock = lock
         self.done = False
         self.stat = stat
@@ -135,7 +135,7 @@ class LockPlanche(py_trees.behaviour.Behaviour):
 class DeployMacon(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name=f"Deploying Macon")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.deployed = False
 
     def initialise(self) -> None:
@@ -151,7 +151,7 @@ class DeployMacon(py_trees.behaviour.Behaviour):
 class waitCalibration(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name=f"Waiting Calibration")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
     
     def initialise(self) -> None:
         self.robot.actionneurs.calibrateLift()
@@ -167,7 +167,7 @@ class waitCalibration(py_trees.behaviour.Behaviour):
 class AlignPlanches(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name="Align Planches")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
 
     def update(self):
         a, d, _ = self.robot.vl53_planches2()
@@ -188,7 +188,7 @@ class AlignPlanches(py_trees.behaviour.Behaviour):
 class AlignConserves(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name="Align Conserves")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
 
     def update(self):
         x,y = self.robot.cameras.cam_cons()
@@ -230,7 +230,7 @@ class AlignConserves(py_trees.behaviour.Behaviour):
 class Aligne_conserve_seul(py_trees.behaviour.Behaviour):
     def __init__(self, actionneur:Actionneur):
         super().__init__(name="Align Conserve Seul")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.actionneur = actionneur
         if self.actionneur == Actionneur.AimantBasGauche:
             self.sign = 1
@@ -257,7 +257,7 @@ class Aligne_conserve_seul(py_trees.behaviour.Behaviour):
 class AvanceConserve(py_trees.behaviour.Behaviour):
     def __init__(self, actionneur:Actionneur):
         super().__init__(name="Avance Conserve")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.actionneur = actionneur
     
     def initialise(self):
@@ -274,7 +274,7 @@ class AvanceConserve(py_trees.behaviour.Behaviour):
 class AvancePlanches(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name="Avance Planches")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
     
     def initialise(self):
         _, d, _ = self.robot.vl53_planches2()
@@ -289,7 +289,7 @@ class AvancePlanches(py_trees.behaviour.Behaviour):
 class LiftBanderole(py_trees.behaviour.Behaviour):
     def __init__(self,up:bool):
         super().__init__(name="Lift Banderole")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.up = up
     
     def initialise(self):
@@ -305,7 +305,7 @@ class LiftBanderole(py_trees.behaviour.Behaviour):
 class Deplace_toi (py_trees.behaviour.Behaviour):
     def __init__(self, distance, direction_deg, vitesse):
         super().__init__(name="Deplace toi un peu en reculant")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.distance = distance
         self.direction = direction_deg
         self.vitesse = vitesse

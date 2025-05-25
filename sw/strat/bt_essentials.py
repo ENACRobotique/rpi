@@ -3,12 +3,15 @@ import sys
 import time
 sys.path.append("../..")
 from robot import Robot, Pos, Tirette
+from world import World
 
-def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot]:
+def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot, World]:
     bb = behavior.attach_blackboard_client(name="Foo Global")
     bb.register_key(key="robot", access=py_trees.common.Access.WRITE)
+    bb.register_key(key="world", access=py_trees.common.Access.WRITE)
     robot: Robot = bb.robot
-    return bb, robot
+    world: World = bb.world
+    return bb, robot, world
 
 
 class WaitSeconds(py_trees.behaviour.Behaviour):
@@ -35,7 +38,7 @@ class EndMatch(py_trees.behaviour.Behaviour):
         super().__init__(name=f"Match End ?")
         self.matchDuration=matchDuration
         self.MatchEnd = False
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.bb.register_key(key="matchTime", access=py_trees.common.Access.READ)
     
     def update(self):
@@ -127,7 +130,7 @@ class Evitement(py_trees.behaviour.Behaviour):
 class WaitMatchStart(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name=f"WaitMatchStart")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot, self.world = get_bb_robot(self)
         self.bb.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
         self.firstIN = False
         self.matchStarted = False
