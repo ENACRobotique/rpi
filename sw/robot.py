@@ -93,6 +93,7 @@ class Robot:
         self.actionneurs = IO_Manager()
         self.locomotion = locomotion.Locomotion()
         self.locomotion.start()
+        self.cameras = visuConserve()
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
         #self.proximityStatus = None

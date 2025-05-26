@@ -9,7 +9,7 @@ from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
 from generated.robot_state_pb2 import Position_aruco
 import time as t
-DIM = 400 # affichage matplotlib mm
+DIM = 500 # affichage matplotlib mm
 
 CAM_DELTA = 100 # écart entre les caméras en mm
 CLUSTER_DIST = 40 # mm à régler
@@ -17,7 +17,7 @@ CLUSTER_DIST = 40 # mm à régler
 CYLINDER_RADIUS = 73/2 # rayon des conserves mm
 CONSERVE_ID = 47 # aruco code des conserves
 BORDER_DIST = 135
-MAX_X = 160 # à régler
+MAX_X = 140 # à régler
 TIMEOUT = 1  # second
 class visuConserve:
     def __init__(self):
@@ -75,6 +75,9 @@ class visuConserve:
             if Arucos[i] == filterID :
                 points.append([xs[i], ys[i], zs[i]])
         points = np.array(points)
+
+        if points.size == 0:
+            return np.empty((0, 3))
 
         if points.ndim == 1:
             points = points.reshape(1, -1)
@@ -145,13 +148,19 @@ class visuConserve:
         if abs(t.time()-self.last_time) > TIMEOUT:
             return None, None
         cyl = self.getCylinders()
-        dip_cyl = sorted(cyl["dipper"], key=lambda pos: pos[1],) # trier par y
-        mab_cyl = sorted(cyl["mabel"], key=lambda pos: pos[1], reverse=True) # trier par y à l'envers
+        
+        dip_cyl = sorted(cyl["dipper"], key=lambda pos: pos[0],) #trier par x
+        mab_cyl = sorted(cyl["mabel"], key=lambda pos: pos[0],) #trier par x
+        dip_cyl = dip_cyl[:4] # on prend les 4 plus proche en x 
+        mab_cyl = mab_cyl[:4] # pour éliminer les objets loins du robot
+        dip_cyl = sorted(dip_cyl, key=lambda pos: pos[1],) # trier par y
+        mab_cyl = sorted(mab_cyl, key=lambda pos: pos[1], reverse=True) # trier par y à l'envers
         
         all_x = [dip_cyl[i][0] for i in range(len(dip_cyl))] + [mab_cyl[i][0] for i in range(len(mab_cyl))]
         avg_X = np.inf
         if len(all_x):
             avg_X = sum(all_x)/len(all_x)
+        # print(avg_X)
         
         ld = len(dip_cyl)
         lm = len(mab_cyl)
@@ -203,6 +212,17 @@ class visuConserve:
             xcons, ycons = align_closest()
             # print("Close mode")
 
+
+        goright = ld == 1 and lm==2
+        goleft = ld == 2 and lm==1
+        if goright:
+            # on va un peu vers la droite
+            xcons, ycons = get_cons(0,-1)
+            ycons+=100                    
+        if goleft:
+            # on va un peu vers la gauche
+            xcons, ycons = get_cons(-1,0)
+            ycons-=100
         
         if xcons is not None and ycons is not None:
             # print(f'cons: {round(xcons,2)}  {round(ycons,2)}\n')
@@ -211,17 +231,6 @@ class visuConserve:
         
         return xcons, ycons
         
-        # on devrait pas avoir à les prendre en compte (j'espère)
-        # goright = ld == 1 and lm==2
-        # goleft = ld == 2 and lm==1
-        # if goright:
-        #     # on va un peu vers la droite
-        #     xcons, ycons = get_cons(0,-1)
-        #     ycons+=100                    
-        # if goleft:
-            # # on va un peu vers la gauche
-            # xcons, ycons = get_cons(-1,0)
-            # ycons-=100
 
 
 
@@ -231,4 +240,4 @@ if __name__ == "__main__":
     while ecal_core.ok():
         v.visualize()
         # print(v.getCylinders())
-        v.cam_cons()
+        print(v.cam_cons())
