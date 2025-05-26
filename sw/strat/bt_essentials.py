@@ -81,29 +81,40 @@ class MatchTimer(py_trees.behaviour.Behaviour):
     
 class Navigate(py_trees.behaviour.Behaviour):
     """TODO"""
-    def __init__(self, dest, orientation):
+    def __init__(self, nav_cb:Callable[[Robot], tuple]):
         super().__init__(name=f"Navigating")
         self.bb = self.attach_blackboard_client(name="Foo Global")
         self.bb.register_key(key="robot", access=py_trees.common.Access.WRITE)
         self.robot: Robot = self.bb.robot
-        self.dest = dest
-        self.orientation = orientation
-        
-
+        self.nav_cb = nav_cb
+        self.done = False
+        self.nav_id = 0
 
     def initialise(self):
-        print("navigator init")
-        self.robot.pathFinder(self.dest, self.orientation)
-        self.robot.setTargetPos(self.robot.nav_pos[0])
+        if self.done:
+            return
+        self.dest, self.orientation = self.nav_cb(self.robot)
+        print("Navigation go !")
+        if not self.robot.folowingPath:
+            self.robot.pathFinder(self.dest, self.orientation)
+            self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
 
     def update(self):
-        if self.robot.hasReachedTarget():
-            del self.robot.nav_pos[0]
-            if self.robot.isNavDestReached():
-                return py_trees.common.Status.SUCCESS
-            else:
-                self.robot.setTargetPos(self.robot.nav_pos[0])
-            
+        if self.done:
+            return py_trees.common.Status.SUCCESS
+        print("Navigating...")
+        if self.robot.isNavDestReached():
+            self.done= True
+            print("Navigation end !")
+            return py_trees.common.Status.SUCCESS
+        else:
+            self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
+        if self.nav_id >= len(self.robot.nav_pos):
+            self.nav_id = -1
+        if self.robot.closeToNavPoint(self.nav_id):
+            if self.nav_id>=0:
+                self.nav_id+=1
+        print(f"Navigation :{self.robot.nav_pos[self.nav_id]} \n")
         # Moving
         return py_trees.common.Status.RUNNING
     

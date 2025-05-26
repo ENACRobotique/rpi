@@ -178,6 +178,7 @@ class Robot:
         time.sleep(1)
 
         self.nav.initialisation()
+        self.folowingPath = False
         self.actionneurs.initActionneur()
 
     def __repr__(self) -> str:
@@ -406,11 +407,19 @@ class Robot:
         self.logger.info(f"Path found : {self.nav.chemin}")
         self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
         #self.logger.info("Pos's are : ",self.nav_pos)
-
+        self.folowingPath = True
+    
+    def closeToNavPoint(self, nav_id):
+        d=sqrt((self.pos.x-self.nav_pos[nav_id].x)**2 + (self.pos.y-self.nav_pos[nav_id].y)**2)
+        return (d <= XY_ACCURACY)
+    
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
         Nécéssite de vider continuement la liste des points de nav !"""
-        return self.nav_pos == []
+        end = self.closeToNavPoint(-1)
+        if end:
+            self.folowingPath = False
+        return end 
         
     def detection(self, topic_name, msg, timestamp):
         """ Try to find ennemies 
@@ -575,6 +584,6 @@ class Robot:
 if __name__ == "__main__":
     r = Robot()
     while(True):
-        r.logger.info(r.pos)
+        # r.logger.info(r.pos)
         time.sleep(0.5)
         
