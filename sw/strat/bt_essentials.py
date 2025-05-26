@@ -143,9 +143,10 @@ class Evitement(py_trees.behaviour.Behaviour):
     - evitement basique : on s'arrete DONE  !
     - evitement intermédiare : on recule 
     - evitement avancé : on countourne"""
-    def __init__(self, robot:Robot):
+    def __init__(self):
         super().__init__(name=f"Evitement")
-        self.robot = robot
+        self.bb, self.robot = get_bb_robot(self)
+        self.bb.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
         self.evitement = False
 
     def initialise(self):
@@ -153,19 +154,23 @@ class Evitement(py_trees.behaviour.Behaviour):
         self.evitement = False
 
     def update(self):
-        if self.robot.obstacle_in_way(self.last_target):# self.last_target):
-            # print("Avoiding")
-            self.robot.setTargetPos(self.robot.pos)
+        if self.bb.matchTime == 0 :
+            return py_trees.common.Status.FAILURE
+        if self.robot.obstacle_in_way(self.last_target):
+            print("Avoiding")
+            # self.robot.setTargetPos(self.robot.pos)
+            self.robot.locomotion.set_speed(Speed(0, 0, 0))
+            # reculer ? :
+            # self.robot.locomotion.set_speed(Speed(-self.robot.speed.vx, -self.robot.speed.vy, 0), 0.5) 
             self.evitement = True
             return py_trees.common.Status.RUNNING # adversaire detecté, évitement en cours !
-        # print("Nothing to avoid")
         return py_trees.common.Status.FAILURE # pas d'advresaire detecté 
     
     def terminate(self, new_status: py_trees.common.Status):
         if new_status == py_trees.common.Status.FAILURE: ## si on a une state INVALID on préfère ne rien faire (pour l'instant)
             if self.evitement: # on verifie qu'on a evité quelque chose pour ne pas perturber le robot
-                self.robot.setTargetPos(self.last_target) # le robot repart
-                print(self.last_target)
+                # self.robot.setTargetPos(self.last_target) # le robot repart
+                print(f"Resuming: {self.last_target}\n")
 
 class WaitMatchStart(py_trees.behaviour.Behaviour):
     def __init__(self):
@@ -193,3 +198,33 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                     self.matchStarted = True
         return py_trees.common.Status.RUNNING
 
+class Recalage(py_trees.behaviour.Behaviour):
+    def __init__(self, pos_cb:Callable[[Robot], Pos], timeout=0.5):
+        """
+        pos_cb: a callback that take a Robot as parameter, and returns the recalage position
+        timeout: max ACK time
+        """
+        super().__init__(name=f"Recalage")
+        self.bb, self.robot = get_bb_robot(self)
+        self.bb.register_key(key="pos_recalage", access=py_trees.common.Access.READ)
+        self.position: Pos = None
+        self.timeout = timeout
+        self.pos_cb = pos_cb
+        self.done = False
+
+    def initialise(self):
+        if self.done:
+            return
+        self.position = self.pos_cb(self.robot)
+        self.init_time = time.time()
+        self.robot.resetPosNonBlocking(self.position)
+        print("Recalage")
+
+    def update(self):
+        if self.done:
+            return py_trees.common.Status.SUCCESS
+        if time.time() - self.init_time > self.timeout:
+            self.done = True
+            self.logger.info(f"Pos reseted to : {self.position}")
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING

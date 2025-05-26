@@ -33,8 +33,8 @@ AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
 
 # avoidance bounds 
-BOUNDS = (-100,400,-250,250)
-
+BOUNDS = (-400,400,-400,400)
+TABLE_BOUNDS = (0,3000,0,200)
 #timing for actionneur movements
 ACT_TIME = 0.5 # seconds
 
