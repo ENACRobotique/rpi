@@ -22,37 +22,44 @@ def main_bt(robot:Robot):
     
     poserBanderolle = py_trees.composites.Sequence("Poser la banderolle", True)
     poserBanderolle.add_children([
-        Deplace_toi(80,-120-4,50),
+        # MoveTo(Pos(1800,200,pi/6)),
+        Bouge(Speed(-60,-200,0),1),
+        # Recalage(banderole_recalage),
+        #Deplace_toi(-15,-120,100),
         LiftBanderole(False),
-        Deplace_toi(-250,-120-4,100)
+        Deplace_toi(-150,-120,300)
     ])
 
     chercherGradin = py_trees.composites.Sequence("Recherche d'un Gradin", True)
 
     ramasseGradin = py_trees.composites.Sequence("Rammasser un Gradin", True)
     ramasseGradin.add_children([
+        # LiftPlanche(MID),
         AlignPlanches(),
         AlignConserves(),
+        AlignPlanches(),
+        AlignConserves(),
+        # LiftPlanche(DOWN),
         AvancePlanches(),
-        GrabLowConserve(True),
-        LiftPlanche(UP),
-        GrabHighConserve(False),
-        GrabLowConserve(True),
-        LiftConserve(ValeurActionneur.AscenseurAimantUP),
-        MoveRentreur(OUTSIDE),
-        GrabHighConserve(True),
-        GrabLowConserve(False),
-        LockPlanche(True),
-        LiftConserve(ValeurActionneur.AscenseurAimantINTERMEDIAIRE), #2 lignes pas 2 definitives
-        GrabLowConserve(True),
-        LiftConserve(ValeurActionneur.AscenseurAimantDOWN),
-        GrabLowConserve(True),
-        MoveRentreur(INSIDE),
-        Aligne_conserve_seul(Actionneur.AimantBasDroit),
-        AvanceConserve(Actionneur.AimantBasDroit),
-        Aligne_conserve_seul(Actionneur.AimantBasGauche),
-        AvanceConserve(Actionneur.AimantBasGauche),
-        LiftConserve(ValeurActionneur.AscenseurAimantRAISED)
+        # GrabLowConserve(True),
+        # LiftPlanche(UP),
+        # GrabHighConserve(False),
+        # GrabLowConserve(True),
+        # LiftConserve(ValeurActionneur.AscenseurAimantUP),
+        # MoveRentreur(OUTSIDE),
+        # GrabHighConserve(True),
+        # GrabLowConserve(False),
+        # LockPlanche(True),
+        # LiftConserve(ValeurActionneur.AscenseurAimantINTERMEDIAIRE), #2 lignes pas 2 definitives
+        # GrabLowConserve(True),
+        # LiftConserve(ValeurActionneur.AscenseurAimantDOWN),
+        # GrabLowConserve(True),
+        # MoveRentreur(INSIDE),
+        # Aligne_conserve_seul(Actionneur.AimantBasDroit),
+        # AvanceConserve(Actionneur.AimantBasDroit),
+        # Aligne_conserve_seul(Actionneur.AimantBasGauche),
+        # AvanceConserve(Actionneur.AimantBasGauche),
+        # LiftConserve(ValeurActionneur.AscenseurAimantRAISED)
     ])
 
     chercherDepose = py_trees.composites.Sequence("Recherche d'une depose de Gradin", True)

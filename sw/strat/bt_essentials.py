@@ -136,7 +136,67 @@ class Move(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         # Moving
         return py_trees.common.Status.RUNNING
+    
+class MoveTo(py_trees.behaviour.Behaviour):
+    def __init__(self, position_target:Pos):
+        super().__init__(name=f"MoveTo")
+        self.bb, self.robot = get_bb_robot(self)
+        self.position_target = position_target
 
+    def initialise(self):
+        self.robot.setTargetPos(self.position_target)
+
+    def update(self):
+        if self.robot.hasReachedTarget():
+            return py_trees.common.Status.SUCCESS
+        self.robot.setTargetPos(self.position_target)
+        # Moving
+        return py_trees.common.Status.RUNNING
+
+class Deplace_toi (py_trees.behaviour.Behaviour):
+    def __init__(self, distance, direction_deg, vitesse):
+        super().__init__(name="Deplace toi un peu en reculant")
+        self.bb, self.robot = get_bb_robot(self)
+        self.distance = distance
+        self.direction = direction_deg
+        self.vitesse = vitesse
+        self.done = False
+    def initialise(self):
+        if self.done:
+            return
+        print("Deplace toi un peu en reculant")
+        self.robot.move(self.distance, radians(self.direction), self.vitesse)
+
+    def update(self):
+        if self.done:
+            return py_trees.common.Status.SUCCESS
+        if self.robot.hasReachedTarget():
+            print("Deplacement fini")
+            self.done = True
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+
+class Bouge (py_trees.behaviour.Behaviour):
+    def __init__(self, vitesse, temps):
+        super().__init__(name="Bouge")
+        self.bb, self.robot = get_bb_robot(self)
+        self.temps = temps
+        self.vitesse = vitesse
+        self.done = False
+
+    def initialise(self):
+        if self.done:
+            return
+        self.robot.locomotion.set_speed(self.vitesse,self.temps)
+    
+    def update(self):
+        if self.done:
+            return py_trees.common.Status.SUCCESS
+        if self.robot.locomotion.is_idle():
+            print("Deplacement fini")
+            self.done = True
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
 
 class Evitement(py_trees.behaviour.Behaviour):
     """TODO:

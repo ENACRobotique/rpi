@@ -373,22 +373,5 @@ class LiftBanderole(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         
         
-class Deplace_toi (py_trees.behaviour.Behaviour):
-    def __init__(self, distance, direction_deg, vitesse):
-        super().__init__(name="Deplace toi un peu en reculant")
-        self.bb, self.robot = get_bb_robot(self)
-        self.distance = distance
-        self.direction = direction_deg
-        self.vitesse = vitesse
-    
-    def initialise(self):
-        print("Deplace toi un peu en reculant")
-        self.robot.move(self.distance, radians(self.direction), self.vitesse)
-
-    def update(self):
-        if self.robot.hasReachedTarget():
-            print("Deplacement fini")
-            return py_trees.common.Status.SUCCESS
-        return py_trees.common.Status.RUNNING
 
 
