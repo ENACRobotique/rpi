@@ -8,6 +8,18 @@ from bt_essentials import*
 
 def main_bt(robot:Robot):
     
+    def position_de_depart(r):
+        return START_POS[r.color][r.strat]
+    
+    def nav_zone_fin(r):
+        return END_POS[r.color][r.strat][1]
+    
+    def destination_finale(r):
+        return END_POS[r.color][r.strat][0]
+    
+    def banderole_recalage(r):
+        return Pos(x=r.pos.x, y=105, theta=pi/6)
+    
     poserBanderolle = py_trees.composites.Sequence("Poser la banderolle", True)
     poserBanderolle.add_children([
         Deplace_toi(80,-120-4,50),

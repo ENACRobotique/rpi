@@ -2,7 +2,30 @@ import py_trees
 import sys
 import time
 sys.path.append("../..")
-from robot import Robot, Pos, Tirette
+from robot import Robot, Pos, Speed, Tirette, Team, Strat
+from math import radians
+from collections.abc import Callable
+
+START_POS = {
+    Team.JAUNE: {
+        Strat.Basique: Pos(1200, 250, radians(30)),
+        # Strat.Audacieuse: ('secureJ', -pi/2)
+    },
+    Team.BLEU: {
+        Strat.Basique: Pos(1800, 250, radians(30)),
+        # Strat.Audacieuse: ('secureB', -pi/2)
+    }
+}
+END_POS = {
+    Team.JAUNE: {
+        Strat.Basique: [Pos(200, 1400, radians(90)),('stockLatHautG',radians(90))],
+        # Strat.Audacieuse: 'midJ'
+    },
+    Team.BLEU: {
+        Strat.Basique: [Pos(2800, 1400, radians(90)),('stockLatHautD',radians(90))],
+        # Strat.Audacieuse: 'midB'
+    }
+}
 
 def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot]:
     bb = behavior.attach_blackboard_client(name="Foo Global")
@@ -27,7 +50,15 @@ class WaitSeconds(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
 
-class EndMatch(py_trees.behaviour.Behaviour):
+class EndStrat(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__(name=f"Force strat to end")
+
+    def update(self):
+        print("Strat terminée !")
+        return py_trees.common.Status.RUNNING
+    
+class MatchTimer(py_trees.behaviour.Behaviour):
     """TODO: \n 
     - update score\n
     - stop robot"""
@@ -40,9 +71,10 @@ class EndMatch(py_trees.behaviour.Behaviour):
     
     def update(self):
         if self.bb.matchTime > 0:
-            print(f"{abs(self.bb.matchTime-time.time())}")
+            #print(f"{abs(self.bb.matchTime-time.time())}")
             if abs(self.bb.matchTime-time.time()) >= self.matchDuration :
                 print("Achievement Made! The End ?")
+                self.robot.locomotion.set_speed(Speed(0, 0, 0))
                 self.robot.shuffle_play()
                 return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.FAILURE
@@ -133,6 +165,8 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
         self.matchStarted = False
 
     def update(self):
+        if self.matchStarted:    
+            return py_trees.common.Status.SUCCESS
         if self.robot.tirette == Tirette.IN:
             if not self.firstIN:
                 print("Tirette in for first time")
@@ -146,6 +180,5 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                     self.bb.matchTime = time.time()
                     self.robot.buzz(ord('E')+7)
                     self.matchStarted = True
-        if self.matchStarted:    
-            return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
+
