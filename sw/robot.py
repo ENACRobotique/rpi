@@ -33,8 +33,8 @@ AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
 
 # avoidance bounds 
-BOUNDS = (-100,400,-250,250)
-
+BOUNDS = (-400,400,-400,400)
+TABLE_BOUNDS = (0,3000,0,200)
 #timing for actionneur movements
 ACT_TIME = 0.5 # seconds
 
@@ -84,7 +84,7 @@ class Robot:
         
         self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
-        self.strat = Strat.Audacieuse
+        self.strat = Strat.Basique
         self.score = 0
         self.obstacles = []
 
@@ -93,6 +93,7 @@ class Robot:
         self.actionneurs = IO_Manager()
         self.locomotion = locomotion.Locomotion()
         self.locomotion.start()
+        self.cameras = visuConserve()
         #self.tirette = robot_pb.IHM.T_NONE
         #self.color = robot_pb.IHM.C_NONE
         #self.proximityStatus = None
@@ -172,6 +173,7 @@ class Robot:
         time.sleep(1)
 
         self.nav.initialisation()
+        self.folowingPath = False
         self.actionneurs.initActionneur()
 
     def __repr__(self) -> str:
@@ -267,7 +269,7 @@ class Robot:
         elif frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
         pos.theta = normalize_angle(pos.theta)
-        self.locomotion.set_target_pos(pos)
+        self.locomotion.go_to(pos)
         self.last_target = pos
         
         if blocking :
@@ -280,6 +282,7 @@ class Robot:
 
     def move(self, distance, direction, speed, blocking=False, timeout = 10):
         """
+        BLOQUANT\n
         avance de distance dans la direction direction, repère robot 
         """
         frame_pince = Pos(0, 0, direction)
@@ -287,11 +290,11 @@ class Robot:
         self.locomotion.set_move_speed(speed)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
-    def move_rel(self,x,y,blocking=False, timeout = 10):
-        if x : 
-            self.move(sqrt(x**2+y**2),atan2(y,x),blocking, timeout)
-        else :
-            self.move(y,pi/2*np.sign(y),blocking, timeout)
+    # def move_rel(self,x,y,blocking=False, timeout = 10):
+    #     if x : 
+    #         self.move(sqrt(x**2+y**2),atan2(y,x),blocking, timeout)
+    #     else :
+    #         self.move(y,pi/2*np.sign(y),blocking, timeout)
     
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
@@ -325,6 +328,12 @@ class Robot:
                 self.reset_pos_pub.send(position.to_proto())
                 last_time = time.time()
             time.sleep(0.1)
+
+    def resetPosNonBlocking(self,position:Pos):
+        self.logger.info(f"Reseting position to: {position} ")
+        self.reset_pos_pub.send(position.to_proto())
+        self.locomotion.reset_pos(position)
+        
     
     def onSetTargetPostition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -389,11 +398,19 @@ class Robot:
         self.logger.info(f"Path found : {self.nav.chemin}")
         self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
         #self.logger.info("Pos's are : ",self.nav_pos)
-
+        self.folowingPath = True
+    
+    def closeToNavPoint(self, nav_id):
+        d=sqrt((self.pos.x-self.nav_pos[nav_id].x)**2 + (self.pos.y-self.nav_pos[nav_id].y)**2)
+        return (d <= XY_ACCURACY)
+    
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
         Nécéssite de vider continuement la liste des points de nav !"""
-        return self.nav_pos == []
+        end = self.closeToNavPoint(-1)
+        if end:
+            self.folowingPath = False
+        return end 
         
     def detection(self, topic_name, msg, timestamp):
         """ Try to find ennemies 
@@ -558,6 +575,6 @@ class Robot:
 if __name__ == "__main__":
     r = Robot()
     while(True):
-        r.logger.info(r.pos)
+        # r.logger.info(r.pos)
         time.sleep(0.5)
         

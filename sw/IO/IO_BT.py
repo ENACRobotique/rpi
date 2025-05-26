@@ -8,24 +8,28 @@ from bt_essentials import get_bb_robot
 ##### Behavior tree pour l'automatisation #####
 
 class LiftPlanche(py_trees.behaviour.Behaviour):
-    def __init__(self, up:bool):
-        pos = "DOWN"
-        if up:
-            pos = "UP"
-        super().__init__(name=f"Lift {pos} planche")
+    def __init__(self, pos:int):
+        pos_info = "DOWN"
+        if pos == UP:
+            pos_info = "UP"
+        if pos == MID:
+            pos_info = "MID"
+        super().__init__(name=f"Lift {pos_info} planche")
         self.bb, self.robot, self.world = get_bb_robot(self)
-        self.up = up
-        self.done = False
         self.pos = pos
+        self.done = False
+        self.pos_info = pos_info
 
     def initialise(self) -> None:
-        print(f"Lift {self.pos} planche")
-        self.robot.actionneurs.liftPlanches(self.up)
+        if not self.done:
+            print(f"Lift {self.pos_info} planche")
+            self.robot.actionneurs.liftPlanches(self.pos)
         
     def update(self):
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheDroit.value):
             return py_trees.common.Status.RUNNING
         else:
+            self.done = True
             return py_trees.common.Status.SUCCESS
 
 
@@ -139,13 +143,15 @@ class DeployMacon(py_trees.behaviour.Behaviour):
         self.deployed = False
 
     def initialise(self) -> None:
-        print("Deploying Macon")
-        self.robot.actionneurs.deployMacon()
+        if not self.deployed :
+            print("Deploying Macon")
+            self.robot.actionneurs.deployMacon()
 
     def update(self):
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.BrasPince.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.VerrouPince.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantHautGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantHautDroit.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantBasGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantBasDroit.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheDroit.value):
             return py_trees.common.Status.RUNNING
         else:
+            self.deployed = True
             return py_trees.common.Status.SUCCESS
 
 class waitCalibration(py_trees.behaviour.Behaviour):
@@ -168,19 +174,30 @@ class AlignPlanches(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name="Align Planches")
         self.bb, self.robot, self.world = get_bb_robot(self)
+        self.done = False
+    
+    # def initialise(self):
+    #     print("J'essaie de m'aligner !!!!!!!!!!!!!!!!!!!!!!!")
+    # def terminate(self, new_status: py_trees.common.Status) -> None:
+    #     print("J'ai fini de m'aligner !!!!!!!!!!!!!!!!!!!!!!!")
 
     def update(self):
-        a, d, _ = self.robot.vl53_planches2()
-        if a < radians(-3):
-            # rotate left
-            self.robot.locomotion.set_speed(Speed(0, 0, -0.1))
-        elif a > radians(3):
-            # rotate right
-            self.robot.locomotion.set_speed(Speed(0, 0, 0.1))
-        else:
-            print("Planches aligned")
-            self.robot.locomotion.set_speed(Speed(0, 0, 0))
-            return py_trees.common.Status.SUCCESS
+        if not self.done:
+            try:
+                a, d, _ = self.robot.vl53_planches2()
+            except TypeError:
+                return py_trees.common.Status.RUNNING
+            if a < radians(-3):
+                # rotate left
+                self.robot.locomotion.set_speed(Speed(0, 0, -0.1))
+            elif a > radians(3):
+                # rotate right
+                self.robot.locomotion.set_speed(Speed(0, 0, 0.1))
+            else:
+                print("Planches aligned")
+                self.robot.locomotion.set_speed(Speed(0, 0, 0))
+                self.done = True
+                return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
         
 
@@ -189,25 +206,46 @@ class AlignConserves(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name="Align Conserves")
         self.bb, self.robot, self.world = get_bb_robot(self)
+        self.done = False
+        self.confirmation_align = 0
+    def initialise(self) -> None:
+        if not self.done:
+            self.confirmation_align = 0
+            self.initial_pos = self.robot.pos
+            print('Alignement Conserve')
+            self.last_time = time.time()
 
-    def update(self):
-        x,y = self.robot.cameras.cam_cons()
-        
-        if y is not None:
-            if abs(y) < 8: # mm, à régler
-                print("Je suis aligné !!!")
-                self.robot.move(0, 0, 0)
-                # self.robot.buzz(ord('G'))
-                return py_trees.common.Status.RUNNING # remplacer par succes
+    def update(self):# GROS WIP ÇA MARCHE PAS ENCORE OSCOUR
+        necessary_waiting_time = 1.5 #seconds
+        x,y = None, None
+        if not self.done:
+            if self.robot.hasReachedTarget():
+                if abs(time.time() - self.last_time) > necessary_waiting_time:
+                    print("Should see smth")
+                    x,y = self.robot.cameras.cam_cons()
+                    if y is not None:
+                        if abs(y) < 8: # mm, à régler
+                            self.confirmation_align+=1
+                            print("Je suis aligné !!!")
+                            self.robot.buzz(ord('G'))
+                            self.robot.move(0, 0, 0)
+                            # if self.confirmation_align>5:
+                            self.done = True
+                            return py_trees.common.Status.SUCCESS
+                        else:
+                            dir = -y/abs(y)
+                            # print(f"Bouge de {y} direction {'droite' if dir<0 else 'gauche'}\n")
+                            self.robot.move(abs(y), dir*radians(90), 150)
+                            # self.confirmation_align = 0
             else:
-                dir = -y/abs(y)
-                print(f"Bouge de {y} direction {'droite' if dir<0 else 'gauche'}\n")
-                self.robot.move(abs(y), dir*radians(90), 80)
-        else:
-            #On voit rien du tout
-            print("Je vois rien")
-            self.robot.move(0, 0, 0)
-            return py_trees.common.Status.FAILURE
+                self.last_time = time.time()
+            # else:
+                # if self.robot.hasReachedTarget():
+                #     self.robot.setTargetPos(self.robot.pos)
+                #     print("Je reviens à ma place")
+                #On voit rien du tout
+                # self.robot.move(0, 0, 0)
+                # return py_trees.common.Status.FAILURE
         return py_trees.common.Status.RUNNING
     
         # ix, d = self.robot.detect_best_conserve(Actionneur.AimantBasGauche)
@@ -275,49 +313,63 @@ class AvancePlanches(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name="Avance Planches")
         self.bb, self.robot, self.world = get_bb_robot(self)
+        self.done = False
+        self.x = None
     
     def initialise(self):
-        _, d, _ = self.robot.vl53_planches2()
-        self.robot.move(d-40, 0, 100)
-
+        # try:
+        #     _, d, _ = self.robot.vl53_planches2()
+        #     self.robot.move(d-40, 0, 100)
+        # except TypeError:
+        #     return py_trees.common.Status.RUNNING
+        if not self.done:
+            self.last_time = time.time()
+            print("Je m'avance vers les planches")
+    
     def update(self):
+        necessary_waiting_time = 1
+        x = None
         if self.robot.hasReachedTarget():
-            print("Avance Planches done")
-            return py_trees.common.Status.SUCCESS
+            if abs(time.time() - self.last_time) > necessary_waiting_time:
+                print("Should see smth")
+                x,y = self.robot.cameras.cam_cons()
+                if x is not None:
+                    if abs(x)< 10:
+                        print("Je suis assez près des planches")
+                        self.done = True
+                        return py_trees.common.Status.SUCCESS
+                    else:
+                        self.robot.move(x, 0, 100)
+        else:
+            self.last_time=time.time()
         return py_trees.common.Status.RUNNING
+
+        # if self.robot.hasReachedTarget():
+        #     print("Avance Planches done")
+        #     return py_trees.common.Status.SUCCESS
+        # return py_trees.common.Status.RUNNING
 
 class LiftBanderole(py_trees.behaviour.Behaviour):
     def __init__(self,up:bool):
         super().__init__(name="Lift Banderole")
         self.bb, self.robot, self.world = get_bb_robot(self)
         self.up = up
+        self.done = False
     
     def initialise(self):
+        if self.done:
+            return
         self.robot.actionneurs.liftBanderole(self.up)
 
     def update(self):
+        if self.done:
+            return py_trees.common.Status.SUCCESS
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AscenseurBanderolle.value):
             return py_trees.common.Status.RUNNING
         else:
+            if self.up == DOWN:
+                self.robot.updateScore(20)
+            self.done = True
             return py_trees.common.Status.SUCCESS
-        
-        
-class Deplace_toi (py_trees.behaviour.Behaviour):
-    def __init__(self, distance, direction_deg, vitesse):
-        super().__init__(name="Deplace toi un peu en reculant")
-        self.bb, self.robot, self.world = get_bb_robot(self)
-        self.distance = distance
-        self.direction = direction_deg
-        self.vitesse = vitesse
-    
-    def initialise(self):
-        print("Deplace toi un peu en reculant")
-        self.robot.move(self.distance, radians(self.direction), self.vitesse)
-
-    def update(self):
-        if self.robot.hasReachedTarget():
-            print("Deplacement fini")
-            return py_trees.common.Status.SUCCESS
-        return py_trees.common.Status.RUNNING
 
 

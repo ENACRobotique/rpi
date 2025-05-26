@@ -54,14 +54,15 @@ class ValeurActionneur(Enum):
 
     PlancheDELTA = 2600
 
-    BanderolleUp = 3900
-    BanderolleDown = 600
+    BanderolleUp = 4000
+    BanderolleDown = 1000
 
     
 servoPosError = 20 # on prend large
 
 UP = True
 DOWN = False
+MID = 2
 
 INSIDE = True
 OUTSIDE = False
@@ -115,9 +116,11 @@ class IO_Manager:
 
         self.liftD_up = self.liftD_init//4+100
         self.liftD_down = self.liftD_init//4+ValeurActionneur.PlancheDELTA.value+200
+        self.liftD_mid = self.liftD_down - 1500
         
         self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value+100
         self.liftG_down = self.liftG_init//4
+        self.liftG_mid = self.liftG_down + 1500
 
         self.liftCalibrated = True
         if not fg or not fd:
@@ -170,13 +173,17 @@ class IO_Manager:
             self.Servo_IO.turn(Actionneur.AscenseurAimant.value,0,0)
 
 
-    def liftPlanches(self, up:bool, sync:bool = False):
+    def liftPlanches(self, pos:int, sync:bool = False):
         """Monter ou descendre les planches\n
         Si fdc non calibrés la fonction ne fera rien"""
         if self.liftCalibrated:
-            if up:
+            if pos == UP:
                 self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up, 4000)
                 self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_up, 4000)     
+            if pos == MID:
+                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_mid, 4000)
+                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_mid, 4000)     
+
             else:
                 self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_down, 4000)
                 self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_down, 4000)                  
@@ -241,47 +248,47 @@ class IO_Manager:
         self.lockPlanche(False)
         self.grabHighConserve(False)
         self.grabLowConserve(False)
-        self.liftPlanches(DOWN)
+        self.liftPlanches(MID)
 
-    def ramasseGradin(self):
-        """BLOQUANT"""
-        self.liftPlanches(UP) #Soulève les planches
-        time.sleep(0.5)
-        self.grabHighConserve(False)        # lache les préhenseur du haut
-        self.grabLowConserve(True)          # sort les préhenseur du bas
-        time.sleep(0.3)
-        self.liftConserve(UP)      # monte les conserves
-        time.sleep(2)
-        self.moveRentreur(OUTSIDE)          # sort le rentreur
-        time.sleep(0.1)
-        self.grabHighConserve(True)         # attrape par le haut
-        time.sleep(1.5)
-        self.grabLowConserve(False)         # lache par le bas
-        time.sleep(0.25)
-        self.lockPlanche(True)              # attrape la planche du haut
-        self.liftConserve(DOWN)    # descend l'ascenseur à conserve
-        time.sleep(0.5)
+    # def ramasseGradin(self):
+    #     """BLOQUANT"""
+    #     self.liftPlanches(UP) #Soulève les planches
+    #     time.sleep(0.5)
+    #     self.grabHighConserve(False)        # lache les préhenseur du haut
+    #     self.grabLowConserve(True)          # sort les préhenseur du bas
+    #     time.sleep(0.3)
+    #     self.liftConserve(UP)      # monte les conserves
+    #     time.sleep(2)
+    #     self.moveRentreur(OUTSIDE)          # sort le rentreur
+    #     time.sleep(0.1)
+    #     self.grabHighConserve(True)         # attrape par le haut
+    #     time.sleep(1.5)
+    #     self.grabLowConserve(False)         # lache par le bas
+    #     time.sleep(0.25)
+    #     self.lockPlanche(True)              # attrape la planche du haut
+    #     self.liftConserve(DOWN)    # descend l'ascenseur à conserve
+    #     time.sleep(0.5)
 
-        self.grabLowConserve(True)          # temporaire pour eviter de peter le robot
-        time.sleep(0.7)
+    #     self.grabLowConserve(True)          # temporaire pour eviter de peter le robot
+    #     time.sleep(0.7)
 
-        self.moveRentreur(INSIDE)           # rentre les conserves
-        time.sleep(0.3)
-        self.grabLowConserve(False) # lache les préhenseur bas
+    #     self.moveRentreur(INSIDE)           # rentre les conserves
+    #     time.sleep(0.3)
+    #     self.grabLowConserve(False) # lache les préhenseur bas
     
-    def construitGradin(self):
-        """BLOQUANT"""
-        self.liftPlanches(DOWN)          # Descend la planche du 1er etage
-        time.sleep(2.5)
-        self.moveRentreur(OUTSIDE)          # Sort les conserves
-        time.sleep(1.8)
-        self.grabHighConserve(False)        # Lache les conserves
-        time.sleep(0.3)
-        self.moveRentreur(INSIDE)           # Rentre le rentreur
-        time.sleep(0.5)
-        self.lockPlanche(False)             # lache la planche du haut
-        time.sleep(0.5)
-        self.grabLowConserve(False)         # lache les conserves du bas
+    # def construitGradin(self):
+    #     """BLOQUANT"""
+    #     self.liftPlanches(DOWN)          # Descend la planche du 1er etage
+    #     time.sleep(2.5)
+    #     self.moveRentreur(OUTSIDE)          # Sort les conserves
+    #     time.sleep(1.8)
+    #     self.grabHighConserve(False)        # Lache les conserves
+    #     time.sleep(0.3)
+    #     self.moveRentreur(INSIDE)           # Rentre le rentreur
+    #     time.sleep(0.5)
+    #     self.lockPlanche(False)             # lache la planche du haut
+    #     time.sleep(0.5)
+    #     self.grabLowConserve(False)         # lache les conserves du bas
 
     def liftBanderole(self, up:bool, sync:bool = False):
         """Monter ou descendre la banderole\n

@@ -2,12 +2,12 @@ backstageJ 350 1800 stockLatHautG
 backstageB 2650 1800 stockLatHautD
 basB 1800 225 stockMidDDown
 basJ 1200 225 stockMidGDown
-midB 225 875 stockLatBasG,stockLatHautG
-midJ 2775 875 stockLatBasD,stockLatHautD
+midB 250 875 stockLatBasG,stockLatHautG
+midJ 2750 875 stockLatBasD,stockLatHautD
 stockLatBasD 2700 400 midJ,stockBasD
 stockLatBasG 300 400 midB,stockBasG
-stockLatHautD 2700 1325 backstageB,midJ,stockSecureB
-stockLatHautG 300 1325 backstageJ,midB,stockSecureJ
+stockLatHautD 2600 1325 backstageB,midJ,stockSecureB
+stockLatHautG 400 1325 backstageJ,midB,stockSecureJ
 stockBasD 2225 475 stockLatBasD,stockMidDDown
 stockBasG 775 475 stockLatBasG,stockMidGDown
 stockMidGDown 1100 700 basJ,stockBasG,stockMidDDown
