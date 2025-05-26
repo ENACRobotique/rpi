@@ -22,6 +22,9 @@ class Pos:
         if isinstance(other, int) or isinstance(other, float):
             return Pos(self.x*other, self.y*other, self.theta*other)
         raise Exception("Not implemented!")
+    
+    def copy(self):
+        return Pos(self.x, self.y, self.theta)
 
     def clamp_abs(self, other):
         clamp(-other.x, self.x, other.x)
@@ -103,6 +106,17 @@ class Speed:
     
     def xy_norm(self):
         return sqrt(self.vx**2 + self.vy**2)
+    
+    @staticmethod
+    def from_dir(dir_deg: float, speed: float):
+        """
+        dir_deg: direction in degrees
+        speed: speed in m/s
+        """
+        dir = np.radians(dir_deg)
+        vx = speed * cos(dir)
+        vy = speed * sin(dir)
+        return Speed(vx, vy, 0)
 
 def clamp(lo, val, hi):
     return min(hi, max(val, lo))

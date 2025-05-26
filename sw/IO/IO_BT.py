@@ -368,6 +368,7 @@ class LiftBanderole(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.RUNNING
         else:
             if self.up == DOWN:
+                self.world.banderole_deployed = True
                 self.robot.updateScore(20)
             self.done = True
             return py_trees.common.Status.SUCCESS

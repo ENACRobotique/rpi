@@ -29,11 +29,12 @@ if __name__ == "__main__":
     planner.add_action(MatchStartAction)
     planner.add_action(EndAction)
     planner.add_action(BanderoleAction)
+    planner.add_action(GoHomeAction)
 
     while ecal_core.ok():
         action = planner.plan()
         b = action.create_bt(r,w)
-        mainBt = Selector(f"{b.name}", False, [EndMatch(10), b])
+        mainBt = Selector(f"{b.name}", False, [MatchTimer(), b])
         
         bt = py_trees.trees.BehaviourTree(mainBt)
         bt.setup(timeout=15)

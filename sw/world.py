@@ -1,4 +1,4 @@
-
+import time
 
 class World:
     def __init__(self) -> None:
@@ -6,4 +6,13 @@ class World:
         self.MATCH_DURATION = 85        # match duration
         self.enemy_pos = None           # enemy position if known, else None
         self.matchStartTime: float = -1      # Match start time. negative if match not started
+    
+    def time_left(self) -> float:
+        if self.matchStartTime < 0:
+            return self.MATCH_DURATION
+        else:
+            return max(0, self.MATCH_DURATION - (time.time() - self.matchStartTime))
+    
+    def match_started(self) -> bool:
+        return self.matchStartTime >= 0
         

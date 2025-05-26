@@ -32,9 +32,11 @@ THETA_ACCURACY = radians(10) # radians
 AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
 
-# avoidance bounds 
-BOUNDS = (-400,400,-400,400)
-TABLE_BOUNDS = (0,3000,0,200)
+# avoidance bounds
+BOUNDS = (-250,500,-250,250)
+ROTATE_BOUNDS = (-250,250,-250,250) # bounds for rotation
+#BOUNDS = (-400,400,-400,400)
+TABLE_BOUNDS = (0,3000,0,2000)
 #timing for actionneur movements
 ACT_TIME = 0.5 # seconds
 
@@ -86,7 +88,7 @@ class Robot:
         self.tirette = Tirette.OUT
         self.strat = Strat.Basique
         self.score = 0
-        self.obstacles = []
+        self.obstacles = [] # obstacles in table frame
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
@@ -419,9 +421,9 @@ class Robot:
             
             pos, size = pos_size
             if 0+DELTA < pos.x < WIDTH-DELTA and  0+DELTA < pos.y < HEIGHT-DELTA :# exclude object out of the table
-                if sqrt((self.pos.x-pos.x)**2 + (self.pos.y-pos.y)**2) < 1500 and size < 30 : # exclude close and tiny object ( test in conditions !)
+                if self.pos.distance(pos) < 1500 and size < 30 : # exclude close and tiny object ( test in conditions !)
                     return False
-                if sqrt((self.pos.x-pos.x)**2 + (self.pos.y-pos.y)**2) < 150: # exclude object mixed up with the robot
+                if self.pos.distance(pos) < 150: # exclude object mixed up with the robot
                     return False
                 return True
             return False
@@ -447,6 +449,19 @@ class Robot:
             if x_min < obj.x < x_max and  y_min < obj.y < y_max :
                 return True
             
+        return False
+    
+    def obstacle_in_speed(self, speed: Speed):
+        """Return True if obstacles in bounds towards speed direction"""
+        bounds = BOUNDS if speed.xy_norm() > 1 else ROTATE_BOUNDS
+        dir = atan2(speed.vy, speed.vx)
+        traj_frame = Pos(self.pos.x, self.pos.y, dir)
+
+        for obj_pos, _size in self.obstacles:
+            obj = obj_pos.to_frame(traj_frame)
+            x_min, x_max, y_min, y_max = bounds
+            if x_min < obj.x < x_max and  y_min < obj.y < y_max :
+                return True
         return False
 
 # ---------------------------- #

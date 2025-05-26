@@ -5,16 +5,18 @@ from py_trees.composites import Selector, Sequence
 import sys
 sys.path.append("../..")
 from robot import Robot
+from common import Speed
 from world import World
-from IO.IO_BT import Deplace_toi, LiftBanderole
-from bt_essentials import EndMatch, Navigate, WaitMatchStart
+from IO.IO_BT import LiftBanderole
+from bt_essentials import MatchTimer, Navigate, WaitMatchStart
+from bt_essentials import Deplace_toi, EndStrat, END_POS, Bouge, WaitSeconds
 from typing import Callable
 from dataclasses import dataclass
 import time
-
+from locomotion import Velocity
 
 ##########################
-#### Action Banderole ####
+###  Action Banderole  ###
 ##########################
 
 class BanderoleAction(Action):
@@ -25,9 +27,10 @@ class BanderoleAction(Action):
         poserBanderolle = py_trees.composites.Sequence("Poser la banderolle", True)
         poserBanderolle.add_children([
             # GoTo zone banderole
-            Deplace_toi(80,-120-4,50),
+            WaitSeconds(0.5),
+            Bouge(Speed.from_dir(-120,100), 2),
             LiftBanderole(False),
-            Deplace_toi(-250,-120-4,100)
+            Bouge(Speed.from_dir(-120,-100), 2),
         ])
         return poserBanderolle
     
@@ -38,8 +41,9 @@ class BanderoleAction(Action):
         else:
             return 20
 
+
 ##########################
-####    Action End    ####
+###     Action End     ###
 ##########################
 
 class EndAction(Action):
@@ -47,12 +51,11 @@ class EndAction(Action):
     
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        return EndMatch(10)
+        return EndStrat()
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
-        if world.matchStartTime is not None and \
-            time.time() - world.matchStartTime < world.MATCH_DURATION:
+        if world.time_left() > 0:
             # tiny reward to select this one if no  other action is possible
             return 1
         else:
@@ -74,7 +77,39 @@ class MatchStartAction(Action):
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
         # match not started yet
-        if world.matchStartTime < 0:
+        if not world.match_started():
             return 1e6
         else:
             return 0
+
+##########################
+###   Action Go Home   ###
+##########################
+
+class GoHomeAction(Action):
+    name = "GoHome"
+
+    @staticmethod
+    def create_bt(robot: Robot, world: World) -> Behaviour:
+        _pos, nav_pt = END_POS[robot.color][robot.strat]
+        def nana(_):
+            return nav_pt
+        # TODO: deplacer ce bout de code
+        robot.locomotion.select_velocity(Velocity.NORMAL)
+        return Navigate(nana)
+    
+    @staticmethod
+    def reward(robot: Robot, world: World) -> float:
+        if not world.match_started():
+            return 0
+        end_pos, _nav_pt = END_POS[robot.color][robot.strat]
+        dist = robot.pos.distance(end_pos)
+        estimated_time = dist / robot.locomotion.speed + 5
+        if dist < 100:
+            # probably already at home, small reward
+            return 5
+        elif world.time_left() < estimated_time:
+            # rush to home, high reward
+            return 1000
+        else:
+            return 2
