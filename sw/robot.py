@@ -84,7 +84,7 @@ class Robot:
         
         self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
-        self.strat = Strat.Audacieuse
+        self.strat = Strat.Basique
         self.score = 0
         self.obstacles = []
 

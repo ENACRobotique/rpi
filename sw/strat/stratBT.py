@@ -4,7 +4,9 @@ import sys
 sys.path.append("../..")
 from robot import Robot
 from IO.IO_BT import * 
-from bt_essentials import*
+from bt_essentials import *
+from math import radians, pi
+import functools
 
 def main_bt(robot:Robot):
     
@@ -75,32 +77,44 @@ def main_bt(robot:Robot):
         GrabLowConserve(False),
     ])
 
-    goZoneDeFin = py_trees.composites.Sequence("Je vais en zone de fin", True)
-    
-    # todo: strat très basique 
+    # todo: strat très basique
     basicStrat = py_trees.composites.Sequence("Strat basique", True)
     basicStrat.add_children([
         WaitMatchStart(),
-        poserBanderolle
-        # DeployMacon()
-        
-        # poserBanderolle,
+        LiftBanderole(True),
+        Recalage(position_de_depart),
+        poserBanderolle,
+        Navigate(nav_zone_fin),
+        EndStrat()
+        # DeployMacon(),
+        # Recalage(position_de_depart),
+        # MoveTo(Pos(800,300,radians(90))),
+        # ramasseGradin,
         # chercherGradin,
         # ramasseGradin,
         # chercherDepose,
         # construitGradin,# 2 fois ? 
-        # goZoneDeFin,
-        
         ])
-    
     mainBt = py_trees.composites.Selector("Main BT", False)
     mainBt.add_children([
-        EndMatch(10),
-        #Evitement(robot),
-        basicStrat
+        MatchTimer(85),
+        Evitement(),
+        basicStrat,
+        
     ])
     
     return mainBt
+
+
+def post_tick_handler(snapshot_visitor, behaviour_tree):
+    print(
+        py_trees.display.unicode_tree(
+            behaviour_tree.root,
+            visited=snapshot_visitor.visited,
+            previously_visited=snapshot_visitor.visited
+        )
+    )
+
 
 # === Boucle principale ===
 if __name__ == "__main__":
@@ -113,6 +127,14 @@ if __name__ == "__main__":
     
     tree = py_trees.trees.BehaviourTree(main_bt(r))
     tree.setup(timeout=15)
+
+    snapshot_visitor = py_trees.visitors.SnapshotVisitor()
+    tree.add_post_tick_handler(
+    functools.partial(post_tick_handler,
+                      snapshot_visitor))
+    tree.visitors.append(snapshot_visitor)
+
+
     while tree.root.status != py_trees.common.Status.SUCCESS:
         tree.tick()
         time.sleep(0.01)
