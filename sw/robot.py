@@ -277,7 +277,7 @@ class Robot:
         elif frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
         pos.theta = normalize_angle(pos.theta)
-        self.locomotion.set_target_pos(pos)
+        self.locomotion.go_to(pos)
         self.last_target = pos
         
         if blocking :
@@ -290,6 +290,7 @@ class Robot:
 
     def move(self, distance, direction, speed, blocking=False, timeout = 10):
         """
+        BLOQUANT\n
         avance de distance dans la direction direction, repère robot 
         """
         frame_pince = Pos(0, 0, direction)
@@ -297,11 +298,11 @@ class Robot:
         self.locomotion.set_move_speed(speed)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
-    def move_rel(self,x,y,blocking=False, timeout = 10):
-        if x : 
-            self.move(sqrt(x**2+y**2),atan2(y,x),blocking, timeout)
-        else :
-            self.move(y,pi/2*np.sign(y),blocking, timeout)
+    # def move_rel(self,x,y,blocking=False, timeout = 10):
+    #     if x : 
+    #         self.move(sqrt(x**2+y**2),atan2(y,x),blocking, timeout)
+    #     else :
+    #         self.move(y,pi/2*np.sign(y),blocking, timeout)
     
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
@@ -335,6 +336,12 @@ class Robot:
                 self.reset_pos_pub.send(position.to_proto())
                 last_time = time.time()
             time.sleep(0.1)
+
+    def resetPosNonBlocking(self,position:Pos):
+        self.logger.info(f"Reseting position to: {position} ")
+        self.reset_pos_pub.send(position.to_proto())
+        self.locomotion.reset_pos(position)
+        
     
     def onSetTargetPostition (self, topic_name, msg, timestamp):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
