@@ -39,12 +39,11 @@ class EndMatch(py_trees.behaviour.Behaviour):
         self.matchDuration=matchDuration
         self.MatchEnd = False
         self.bb, self.robot, self.world = get_bb_robot(self)
-        self.bb.register_key(key="matchTime", access=py_trees.common.Access.READ)
     
     def update(self):
-        if self.bb.matchTime > 0:
-            print(f"{abs(self.bb.matchTime-time.time())}")
-            if abs(self.bb.matchTime-time.time()) >= self.matchDuration :
+        if self.world.matchStartTime > 0:
+            #print(f"{abs(self.bb.matchTime-time.time())}")
+            if abs(self.world.matchStartTime-time.time()) >= self.matchDuration :
                 print("Achievement Made! The End ?")
                 self.robot.shuffle_play()
                 return py_trees.common.Status.SUCCESS
@@ -131,7 +130,6 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name=f"WaitMatchStart")
         self.bb, self.robot, self.world = get_bb_robot(self)
-        self.bb.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
         self.firstIN = False
         self.matchStarted = False
 
@@ -146,7 +144,7 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
             if not self.matchStarted:
                 if self.robot.ready_to_go():
                     print("Match Started !")
-                    self.bb.matchTime = time.time()
+                    self.world.matchStartTime = time.time()
                     self.robot.buzz(ord('E')+7)
                     self.matchStarted = True
         if self.matchStarted:    

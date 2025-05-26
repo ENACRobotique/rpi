@@ -101,8 +101,6 @@ class Robot:
         #self.lastFinishedActionNumber = None
         #self.pointsEstimes =0
 
-        self.tempsDebutMatch = None
-
         m=lcd.Menu("Robot", None)
         strat_choices_page = lcd.Choice("Strat", m, [s for s in Strat], self.set_strat)
         #detect_range_page = lcd.Number("Dist detection", m, 20, 150, None)
@@ -126,9 +124,6 @@ class Robot:
         self.lcd.start()
 
         ### SUB ECAL ###
-
-        #self.matchReportSub = ProtoSubscriber('match_start',robot_pb.Match)
-        #self.matchReportSub.set_callback(self.onReceiveMatchStarted)
 
         self.positionReportSub = ProtoSubscriber("odom_pos",robot_pb.Position)
         self.positionReportSub.set_callback(self.onReceivePosition)
@@ -230,10 +225,6 @@ class Robot:
         \ntone : ['A'-'G'] + 7*octave : note à cette octave (0<=octave<=2)"""
         self.lcd.buzz = tone
         self.lcd.display()
-
-    def onReceiveMatchStarted (self, topic_name, msg, timestamp):
-        self.tempsDebutMatch = time.time()
-        ecal_core.log_message("Match started at " + str(self.tempsDebutMatch))
 
     def set_strat(self, strat):
         self.strat = strat

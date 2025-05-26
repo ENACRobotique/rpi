@@ -26,19 +26,14 @@ if __name__ == "__main__":
     blackboard.matchTime = 0
 
     planner = Planner(r, w)
-    planner.add_action(action_banderolle)
-    planner.add_action(action_end_match)
-
+    planner.add_action(MatchStartAction)
+    planner.add_action(EndAction)
+    planner.add_action(BanderoleAction)
 
     while ecal_core.ok():
         action = planner.plan()
         b = action.create_bt(r,w)
-
-        action_after_start = Sequence(f"{action.name}", True,
-                                      [WaitMatchStart(),
-                                       #poserBanderolle
-                                      ])
-        mainBt = Selector("Main BT", False, [EndMatch(10), action_after_start])
+        mainBt = Selector(f"{b.name}", False, [EndMatch(10), b])
         
         bt = py_trees.trees.BehaviourTree(mainBt)
         bt.setup(timeout=15)
