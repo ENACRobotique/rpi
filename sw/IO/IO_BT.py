@@ -8,24 +8,28 @@ from bt_essentials import get_bb_robot
 ##### Behavior tree pour l'automatisation #####
 
 class LiftPlanche(py_trees.behaviour.Behaviour):
-    def __init__(self, up:bool):
-        pos = "DOWN"
-        if up:
-            pos = "UP"
-        super().__init__(name=f"Lift {pos} planche")
+    def __init__(self, pos:int):
+        pos_info = "DOWN"
+        if pos == UP:
+            pos_info = "UP"
+        if pos == MID:
+            pos_info = "MID"
+        super().__init__(name=f"Lift {pos_info} planche")
         self.bb, self.robot = get_bb_robot(self)
-        self.up = up
-        self.done = False
         self.pos = pos
+        self.done = False
+        self.pos_info = pos_info
 
     def initialise(self) -> None:
-        print(f"Lift {self.pos} planche")
-        self.robot.actionneurs.liftPlanches(self.up)
+        if not self.done:
+            print(f"Lift {self.pos_info} planche")
+            self.robot.actionneurs.liftPlanches(self.pos)
         
     def update(self):
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheDroit.value):
             return py_trees.common.Status.RUNNING
         else:
+            self.done = True
             return py_trees.common.Status.SUCCESS
 
 
@@ -139,13 +143,15 @@ class DeployMacon(py_trees.behaviour.Behaviour):
         self.deployed = False
 
     def initialise(self) -> None:
-        print("Deploying Macon")
-        self.robot.actionneurs.deployMacon()
+        if not self.deployed :
+            print("Deploying Macon")
+            self.robot.actionneurs.deployMacon()
 
     def update(self):
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.BrasPince.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.VerrouPince.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantHautGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantHautDroit.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantBasGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AimantBasDroit.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheDroit.value):
             return py_trees.common.Status.RUNNING
         else:
+            self.deployed = True
             return py_trees.common.Status.SUCCESS
 
 class waitCalibration(py_trees.behaviour.Behaviour):
@@ -291,14 +297,22 @@ class LiftBanderole(py_trees.behaviour.Behaviour):
         super().__init__(name="Lift Banderole")
         self.bb, self.robot = get_bb_robot(self)
         self.up = up
+        self.done = False
     
     def initialise(self):
+        if self.done:
+            return
         self.robot.actionneurs.liftBanderole(self.up)
 
     def update(self):
+        if self.done:
+            return py_trees.common.Status.SUCCESS
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AscenseurBanderolle.value):
             return py_trees.common.Status.RUNNING
         else:
+            if self.up == DOWN:
+                self.robot.updateScore(20)
+            self.done = True
             return py_trees.common.Status.SUCCESS
         
         
