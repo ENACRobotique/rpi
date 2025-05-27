@@ -268,6 +268,7 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
     
     def initialise(self):
         self.last_time = time.time()
+        self.robot.lcd.set_page(self.robot.beacons_page)
 
 
     def update(self):

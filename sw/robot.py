@@ -111,8 +111,9 @@ class Robot:
         self.status_page = lcd.Text("Status", m, "---")
         self.score_page = lcd.Text("Score", m, "0")
         calibration_menu = lcd.Menu("Calibrations", m)
+        self.beacons_page = lcd.Text("Balises", m, "0 beacons")
         pid_page = lcd.Menu("PID", m)
-        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page, calibration_menu)
+        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page, calibration_menu, self.beacons_page)
 
         self.calibration_lift_state = lcd.Text("State", calibration_menu, str(self.actionneurs.liftCalibrated))
         calibration_lift_choice = lcd.Choice("Lifts", calibration_menu, ["Push to cal"], self.calibrateLift)
@@ -134,8 +135,11 @@ class Robot:
         self.speedReportSub = ProtoSubscriber("odom_speed",robot_pb.Speed)
         self.speedReportSub.set_callback(self.onReceiveSpeed)
         
-        self.amalgame_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
-        self.amalgame_sub.set_callback(self.detection)
+        self.balises_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
+        self.balises_sub.set_callback(self.detection)
+
+        self.balises_sub = ProtoSubscriber("balises_near_odom", lidar_pb.Balises)
+        self.balises_sub.set_callback(self.on_detected_beacons)
 
         # When Using Robokontrol
         self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
@@ -413,6 +417,11 @@ class Robot:
         if end:
             self.folowingPath = False
         return end 
+    
+    def on_detected_beacons(self, topic_name, msg, timestamp):
+        nb_beacons_detected = len(msg.index)
+        self.beacons_page.set_text(f"Balises", f"{nb_beacons_detected} beacons")
+        #self.lcd.display()
         
     def detection(self, topic_name, msg, timestamp):
         """ Try to find ennemies 
