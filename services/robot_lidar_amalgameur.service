@@ -1,0 +1,18 @@
+[Unit]
+Description= lidar amalgameur
+After=network.target network-online.target
+Wants=robot_lidar_driver.service
+
+[Service]
+Type=simple
+
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/drivers/lidar/amalgameur.py
+
+Restart=on-failure
+RestartSec=2 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+ 
+[Install]
+
+

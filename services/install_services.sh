@@ -10,7 +10,8 @@ rm ~/.config/systemd/user/robot_*
 for f in \
 robot_bridge \
 robot_lidar_driver \
-robot_lidar_clients \
+robot_lidar_amalgameur \
+robot_lidar_loca \
 robot_lcd \
 robot_record \
 robot_start \
@@ -29,8 +30,3 @@ systemctl --user daemon-reload
 
 # start user.default target at startup
 loginctl enable-linger $(whoami)
-
-#sudo rm /etc/systemd/system/pigpiod.service
-#sudo ln -s ~/rpi/services/pigpiod.service /etc/systemd/system/pigpiod.service
-#sudo systemctl daemon-reload
-
