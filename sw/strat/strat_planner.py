@@ -11,6 +11,7 @@ from bt_essentials import*
 from planner import Planner, Action
 from actions import *
 import ecal.core.core as ecal_core
+import musics
 
 
 # === Boucle principale ===
@@ -30,6 +31,8 @@ if __name__ == "__main__":
     planner.add_action(EndAction)
     planner.add_action(BanderoleAction)
     planner.add_action(GoHomeAction)
+
+    r.play_music(musics.smoke_on_the_water)
 
     while ecal_core.ok():
         action = planner.plan()

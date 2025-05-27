@@ -264,9 +264,19 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
         self.firstIN = False
         self.matchStarted = False
         self.color = self.robot.color
+        self.last_time = time.time()
+    
+    def initialise(self):
+        self.last_time = time.time()
+
 
     def update(self):
-        if self.matchStarted:    
+        if self.robot.color == Team.AUCUNE:
+            if time.time() - self.last_time > 0.5:
+                # Waiting for robot color to be set
+                self.robot.buzz(ord('B')+7)
+                self.last_time = time.time()
+        if self.matchStarted:
             return py_trees.common.Status.SUCCESS
         if self.robot.tirette == Tirette.IN:
             if not self.firstIN:
