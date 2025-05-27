@@ -72,7 +72,22 @@ space_oddity = [
     (ord('C') + 7, 0.35),
     (ord('D') + 7, 0.2),
     (ord('C') + 7, 0.2),
-    (ord('A') + 7, 0)
+    (ord('A') + 7, 2)
 ]
 
-playlist = [space_oddity, rick_roll, rocket_man]
+smoke_on_the_water = [
+    (ord('D'), 0.54),
+    (ord('F'), 0.54),
+    (ord('G'), 1.5*0.54),
+    (ord('D'), 0.54),
+    (ord('F'), 0.54),
+    (ord('A')+7, 0.54/2),
+    (ord('G'), 2*0.54),
+    (ord('D'), 0.54),
+    (ord('F'), 0.54),
+    (ord('G'), 1.5*0.54),
+    (ord('F'), 0.54),
+    (ord('D'), 3*0.54),
+]
+
+playlist = [smoke_on_the_water, space_oddity, rick_roll, rocket_man]
