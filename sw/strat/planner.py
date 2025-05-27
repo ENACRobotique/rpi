@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from py_trees.behaviour import Behaviour
+from py_trees.common import Status
 import sys
 sys.path.append("../..")
 from robot import Robot
@@ -21,6 +22,14 @@ class Action:
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
         raise Exception("Unimplemented!!!")
+    
+    @staticmethod
+    def start_cb(robot: Robot, world: World) -> None:
+        pass
+
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: Status) -> None:
+        pass
 
 
 

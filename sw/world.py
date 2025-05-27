@@ -6,6 +6,7 @@ class World:
         self.MATCH_DURATION = 85        # match duration
         self.enemy_pos = None           # enemy position if known, else None
         self.matchStartTime: float = -1      # Match start time. negative if match not started
+        self.backInZone = False
     
     def time_left(self) -> float:
         if self.matchStartTime < 0:

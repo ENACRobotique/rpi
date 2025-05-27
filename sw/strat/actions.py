@@ -40,6 +40,12 @@ class BanderoleAction(Action):
             return 0
         else:
             return 20
+    
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        if status == py_trees.common.Status.SUCCESS:
+            world.banderole_deployed = True
+            robot.updateScore(20)
 
 
 ##########################
@@ -94,22 +100,28 @@ class GoHomeAction(Action):
         _pos, nav_pt = END_POS[robot.color][robot.strat]
         def nana(_):
             return nav_pt
-        # TODO: deplacer ce bout de code
-        robot.locomotion.select_velocity(Velocity.NORMAL)
         return Navigate(nana)
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
-        if not world.match_started():
+        if not world.match_started() or world.backInZone:
+            # match not started or already back home
             return 0
+        
         end_pos, _nav_pt = END_POS[robot.color][robot.strat]
-        dist = robot.pos.distance(end_pos)
-        estimated_time = dist / robot.locomotion.speed + 5
-        if dist < 100:
-            # probably already at home, small reward
-            return 5
-        elif world.time_left() < estimated_time:
+        estimated_time = robot.pos.distance(end_pos) / robot.locomotion.speed + 5
+        if world.time_left() < estimated_time:
             # rush to home, high reward
             return 1000
         else:
             return 2
+    
+    @staticmethod
+    def start_cb(robot: Robot, world: World) -> None:
+        robot.locomotion.select_velocity(Velocity.NORMAL)
+    
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        if status == py_trees.common.Status.SUCCESS:
+            world.backInZone = True
+            robot.updateScore(10)
