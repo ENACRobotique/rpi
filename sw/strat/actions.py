@@ -78,7 +78,13 @@ class MatchStartAction(Action):
 
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        return WaitMatchStart()
+        match_start = py_trees.composites.Sequence("Poser la banderolle", True)
+        match_start.add_children([
+            LiftBanderole(True),
+            WaitMatchStart(),
+            LiftBanderole(True)
+        ])
+        return match_start
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:

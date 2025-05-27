@@ -354,23 +354,14 @@ class LiftBanderole(py_trees.behaviour.Behaviour):
         super().__init__(name="Lift Banderole")
         self.bb, self.robot, self.world = get_bb_robot(self)
         self.up = up
-        self.done = False
     
     def initialise(self):
-        if self.done:
-            return
         self.robot.actionneurs.liftBanderole(self.up)
 
     def update(self):
-        if self.done:
-            return py_trees.common.Status.SUCCESS
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.AscenseurBanderolle.value):
             return py_trees.common.Status.RUNNING
         else:
-            if self.up == DOWN:
-                self.world.banderole_deployed = True
-                #self.robot.updateScore(20)
-            self.done = True
             return py_trees.common.Status.SUCCESS
 
 
