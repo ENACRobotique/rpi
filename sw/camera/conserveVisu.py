@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 import numpy as np
 from sklearn.cluster import DBSCAN
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+    visu_available = True
+except:
+    visu_available = False
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 import ecal.core.core as ecal_core
@@ -236,8 +240,10 @@ class visuConserve:
 
 if __name__ == "__main__":
     v = visuConserve()
-    v.initVisualize()
+    if visu_available:
+        v.initVisualize()
     while ecal_core.ok():
-        v.visualize()
+        if visu_available:
+            v.visualize()
         # print(v.getCylinders())
         print(v.cam_cons())
