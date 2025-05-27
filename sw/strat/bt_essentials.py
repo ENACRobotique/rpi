@@ -91,12 +91,11 @@ class Navigate(py_trees.behaviour.Behaviour):
         super().__init__(name=f"Navigating")
         self.bb, self.robot, self.world = get_bb_robot(self)  # ensure blackboard and robot are initialized
         self.nav_cb = nav_cb
-        self.done = False
         self.nav_id = 0
+        self.avoiding = False
+        # TODO ajouter un timeout pour l'évitement ?
 
     def initialise(self):
-        if self.done:
-            return
         self.dest, self.orientation = self.nav_cb(self.robot)
         print("Navigation go !")
         if not self.robot.folowingPath:
@@ -104,18 +103,28 @@ class Navigate(py_trees.behaviour.Behaviour):
             self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
 
     def update(self):
-        if self.done:
-            return py_trees.common.Status.SUCCESS
-        if self.robot.isNavDestReached():
-            self.done= True
-            print("Navigation end !")
-            return py_trees.common.Status.SUCCESS
-        else:
-            if self.robot.closeToNavPoint(self.nav_id) and self.nav_id < len(self.robot.nav_pos)-1:
-                self.nav_id+=1
+        if self.robot.obstacle_in_way(self.robot.nav_pos[self.nav_id]):
+            if not self.avoiding:
+                print("Obstacle detected, stopping.")
+                self.robot.locomotion.set_speed(Speed(0, 0, 0))
+                self.avoiding = True
+        else:   # pas d'obstacle
+            if self.avoiding:
+                # resume movement after obstacle avoidance
+                print("No obstacle, resuming movement")
                 self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
-                print(f"Navigation :{self.robot.nav_pos[self.nav_id]} \n")
-        # Moving
+                self.avoiding = False
+            else:
+                # normal case, no obstacle
+
+                if self.robot.isNavDestReached():
+                    print("Navigation end !")
+                    return py_trees.common.Status.SUCCESS
+                else:
+                    if self.robot.closeToNavPoint(self.nav_id) and self.nav_id < len(self.robot.nav_pos)-1:
+                        self.nav_id+=1
+                        self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
+                        print(f"Navigation :{self.robot.nav_pos[self.nav_id]} \n")
         return py_trees.common.Status.RUNNING
     
 
@@ -132,6 +141,7 @@ class Move(py_trees.behaviour.Behaviour):
         self.robot.move(self.distance, self.direction, self.speed)
 
     def update(self):
+        print("[Move] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
         if self.robot.hasReachedTarget():
             return py_trees.common.Status.SUCCESS
         # Moving
@@ -147,6 +157,7 @@ class MoveTo(py_trees.behaviour.Behaviour):
         self.robot.setTargetPos(self.position_target)
 
     def update(self):
+        print("[MoveTo] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
         if self.robot.hasReachedTarget():
             return py_trees.common.Status.SUCCESS
         self.robot.setTargetPos(self.position_target)
@@ -168,6 +179,7 @@ class Deplace_toi (py_trees.behaviour.Behaviour):
         self.robot.move(self.distance, radians(self.direction), self.vitesse)
 
     def update(self):
+        print("[Deplace_toi] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
         if self.done:
             return py_trees.common.Status.SUCCESS
         if self.robot.hasReachedTarget():
@@ -211,39 +223,39 @@ class Bouge (py_trees.behaviour.Behaviour):
                 self.start_time = time.time()
         return py_trees.common.Status.RUNNING
 
-class Evitement(py_trees.behaviour.Behaviour):
-    """TODO:
-    - evitement basique : on s'arrete DONE  !
-    - evitement intermédiare : on recule 
-    - evitement avancé : on countourne"""
-    def __init__(self):
-        super().__init__(name=f"Evitement")
-        self.bb, self.robot, self.world = get_bb_robot(self)
-        self.bb.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
-        self.evitement = False
+# class Evitement(py_trees.behaviour.Behaviour):
+#     """TODO:
+#     - evitement basique : on s'arrete DONE  !
+#     - evitement intermédiare : on recule 
+#     - evitement avancé : on countourne"""
+#     def __init__(self):
+#         super().__init__(name=f"Evitement")
+#         self.bb, self.robot, self.world = get_bb_robot(self)
+#         self.bb.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
+#         self.evitement = False
 
-    def initialise(self):
-        self.last_target = self.robot.last_target # on retient la dernière consigne à chaque appel. Tant que update renvoie FAILURE cette fonction sera apellée
-        self.evitement = False
+#     def initialise(self):
+#         self.last_target = self.robot.last_target # on retient la dernière consigne à chaque appel. Tant que update renvoie FAILURE cette fonction sera apellée
+#         self.evitement = False
 
-    def update(self):
-        if self.bb.matchTime == 0 :
-            return py_trees.common.Status.FAILURE
-        if self.robot.obstacle_in_way(self.last_target):
-            print("Avoiding")
-            # self.robot.setTargetPos(self.robot.pos)
-            self.robot.locomotion.set_speed(Speed(0, 0, 0))
-            # reculer ? :
-            # self.robot.locomotion.set_speed(Speed(-self.robot.speed.vx, -self.robot.speed.vy, 0), 0.5) 
-            self.evitement = True
-            return py_trees.common.Status.RUNNING # adversaire detecté, évitement en cours !
-        return py_trees.common.Status.FAILURE # pas d'advresaire detecté 
+#     def update(self):
+#         if self.bb.matchTime == 0 :
+#             return py_trees.common.Status.FAILURE
+#         if self.robot.obstacle_in_way(self.last_target):
+#             print("Avoiding")
+#             # self.robot.setTargetPos(self.robot.pos)
+#             self.robot.locomotion.set_speed(Speed(0, 0, 0))
+#             # reculer ? :
+#             # self.robot.locomotion.set_speed(Speed(-self.robot.speed.vx, -self.robot.speed.vy, 0), 0.5) 
+#             self.evitement = True
+#             return py_trees.common.Status.RUNNING # adversaire detecté, évitement en cours !
+#         return py_trees.common.Status.FAILURE # pas d'advresaire detecté 
     
-    def terminate(self, new_status: py_trees.common.Status):
-        if new_status == py_trees.common.Status.FAILURE: ## si on a une state INVALID on préfère ne rien faire (pour l'instant)
-            if self.evitement: # on verifie qu'on a evité quelque chose pour ne pas perturber le robot
-                # self.robot.setTargetPos(self.last_target) # le robot repart
-                print(f"Resuming: {self.last_target}\n")
+#     def terminate(self, new_status: py_trees.common.Status):
+#         if new_status == py_trees.common.Status.FAILURE: ## si on a une state INVALID on préfère ne rien faire (pour l'instant)
+#             if self.evitement: # on verifie qu'on a evité quelque chose pour ne pas perturber le robot
+#                 # self.robot.setTargetPos(self.last_target) # le robot repart
+#                 print(f"Resuming: {self.last_target}\n")
 
 class WaitMatchStart(py_trees.behaviour.Behaviour):
     def __init__(self):
