@@ -453,7 +453,15 @@ class Robot:
     
     def obstacle_in_speed(self, speed: Speed):
         """Return True if obstacles in bounds towards speed direction"""
-        bounds = BOUNDS if speed.xy_norm() > 1 else ROTATE_BOUNDS
+        speed_norm = speed.xy_norm()
+        if speed_norm > 1:
+            bounds = BOUNDS
+            if speed_norm > 300: # if speed is too high, we adapt the bounds
+                x_min, x_max, y_min, y_max = bounds
+                coef = speed_norm / 300
+                bounds = (x_min, x_max*coef, y_min, y_max)
+        else:
+            bounds = ROTATE_BOUNDS
         dir = atan2(speed.vy, speed.vx)
         traj_frame = Pos(self.pos.x, self.pos.y, dir)
 
