@@ -5,11 +5,12 @@ from ecal.core.publisher import ProtoPublisher
 import numpy as np
 from collections import namedtuple
 from scipy.optimize import least_squares, OptimizeResult
-import time, sys
-sys.path.append("../")
+import time, sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from generated import robot_state_pb2 as robot_pb
 from generated import lidar_data_pb2 as lidar_pb
 from common import Pos
+import itertools
 
 
 class Amalgame:
@@ -99,47 +100,69 @@ class LidarLoca:
         self.send_beacons_pos(beacon_odom, self.pub_balises_odom)
     
     def amalgames_cb(self, topic_name, msg, time):
-        estimatedBeacons = self.estimate_beacons_pos(msg)
-
-        if len(estimatedBeacons) >=2:
+        def estimate_pos(estimatedBeacons):
+            assert(len(estimatedBeacons) >=2)
             result = self.estimate(estimatedBeacons)
             # TODO test result.success, and tune ftol (in least_squares args)?
-            if result.cost <  MAX_COST and len(estimatedBeacons) >= 2:
-                # only use the result if the cost is low enough and at least 2 beacons where associated.
-                self.estimated_pos = Pos.from_np(result.x)
-            else:
-                print(f"cost too high: {int(result.cost)}/{MAX_COST}")
-            self.pub_lidar.send(self.estimated_pos.to_proto())
+            estimated_pos = Pos.from_np(result.x)
+            return estimated_pos, result.cost, estimatedBeacons
+
+        estimatedBeacons_comb = self.estimate_beacons_pos(msg)
+        filtered_combs = filter(lambda x: len(x) >= 2, estimatedBeacons_comb)  # filter out combinations with less than 2 beacons
+        estimated_poses = map(estimate_pos, filtered_combs)
+        sorted_estimated_poses = list(sorted(estimated_poses, key=lambda x: x[1]))  # sort by cost
+        #print([cost for estimated_pos, cost, estimatedBeacons in sorted_estimated_poses])
+        if len(sorted_estimated_poses) > 0:
+            estimated_pos, cost, estimatedBeacons = sorted_estimated_poses[0]
+            if cost < MAX_COST:
+                self.estimated_pos = estimated_pos
+                self.pub_lidar.send(self.estimated_pos.to_proto())
+                estimated_beacons_pos = {beacon_id: am.pos for beacon_id, am in estimatedBeacons.items()}
+                self.send_beacons_pos(estimated_beacons_pos, self.pub_closest_to_odom_beacons)
+
+
+
+    
+    @staticmethod
+    def all_combinations(d):
+        # Ne garder que les clés avec des listes non vides
+        filtered_items = [(k, v) for k, v in d.items() if v]
+        if not filtered_items:
+            return [{}]  # aucune combinaison possible, mais on retourne un dict vide
+        keys, values_lists = zip(*filtered_items)
+        values_product = itertools.product(*values_lists)
+        return [dict(zip(keys, combination)) for combination in values_product]
 
     @staticmethod
-    def closest_amalgame(beacon_pos_r: Pos, amalgames: list[Amalgame]) -> tuple[Amalgame, float]:
+    def closest_amalgames(beacon_pos_r: Pos, amalgames: list[Amalgame]) -> list[Amalgame]:
         """Returns amalgame and dist of the closest amalgame in the list"""
         dists = [beacon_pos_r.distance(amalgame.pos) for amalgame in amalgames]
-        index = np.argmin(dists)
-        return amalgames[index], dists[index]
+        # filter out dists > TOLERANCE
+        dist_filtered = filter(lambda x: x[1] <= TOLERANCE, zip(amalgames, dists))
+        da_sorted = sorted(dist_filtered, key=lambda x: x[1])
+        return [amalgame for amalgame, _ in da_sorted]
 
-    def estimate_beacons_pos(self, msg) -> dict[int, Amalgame]:
+    def estimate_beacons_pos(self, msg) -> list[dict[int, Amalgame]]:
         # On filtre les amalgames qui ne sont pas des balises
         amalgames = [Amalgame(Pos(x, y, 0), size) for (x, y, size) in zip(msg.x, msg.y, msg.size) if  size < BEACON_MAX_SIZE]
         
         # {beacon_id: Amalgame}
-        estimatedBeacons: dict[int, Amalgame] = {}
+        estimatedBeacons: dict[int, list[Amalgame]] = {}
         
         for beacon_id, beacon_pos in self.BEACONS.items():
             # estimated position of the beacon in robot frame (using best estimated robot pos)
             beacon_pos_r = beacon_pos.to_frame(self.estimated_pos)
             # best candidate (Amalgame), and its distance to the theoretical position
-            candidate, dist = self.closest_amalgame(beacon_pos_r, amalgames)
+            candidates = self.closest_amalgames(beacon_pos_r, amalgames)
 
-            if dist <= TOLERANCE:
-                estimatedBeacons[beacon_id] = candidate
-
-        if len(estimatedBeacons) > 0:
-            # On ne publie que les balises trouvée
-            estimated_beacons_pos = {beacon_id: am.pos for beacon_id, am in estimatedBeacons.items()}
-            self.send_beacons_pos(estimated_beacons_pos, self.pub_closest_to_odom_beacons)
+            estimatedBeacons[beacon_id] = candidates
         
-        return estimatedBeacons
+        combinations = self.all_combinations(estimatedBeacons)
+        # for comb in combinations:
+        #     estimated_beacons_pos = {beacon_id: am.pos for beacon_id, am in comb.items()}
+        #     self.send_beacons_pos(estimated_beacons_pos, self.pub_closest_to_odom_beacons)
+        return combinations
+
     
     @staticmethod
     def jacobienne(x: np.ndarray, am_beacon_pairs: list[tuple[Pos, Pos]]):
