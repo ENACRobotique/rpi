@@ -17,6 +17,7 @@ from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
 
 plotjuggler_udp = ("192.168.42.201", 9870)
+PLOTJUGGLER = False
 
 
 class RxState(Enum):
@@ -32,8 +33,7 @@ class Duckoder(Protocol):
         self._buffer = b'  '
         self._rx_state = RxState.IDLE
         self._msg_rcv = None
-        self.send_plotjuggler = plotjuggler
-        if self.send_plotjuggler:
+        if PLOTJUGGLER:
             self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ecal_core.initialize(sys.argv, "Bridge low level")
         self.odom_pos_pub = ProtoPublisher("odom_pos", hgpb.Position)
@@ -65,7 +65,7 @@ class Duckoder(Protocol):
         for c in data:
             if self._decode(c.to_bytes(1, 'little')):
                 m = llpb.Message.FromString(self._msg_rcv)
-                if self.send_plotjuggler:
+                if PLOTJUGGLER:
                     jj = self.msg_to_json(m)
                     #print(jj)
                     self.so.sendto(jj.encode(), plotjuggler_udp)
