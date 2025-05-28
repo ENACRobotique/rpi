@@ -112,6 +112,7 @@ class Robot:
         self.score_page = lcd.Text("Score", m, "0")
         calibration_menu = lcd.Menu("Calibrations", m)
         self.beacons_page = lcd.Text("Balises", m, "0 beacons")
+        self.beacons_updates = 0
         pid_page = lcd.Menu("PID", m)
         m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page, calibration_menu, self.beacons_page)
 
@@ -419,9 +420,11 @@ class Robot:
         return end 
     
     def on_detected_beacons(self, topic_name, msg, timestamp):
-        nb_beacons_detected = len(msg.index)
-        self.beacons_page.set_text(f"Balises", f"{nb_beacons_detected} beacons")
-        #self.lcd.display()
+        if self.lcd.current_page == self.beacons_page:
+            nb_beacons_detected = len(msg.index)
+            self.lcd.buzz = ord('0')
+            self.beacons_updates += 1
+            self.beacons_page.set_text(f"Balises", f"{nb_beacons_detected} beacons {self.beacons_updates}")
         
     def detection(self, topic_name, msg, timestamp):
         """ Try to find ennemies 
