@@ -14,7 +14,6 @@ from typing import Callable
 from dataclasses import dataclass
 import time
 from locomotion import Velocity
-import subprocess
 
 ##########################
 ###  Action Banderole  ###
@@ -94,10 +93,6 @@ class MatchStartAction(Action):
             return 1e6
         else:
             return 0
-    
-    @staticmethod
-    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
-        subprocess.Popen(['ecal_rec', '-r', '110', '--activate'])
 
 ##########################
 ###   Action Go Home   ###
@@ -135,4 +130,7 @@ class GoHomeAction(Action):
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
             world.backInZone = True
+            # On lève la pince et on l'avance le plus possible pour avoir la projection verticale dans la zone de fin
+            robot.actionneurs.deployPince(True)
+            robot.actionneurs.lockPlanche(False)
             robot.updateScore(10)

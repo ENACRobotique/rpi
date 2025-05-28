@@ -19,11 +19,11 @@ START_POS = {
 }
 END_POS = {
     Team.JAUNE: {
-        Strat.Basique: [Pos(200, 1400, radians(90)),('stockLatHautG',radians(90))],
+        Strat.Basique: [Pos(200, 1400, radians(90)),('finJ',radians(90))],
         # Strat.Audacieuse: 'midJ'
     },
     Team.BLEU: {
-        Strat.Basique: [Pos(2800, 1400, radians(90)),('stockLatHautD',radians(90))],
+        Strat.Basique: [Pos(2800, 1400, radians(90)),('finB',radians(90))],
         # Strat.Audacieuse: 'midB'
     }
 }
@@ -268,7 +268,6 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
     
     def initialise(self):
         self.last_time = time.time()
-        self.robot.lcd.set_page(self.robot.beacons_page)
 
 
     def update(self):
