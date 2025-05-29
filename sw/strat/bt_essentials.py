@@ -27,7 +27,14 @@ END_POS = {
         # Strat.Audacieuse: 'midB'
     }
 }
-
+INTEREST = {
+    Team.JAUNE:{
+        Strat.Basique: ('G3', radians(-90)),
+    },
+    Team.BLEU:{
+        Strat.Basique: ('G4', radians(-90)),
+    }
+}
 def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot, World]:
     bb = behavior.attach_blackboard_client(name="Foo Global")
     bb.register_key(key="robot", access=py_trees.common.Access.WRITE)

@@ -414,7 +414,7 @@ class Robot:
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
         Nécéssite de vider continuement la liste des points de nav !"""
-        end = self.closeToNavPoint(-1)
+        end = self.closeToNavPoint(-1) and self.hasReachedTarget()
         if end:
             self.folowingPath = False
         return end 

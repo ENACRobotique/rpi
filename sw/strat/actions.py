@@ -9,7 +9,7 @@ from common import Speed
 from world import World
 from IO.IO_BT import LiftBanderole
 from bt_essentials import MatchTimer, Navigate, WaitMatchStart
-from bt_essentials import Deplace_toi, EndStrat, END_POS, Bouge, WaitSeconds
+from bt_essentials import Deplace_toi, EndStrat, END_POS, Bouge, WaitSeconds, INTEREST
 from typing import Callable
 from dataclasses import dataclass
 import time
@@ -30,7 +30,7 @@ class BanderoleAction(Action):
             WaitSeconds(0.5),
             Bouge(Speed.from_dir(-120,100), 2),
             LiftBanderole(False),
-            Bouge(Speed.from_dir(-120,-100), 2),
+            Bouge(Speed.from_dir(-120,-100), 3),
         ])
         return poserBanderolle
     
@@ -134,3 +134,38 @@ class GoHomeAction(Action):
             robot.actionneurs.deployPince(True)
             robot.actionneurs.lockPlanche(False)
             robot.updateScore(10)
+
+##########################
+###   Action PoussePousse   ###
+##########################
+
+class PoussePousse(Action):
+    name = "poussepousse"
+
+    @staticmethod
+    def create_bt(robot: Robot, world: World) -> Behaviour:
+        nav_pt = INTEREST[robot.color][robot.strat]
+        def nana(_):
+            return nav_pt
+        simple_pousse = py_trees.composites.Sequence("poussepousse", True)
+        simple_pousse.add_children([
+            Navigate(nana),
+            Bouge(Speed(100,0,0), 3),
+            Bouge(Speed(-100,0,0), 2),
+        ])
+        return simple_pousse
+    
+    @staticmethod
+    def reward(robot: Robot, world: World) -> float:
+        gradin = INTEREST[robot.color][robot.strat][0]
+        if world.Gradin[gradin]:
+            return 0
+        else:
+            return 5
+    
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        if status == py_trees.common.Status.SUCCESS:
+            gradin = INTEREST[robot.color][robot.strat][0]
+            world.Gradin[gradin] = True
+            robot.updateScore(4)
