@@ -13,16 +13,21 @@ from ecal.core.subscriber import ProtoSubscriber
 from ecal.core.publisher import ProtoPublisher
 from generated.robot_state_pb2 import Position_aruco
 import time as t
+from scipy.spatial.transform import Rotation
 DIM = 500 # affichage matplotlib mm
 
 CAM_DELTA = 100 # écart entre les caméras en mm
-CLUSTER_DIST = 40 # mm à régler
+CLUSTER_DIST = 10 # mm à régler
 
 CYLINDER_RADIUS = 73/2 # rayon des conserves mm
 CONSERVE_ID = 47 # aruco code des conserves
 BORDER_DIST = 135
 MAX_X = 140 # à régler
 TIMEOUT = 1  # second
+
+
+
+
 class visuConserve:
     def __init__(self):
         if not ecal_core.is_initialized():
@@ -43,61 +48,71 @@ class visuConserve:
         ys = np.array(msg.y)
         zs = np.array(msg.z)
         Arucos = np.array(msg.ArucoId)
+        qxs = np.array(msg.qx)
+        qys = np.array(msg.qy)
+        qzs = np.array(msg.qz)
+        qws = np.array(msg.qw)
+
+        rots = [Rotation.from_quat([x,y,z,w]) for (x,y,z,w) in zip(qxs, qys, qzs, qws)]
+
         self.last_time = t.time()
+
+        Xs = [(x,y,rot) for (x,y,rot,ar) in zip(xs, ys, rots, Arucos) if ar==CONSERVE_ID]
         
         if camName == "dipper":
-            self.DipperArucos = [indexes, xs, ys, zs, Arucos]
-            self.DipperClusters = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
+            self.DipperArucos = [indexes, xs, ys, zs, Arucos, rots]
+            self.DipperClusters = self.get_cluster(Xs)
         else:
             self.MabelArucos = [indexes, xs, ys, zs, Arucos]
-            self.MabelClusters = self.arucoCluster(xs, ys, zs, Arucos, CONSERVE_ID)
+            self.MabelClusters = self.get_cluster(Xs)
+
+    @staticmethod
+    def get_center_pos(x,y, rot: Rotation):
+        (_phi, theta, _psi) = rot.as_euler("zyx")
+        alpha = theta
+        xc = x + CYLINDER_RADIUS * np.cos(alpha)
+        yc = y + CYLINDER_RADIUS * np.sin(-alpha)
+        #print(f"{np.degrees(alpha):.0f} {x:.0f}:{xc-x:.0f} {y:.0f}:{yc-y:.0f}")
+        return xc, yc
+    
+    @staticmethod
+    def get_cluster(Xs):
+        centers = np.array([visuConserve.get_center_pos(x,y,rot) for (x,y,rot) in Xs])
+        clustering = DBSCAN(eps=CLUSTER_DIST, min_samples=1).fit(centers)
+        labels = clustering.labels_
+
+        # Moyenne des positions pour chaque cylindre
+        cyl_positions = []
+        for label in set(labels):
+            group = centers[labels == label]
+            center = group.mean(axis=0)
+            cyl_positions.append(center)
+
+        cyl_positions = np.array(cyl_positions)
+        return cyl_positions
+        
+
+
 
     def getCylinders(self):
         """Position des centres des cylindres par rapport au centre des deux caméras"""
         camCylinders = {}
         cyl = []
         for cluster in self.DipperClusters:
-            x = cluster[0]+CYLINDER_RADIUS-BORDER_DIST
+            x = cluster[0]-BORDER_DIST
             y = cluster[1]-CAM_DELTA/2
-            z = cluster[2]
-            cyl.append([x,y,z])
+            cyl.append([x,y])
         camCylinders["dipper"] =  cyl
         
         cyl = []
         for cluster in self.MabelClusters:
-            x = cluster[0]+CYLINDER_RADIUS-BORDER_DIST
+            x = cluster[0]-BORDER_DIST
             y = cluster[1]+CAM_DELTA/2
-            z = cluster[2]
-            cyl.append([x,y,z])
+            cyl.append([x,y])
         camCylinders["mabel"] =  cyl
         
         return camCylinders
 
-    def arucoCluster(self, xs, ys, zs, Arucos, filterID):
-        points = []
-        for i in range(len(Arucos)):
-            if Arucos[i] == filterID :
-                points.append([xs[i], ys[i], zs[i]])
-        points = np.array(points)
-
-        if points.size == 0:
-            return np.empty((0, 3))
-
-        if points.ndim == 1:
-            points = points.reshape(1, -1)
-        # Groupement en cylindres (selon x, y)
-        clustering = DBSCAN(eps=CLUSTER_DIST, min_samples=1).fit(points[:, [0, 1]])
-        labels = clustering.labels_
-
-        # Moyenne des positions pour chaque cylindre
-        cyl_positions = []
-        for label in set(labels):
-            group = points[labels == label]
-            center = group.mean(axis=0)
-            cyl_positions.append(center)
-
-        cyl_positions = np.array(cyl_positions)
-        return cyl_positions
     
     def initVisualize(self):
         """Call once before calling visualize"""
@@ -192,9 +207,9 @@ class visuConserve:
             return xcons, ycons
         
         def align_closest():
-            d_cyl = [(cyl[0],cyl[1]+CAM_DELTA/2,cyl[2]) for cyl in dip_cyl]
+            d_cyl = [(cyl[0],cyl[1]+CAM_DELTA/2) for cyl in dip_cyl]
             # print(d_cyl)
-            m_cyl = [(cyl[0],cyl[1]-CAM_DELTA/2,cyl[2]) for cyl in mab_cyl]
+            m_cyl = [(cyl[0],cyl[1]-CAM_DELTA/2) for cyl in mab_cyl]
             # print(m_cyl)
             d_i = min(range(len(d_cyl)), key=lambda i: abs(d_cyl[i][1]))
             m_i = min(range(len(m_cyl)), key=lambda i: abs(m_cyl[i][1]))

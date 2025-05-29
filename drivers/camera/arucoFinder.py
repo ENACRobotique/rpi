@@ -11,6 +11,7 @@ from generated import CompressedImage_pb2 as cipb
 from google.protobuf.timestamp_pb2 import Timestamp
 import argparse
 from enum import Enum
+from scipy.spatial.transform import Rotation
 
 
 class VisuMode(Enum):
@@ -107,26 +108,38 @@ class ArucoFinder:
         # Détection ArUco
         self.corners, self.ids, rejected = self.aruco_detector.detectMarkers(gray)
         
-        if self.ids is not None :
-            if len(self.ids) > 0:
-                xs, ys, zs, ids, aruIds= [],[],[],[],[]
-                # On cherche tout les couples aruco/taille voulu
-                for aruco_id, size in self.arucosInUse.items():
-                    indices = [i for i, id_ in enumerate(self.ids) if id_[0] == aruco_id]
-                    # Estimation de la pose
-                    if indices:
-                        selected_corners = [self.corners[i] for i in indices]
-                        self.rvecs, self.tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(selected_corners, size, self.camera_matrix, self.dist_coeffs)
+        if self.ids is not None and len(self.ids) > 0:
+            xs, ys, zs, ids, aruIds= [],[],[],[],[]
+            qws, qxs, qys, qzs = [],[],[],[]
+            # On cherche tout les couples aruco/taille voulu
+            for aruco_id, size in self.arucosInUse.items():
+                indices = [i for i, id_ in enumerate(self.ids) if id_[0] == aruco_id]
+                # Estimation de la pose
+                if indices:
+                    selected_corners = [self.corners[i] for i in indices]
+                    self.rvecs, self.tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(selected_corners, size, self.camera_matrix, self.dist_coeffs)
+                    
 
-                        # Extraction des positions 3D des ArUco
-                        if self.tvecs is not None:
-                            for i,tv  in enumerate(self.tvecs):
-                                xs.append(tv[0][2]*1000) #to mm
-                                ys.append(tv[0][0]*1000) #to mm
-                                zs.append(-tv[0][1]*1000) #to mm
-                                ids.append(i)
-                                aruIds.append(self.ids[i][0])
-                self.arucoFound = Position_aruco(index = ids, x=xs, y=ys, z=zs, ArucoId = aruIds, cameraName = self.name)
+                    # Extraction des positions 3D des ArUco
+                    if self.tvecs is not None:
+                        for i,(rv, tv)  in enumerate(zip(self.rvecs, self.tvecs)):
+                            xs.append(tv[0][2])
+                            ys.append(tv[0][0])
+                            zs.append(-tv[0][1])
+                            ids.append(i)
+                            aruIds.append(self.ids[i][0])
+
+                            # Convert rvec to rotation matrix
+                            rotation_matrix, _ = cv2.Rodrigues(np.array(rv))
+                            ### first transform the matrix to euler angles
+                            r =  Rotation.from_matrix(rotation_matrix)
+                            (qx, qy, qz, qw) = r.as_quat(False)
+                            qxs.append(qx)
+                            qys.append(qy)
+                            qzs.append(qz)
+                            qws.append(qw)
+
+                self.arucoFound = Position_aruco(index = ids, x=xs, y=ys, z=zs, qx=qxs, qy=qys, qz=qzs, qw=qws, ArucoId = aruIds, cameraName = self.name)
                 self.aruco_pub.send(self.arucoFound)
                 nb = f"Visible:{len(ids)}"
                 cv2.putText(self.frame, nb, (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -150,7 +163,7 @@ if __name__ == "__main__":
         print(f'starting {cam_name}')
         af = ArucoFinder(int(cam_id), cam_name, VisuMode(int(disp_mode)))
         af.getCalibration(f'{cam_name}_matrix_1920x1080.npy', f'{cam_name}_coeffs_1920x1080.npy', (1920,1080))
-        af.start({47:0.022})
+        af.start({47:22})
         if disp_mode:
             af.init_visu(1920,1080)
         cams.append(af)
