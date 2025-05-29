@@ -150,7 +150,7 @@ class PoussePousse(Action):
         simple_pousse = py_trees.composites.Sequence("poussepousse", True)
         simple_pousse.add_children([
             Navigate(nana),
-            Bouge(Speed(100,0,0), 3),
+            Bouge(Speed(100,0,0), 5),
             Bouge(Speed(-100,0,0), 2),
         ])
         return simple_pousse
