@@ -284,6 +284,10 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                 self.robot.buzz(ord('B')+7)
                 self.last_time = time.time()
         if self.matchStarted:
+            # last check
+            desired_pos = START_POS[self.color][self.robot.strat]
+            if self.robot.pos.distance(desired_pos) > 200:
+                self.robot.resetPosNonBlocking(desired_pos)
             return py_trees.common.Status.SUCCESS
         if self.robot.tirette == Tirette.IN:
             if not self.firstIN:
