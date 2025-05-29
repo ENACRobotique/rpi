@@ -8,7 +8,7 @@ Wants=robot_lidar_amalgameur.service
 Wants=robot_lidar_loca.service
 Wants=robot_vl53.service
 Wants=robot_IO.service
-Wants=robot_aruco.service
+#Wants=robot_aruco.service
 Wants=robot_strat.service
 Wants=robot_joystick.service
 

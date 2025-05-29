@@ -29,7 +29,7 @@ WIDTH = 3000
 DELTA = 40
 XY_ACCURACY = 15  # mm
 THETA_ACCURACY = radians(10) # radians
-AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
+#AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
 
 # avoidance bounds
@@ -471,10 +471,10 @@ class Robot:
         speed_norm = speed.xy_norm()
         if speed_norm > 1:
             bounds = BOUNDS
-            if speed_norm > 300: # if speed is too high, we adapt the bounds
-                x_min, x_max, y_min, y_max = bounds
-                coef = speed_norm / 300
-                bounds = (x_min, x_max*coef, y_min, y_max)
+            #if speed_norm > 300: # if speed is too high, we adapt the bounds
+            #    x_min, x_max, y_min, y_max = bounds
+            #    coef = speed_norm / 300
+            #    bounds = (x_min, x_max*coef, y_min, y_max)
         else:
             bounds = ROTATE_BOUNDS
         dir = atan2(speed.vy, speed.vx)

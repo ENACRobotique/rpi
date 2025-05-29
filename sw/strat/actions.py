@@ -15,6 +15,7 @@ from dataclasses import dataclass
 import time
 from locomotion import Velocity
 import subprocess
+from IO.IO_BT import *
 ##########################
 ###  Action Banderole  ###
 ##########################
@@ -95,6 +96,10 @@ class MatchStartAction(Action):
             return 0
     
     @staticmethod
+    def start_cb(robot, world):
+        robot.lcd.set_page(robot.beacons_page)
+
+    @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
             subprocess.Popen(["ecal_rec","-r","110","--activate"])
@@ -168,7 +173,11 @@ class PoussePousse(Action):
             return 0
         else:
             return 5
-    
+    @staticmethod
+    def start_cb(robot: Robot, world: World) -> None:
+        robot.locomotion.select_velocity(Velocity.NORMAL)
+        robot.actionneurs.moveRentreur(INSIDE)
+
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
