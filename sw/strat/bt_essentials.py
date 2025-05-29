@@ -19,15 +19,22 @@ START_POS = {
 }
 END_POS = {
     Team.JAUNE: {
-        Strat.Basique: [Pos(200, 1400, radians(90)),('stockLatHautG',radians(90))],
+        Strat.Basique: [Pos(200, 1400, radians(90)),('finJ',radians(90))],
         # Strat.Audacieuse: 'midJ'
     },
     Team.BLEU: {
-        Strat.Basique: [Pos(2800, 1400, radians(90)),('stockLatHautD',radians(90))],
+        Strat.Basique: [Pos(2800, 1400, radians(90)),('finB',radians(90))],
         # Strat.Audacieuse: 'midB'
     }
 }
-
+INTEREST = {
+    Team.JAUNE:{
+        Strat.Basique: ('G3', radians(-90)),
+    },
+    Team.BLEU:{
+        Strat.Basique: ('G4', radians(-90)),
+    }
+}
 def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot, World]:
     bb = behavior.attach_blackboard_client(name="Foo Global")
     bb.register_key(key="robot", access=py_trees.common.Access.WRITE)
@@ -105,13 +112,13 @@ class Navigate(py_trees.behaviour.Behaviour):
     def update(self):
         if self.robot.obstacle_in_way(self.robot.nav_pos[self.nav_id]):
             if not self.avoiding:
-                print("Obstacle detected, stopping.")
+                self.robot.log("Obstacle detected, stopping.")
                 self.robot.locomotion.set_speed(Speed(0, 0, 0))
                 self.avoiding = True
         else:   # pas d'obstacle
             if self.avoiding:
                 # resume movement after obstacle avoidance
-                print("No obstacle, resuming movement")
+                self.robot.log("No obstacle, resuming movement")
                 self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
                 self.avoiding = False
             else:
@@ -124,7 +131,7 @@ class Navigate(py_trees.behaviour.Behaviour):
                     if self.robot.closeToNavPoint(self.nav_id) and self.nav_id < len(self.robot.nav_pos)-1:
                         self.nav_id+=1
                         self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
-                        print(f"Navigation :{self.robot.nav_pos[self.nav_id]} \n")
+                        self.robot.log(f"Navigation :{self.robot.nav_pos[self.nav_id]} \n")
         return py_trees.common.Status.RUNNING
     
 
@@ -210,12 +217,12 @@ class Bouge (py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         if self.robot.obstacle_in_speed(self.vitesse):
             if self.pause_time is None:
-                print(f"Obstacle detected, stopping.   {self.vitesse}")
+                self.robot.log(f"Obstacle detected, stopping.   {self.vitesse}")
                 self.robot.locomotion.set_speed(Speed(0, 0, 0), 10)
                 self.pause_time = time.time()
         else:   # pas d'obstacle
             if self.pause_time is not None:
-                print("No obstacle, resuming movement")
+                self.robot.log("No obstacle, resuming movement")
                 time_left = self.temps - (self.pause_time - self.start_time)
                 self.robot.locomotion.set_speed(self.vitesse, time_left)
                 self.pause_time = None
@@ -280,14 +287,14 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         if self.robot.tirette == Tirette.IN:
             if not self.firstIN:
-                print("Tirette in for first time")
+                self.robot.log("Tirette in for first time")
                 self.robot.buzz(ord('B'))
             self.firstIN = True
         
         if self.firstIN :
             if not self.matchStarted:
                 if self.robot.ready_to_go():
-                    print("Match Started !")
+                    self.robot.log("Match Started !")
                     self.world.matchStartTime = time.time()
                     self.robot.buzz(ord('E')+7)
                     self.matchStarted = True
@@ -324,6 +331,6 @@ class Recalage(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         if time.time() - self.init_time > self.timeout:
             self.done = True
-            self.logger.info(f"Pos reseted to : {self.position}")
+            self.robot.log(f"Pos reseted to : {self.position}")
             return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING

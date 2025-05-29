@@ -13,12 +13,11 @@ network:
             optional: true
             addresses: [10.5.141.1/24]
             access-points:
-                "Robot_ENAC":
-                    password: "PasSw0rd"
+               "Robot_ENAC":
+                    password: "robotcities"
                     mode: ap
+
             routes:
               - to: 239.0.0.0/4
                 scope: link
                     #dhcp4: true
-                #robot:
-                #    password: "mange de la raclette"
