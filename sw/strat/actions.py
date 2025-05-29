@@ -163,8 +163,8 @@ class PoussePousse(Action):
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
-        gradin = INTEREST[robot.color][robot.strat][0]
-        if world.Gradin[gradin]:
+        # gradin = INTEREST[robot.color][robot.strat][0]
+        if world.gradin_pousse_pousse:
             return 0
         else:
             return 5
@@ -172,6 +172,6 @@ class PoussePousse(Action):
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
-            gradin = INTEREST[robot.color][robot.strat][0]
-            world.Gradin[gradin] = True
+            # gradin = INTEREST[robot.color][robot.strat][0]
+            world.gradin_pousse_pousse = True
             robot.updateScore(4)
