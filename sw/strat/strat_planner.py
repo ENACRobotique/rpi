@@ -42,14 +42,16 @@ if __name__ == "__main__":
         
         bt = py_trees.trees.BehaviourTree(mainBt)
         bt.setup(timeout=15)
-        print(f"Launching new action: {action.name}")
+        r.log(f"Launching new action: {action.name}")
+        # print(f"Launching new action: {action.name}")
         action.start_cb(r, w)
         while bt.root.status != py_trees.common.Status.SUCCESS and \
                 bt.root.status != py_trees.common.Status.FAILURE:
             bt.tick()
             time.sleep(0.01)
         action.end_cb(r, w, bt.root.status)
-        print(f"action {action.name} finished with status {bt.root.status.name}")
+        r.log(f"action {action.name} finished with status {bt.root.status.name}")
+        # print(f"action {action.name} finished with status {bt.root.status.name}")
     
     ecal_core.finalize()
     r.actionneurs.Servo_IO.client.destroy()
