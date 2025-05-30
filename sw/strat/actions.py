@@ -8,7 +8,7 @@ from robot import Robot
 from common import Speed
 from world import World
 from IO.IO_BT import LiftBanderole
-from bt_essentials import MatchTimer, Navigate, WaitMatchStart
+from bt_essentials import MatchTimer, Navigate, WaitMatchStart, WaitUntil
 from bt_essentials import Deplace_toi, EndStrat, END_POS, Bouge, WaitSeconds, INTEREST
 from typing import Callable
 from dataclasses import dataclass
@@ -117,7 +117,12 @@ class GoHomeAction(Action):
         _pos, nav_pt = END_POS[robot.color][robot.strat]
         def nana(_):
             return nav_pt
-        return Navigate(nana)
+        terminate = py_trees.composites.Sequence("Go Backstage", True)
+        terminate.add_children([
+            Navigate(nana),
+            WaitUntil(94,world.matchStartTime),
+            Bouge(Speed(200,0,0),4)])
+        return terminate
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
@@ -127,7 +132,7 @@ class GoHomeAction(Action):
         
         end_pos, _nav_pt = END_POS[robot.color][robot.strat]
         estimated_time = robot.pos.distance(end_pos) / robot.locomotion.speed + 5
-        if world.time_left() < estimated_time:
+        if (world.time_left()-15) < estimated_time:
             # rush to home, high reward
             return 1000
         else:
@@ -141,7 +146,6 @@ class GoHomeAction(Action):
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
             world.backInZone = True
-            # On lève la pince et on l'avance le plus possible pour avoir la projection verticale dans la zone de fin
             robot.actionneurs.deployPince(True)
             robot.actionneurs.lockPlanche(False)
             robot.updateScore(10)

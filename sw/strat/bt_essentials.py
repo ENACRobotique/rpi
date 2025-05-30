@@ -60,6 +60,19 @@ class WaitSeconds(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
 
+class WaitUntil(py_trees.behaviour.Behaviour):
+    """Non blocking waiting"""
+    def __init__(self, date:float|int,dateStart:float|int):
+        super().__init__(name=f"Waiting {date} second")
+        self.date = date
+        self.dateStart = dateStart
+
+    def update(self):
+        if abs(time.time()-self.dateStart)>= self.date :
+            print("Finished waiting") 
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+
 class EndStrat(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name=f"Force strat to end")

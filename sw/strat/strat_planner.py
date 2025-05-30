@@ -32,7 +32,7 @@ if __name__ == "__main__":
     planner.add_action(BanderoleAction)
     planner.add_action(PoussePousse)
     planner.add_action(GoHomeAction)
-
+    
     r.play_music(musics.smoke_on_the_water)
 
     while ecal_core.ok():

@@ -18,8 +18,8 @@ S_GCenterDown 650 650 G9_DOWN,S_GCenterUp,G2,midB,G3
 S_DCenterDown 2350 650 G10_DOWN,S_DCenterUp,G5,midJ,G4
 G9_UP 1100 1225 S_MidUp,S_GCenterUp
 G10_UP 1900 1225 S_MidUp,S_DCenterUp
-finJ 300 1400 G1
-finB 2700 1400 G6
+finJ 300 1300 G1
+finB 2700 1300 G6
 S_GCenterUp 650 1225 G1,S_GCenterDown,G9_UP,midB
 S_DCenterUp 2350 1225 G6,S_DCenterDown,G10_UP,midJ
 S_MidUp 1500 1200 G9_UP,G10_UP,S_Mid
