@@ -21,9 +21,31 @@ class LiftPlanche(py_trees.behaviour.Behaviour):
         self.pos_info = pos_info
 
     def initialise(self) -> None:
-        if not self.done:
-            print(f"Lift {self.pos_info} planche")
-            self.robot.actionneurs.liftPlanches(self.pos)
+        print(f"Lift {self.pos_info} planche")
+        self.robot.actionneurs.liftPlanches(self.pos)
+        
+    def update(self):
+        if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheDroit.value):
+            return py_trees.common.Status.RUNNING
+        else:
+            self.done = True
+            return py_trees.common.Status.SUCCESS
+class PinceFinal(py_trees.behaviour.Behaviour):
+    def __init__(self, pos:bool):
+        pos_info = "DOWN"
+        if pos == UP:
+            pos_info = "UP"
+        if pos == MID:
+            pos_info = "MID"
+        super().__init__(name=f"Lift {pos_info} planche")
+        self.bb, self.robot, self.world = get_bb_robot(self)
+        self.pos = pos
+        self.done = False
+        self.pos_info = pos_info
+
+    def initialise(self) -> None:
+        print(f"Lift {self.pos_info} planche")
+        self.robot.actionneurs.PinceFINAL(self.pos)
         
     def update(self):
         if self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheGauche.value) or self.robot.actionneurs.Servo_IO.isMoving(Actionneur.PlancheDroit.value):
@@ -51,7 +73,7 @@ class LiftConserve(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
     
 class MoveRentreur(py_trees.behaviour.Behaviour):
-    def __init__(self, position:bool):
+    def __init__(self, position:int):
         pos = "OUTSIDE"
         if position:
             pos = "INSIDE"

@@ -10,8 +10,8 @@ G6 2600 1325 backstageB,G7,finB,S_DCenterUp
 G1 400 1325 backstageJ,G8,finJ,S_GCenterUp
 G4 2225 500 G10_DOWN,S_DCenterDown
 G3 775 500 G9_DOWN,S_GCenterDown
-G9_DOWN 1100 700 basJ,G3,S_MidDown,S_GCenterDown
-G10_DOWN 1900 700 basB,G4,S_MidDown,S_DCenterDown
+G9_DOWN 1100 650 basJ,G3,S_MidDown,S_GCenterDown
+G10_DOWN 1900 650 basB,G4,S_MidDown,S_DCenterDown
 G8 825 1475 G1
 G7 2175 1475 G6
 S_GCenterDown 650 650 G9_DOWN,S_GCenterUp,G2,midB,G3

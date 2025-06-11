@@ -40,16 +40,18 @@ class ValeurActionneur(Enum):
     # MULTITURN FACTOR 2
     AscenseurAimantUP = 4150
     AscenseurAimantDOWN = 390
-    AscenseurAimantINTERMEDIAIRE = 2800
+    AscenseurAimantINTERMEDIAIRE = 3200
     AscenseurAimantRAISED = 600
 
     
     RentreurIN = 500
     RentreurOUT = 3980
+    RentreurPUSH = 3000
 
     BrasPinceIN = 450
     BrasPinceOUT = 200
-    VerrouPinceLOCK = 1860
+    BrasPinceFINAL = 160
+    VerrouPinceLOCK = 1750
     VerrouPinceUNLOCK = 2500
 
     PlancheDELTA = 2600
@@ -60,12 +62,13 @@ class ValeurActionneur(Enum):
     
 servoPosError = 20 # on prend large
 
-UP = True
-DOWN = False
-MID = 2
+UP = 1
+DOWN = 2
+MID = 3
 
-INSIDE = True
-OUTSIDE = False
+INSIDE = 1
+OUTSIDE = 2
+PUSH = 3
 
 class IO_Manager:
     def __init__(self):
@@ -114,7 +117,7 @@ class IO_Manager:
                 fd = True
                 break
 
-        self.liftD_up = self.liftD_init//4+100
+        self.liftD_up = self.liftD_init//4
         self.liftD_down = self.liftD_init//4+ValeurActionneur.PlancheDELTA.value+200
         self.liftD_mid = self.liftD_down - 1500
         
@@ -178,9 +181,10 @@ class IO_Manager:
         Si fdc non calibrés la fonction ne fera rien"""
         if self.liftCalibrated:
             if pos == UP:
+                print("up")
                 self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up, 4000)
                 self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_up, 4000)     
-            if pos == MID:
+            elif pos == MID:
                 self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_mid, 4000)
                 self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_mid, 4000)     
 
@@ -204,15 +208,22 @@ class IO_Manager:
             
         else :
             self.Servo_IO.move(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceIN.value, actionneurs_pb.SmartServo.ServoType.AX12)
+    
+    def PinceFINAL(self, deploy:bool, sync:bool = False):
+        """Déployer ou rentrer la pince"""
+        if deploy:
+            self.Servo_IO.move(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceFINAL.value, actionneurs_pb.SmartServo.ServoType.AX12)
+            
             
     
-    def moveRentreur(self, inside: bool, sync:bool = False):
+    def moveRentreur(self, inside: int, sync:bool = False):
         self.Servo_IO.setEndless(Actionneur.Rentreur.value, False)
-        if inside:
+        if inside==INSIDE:
             self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurIN.value)
-            
-        else:
+        elif inside == OUTSIDE:
             self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurOUT.value)
+        elif inside == PUSH:
+            self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurPUSH.value)
             
         
     def liftConserve(self, pos:ValeurActionneur, sync:bool = False):
@@ -248,7 +259,7 @@ class IO_Manager:
         self.lockPlanche(False)
         self.grabHighConserve(False)
         self.grabLowConserve(False)
-        self.liftPlanches(MID)
+        self.liftPlanches(DOWN)
 
     # def ramasseGradin(self):
     #     """BLOQUANT"""

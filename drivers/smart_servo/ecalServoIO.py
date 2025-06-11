@@ -159,7 +159,7 @@ class servoIO:
 if __name__ == "__main__":
   pedro = servoIO()
   while True:
-    a = pedro.readPos(1)
+    a = pedro.isMoving(1)
     b = pedro.readPos(2)
     print(f"Droite:{a}\t Gauche:{b}\n")
     time.sleep(0.1)

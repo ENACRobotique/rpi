@@ -32,6 +32,7 @@ class BanderoleAction(Action):
             Bouge(Speed.from_dir(-120,100), 2),
             LiftBanderole(False),
             Bouge(Speed.from_dir(-120,-100), 3),
+            DeployMacon(),
         ])
         return poserBanderolle
     
@@ -154,37 +155,118 @@ class GoHomeAction(Action):
 ###   Action PoussePousse   ###
 ##########################
 
-class PoussePousse(Action):
-    name = "poussepousse"
+# class PoussePousse(Action):
+#     name = "poussepousse"
+
+#     @staticmethod
+#     def create_bt(robot: Robot, world: World) -> Behaviour:
+#         nav_pt = INTEREST[robot.color][robot.strat]
+#         def nana(_):
+#             return nav_pt
+#         simple_pousse = py_trees.composites.Sequence("poussepousse", True)
+#         simple_pousse.add_children([
+#             Navigate(nana),
+#             Bouge(Speed(100,0,0), 5),
+#             Bouge(Speed(-100,0,0), 2),
+#         ])
+#         return simple_pousse
+    
+#     @staticmethod
+#     def reward(robot: Robot, world: World) -> float:
+#         # gradin = INTEREST[robot.color][robot.strat][0]
+#         if world.gradin_pousse_pousse:
+#             return 0
+#         else:
+#             return 5
+#     @staticmethod
+#     def start_cb(robot: Robot, world: World) -> None:
+#         robot.locomotion.select_velocity(Velocity.NORMAL)
+#         robot.actionneurs.moveRentreur(INSIDE)
+
+#     @staticmethod
+#     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+#         if status == py_trees.common.Status.SUCCESS:
+#             # gradin = INTEREST[robot.color][robot.strat][0]
+#             world.gradin_pousse_pousse = True
+#             robot.updateScore(4)
+
+
+class Gradin(Action):
+    name = "gradin"
 
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        nav_pt = INTEREST[robot.color][robot.strat]
-        def nana(_):
-            return nav_pt
-        simple_pousse = py_trees.composites.Sequence("poussepousse", True)
-        simple_pousse.add_children([
-            Navigate(nana),
+        first = INTEREST[robot.color][robot.strat][0]
+        def First(_):
+            return first
+        second = INTEREST[robot.color][robot.strat][1]
+        def Second(_):
+            return second
+        gradin = py_trees.composites.Sequence("gradin", True)
+        gradin.add_children([
+            Navigate(First),
+            DeployMacon(),
+            WaitSeconds(0.5),
+            Bouge(Speed(150,0,-0.1),2),
+            GrabLowConserve(True),
+            LiftPlanche(UP),
+            Bouge(Speed(0,0,0.5),1),
+            Bouge(Speed(0,0,-0.5),2),
+            WaitSeconds(0.5),
+            LiftConserve(ValeurActionneur.AscenseurAimantUP),
+            WaitSeconds(1),
+            MoveRentreur(OUTSIDE),
+            WaitSeconds(0.1),
+            GrabHighConserve(True),
+            WaitSeconds(0.5),
+            GrabLowConserve(False),
+            WaitSeconds(1),
+            LockPlanche(True),
+            LiftConserve(ValeurActionneur.AscenseurAimantDOWN),
+            WaitSeconds(1),
+            MoveRentreur(PUSH),
+            WaitSeconds(0.5),
+            GrabLowConserve(True),
+            WaitSeconds(1),
+            LiftConserve(ValeurActionneur.AscenseurAimantINTERMEDIAIRE),
+            WaitSeconds(1),
+            LiftConserve(ValeurActionneur.AscenseurAimantDOWN),
+            Navigate(Second),
             Bouge(Speed(100,0,0), 5),
-            Bouge(Speed(-100,0,0), 2),
-        ])
-        return simple_pousse
+            GrabHighConserve(False),
+            GrabLowConserve(False),
+            Bouge(Speed(-200,0,0),0.5),
+            LiftPlanche(MID),
+            WaitSeconds(1),
+            #LockPlanche(False),
+            PinceFinal(True),
+            WaitSeconds(0.6),
+            #PinceFinal(True),
+            LockPlanche(False),
+            Bouge(Speed(-150,0,0),2),
+
+            ])
+        return gradin
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
-        # gradin = INTEREST[robot.color][robot.strat][0]
-        if world.gradin_pousse_pousse:
+        
+        if not world.match_started():
             return 0
         else:
-            return 5
+            gradin = INTEREST[robot.color][robot.strat][0][0]
+            if not world.Gradin[gradin]:
+                return 10
+            else:
+                return 0
+
     @staticmethod
     def start_cb(robot: Robot, world: World) -> None:
         robot.locomotion.select_velocity(Velocity.NORMAL)
-        robot.actionneurs.moveRentreur(INSIDE)
 
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
-            # gradin = INTEREST[robot.color][robot.strat][0]
-            world.gradin_pousse_pousse = True
-            robot.updateScore(4)
+            gradin = INTEREST[robot.color][robot.strat][0][0]
+            world.Gradin[gradin] = True
+            robot.updateScore(12)

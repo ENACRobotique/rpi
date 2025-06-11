@@ -29,10 +29,10 @@ END_POS = {
 }
 INTEREST = {
     Team.JAUNE:{
-        Strat.Basique: ('G3', radians(-90)),
+        Strat.Basique: [('G9_DOWN', radians(90)),('G3', radians(-90))],
     },
     Team.BLEU:{
-        Strat.Basique: ('G4', radians(-90)),
+        Strat.Basique: [('G10_DOWN', radians(90)),('G4', radians(-90))],
     }
 }
 def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot, World]:
