@@ -175,7 +175,7 @@ class Robot:
         #self.stop_pub = ProtoPublisher("stop",robot_pb.no_args_func_)
         #self.resume_pub = ProtoPublisher("resume",robot_pb.no_args_func_)
 
-        self.debug_pub =StringPublisher("debug_msg")
+        self.logs_pub =StringPublisher("logs")
         self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",robot_pb.Position) for i in range(3)]
         time.sleep(1)
 
@@ -186,6 +186,9 @@ class Robot:
     def __repr__(self) -> str:
         return "Robot Enac status storage structure"
 
+    def log(self, message:str):
+        self.logger.info(message)
+        self.logs_pub.send(message)
 # ---------------------------- #
 #             IHM              #
 # ____________________________ #
@@ -321,23 +324,23 @@ class Robot:
         self.locomotion.set_speed(speed, duration)
     
     def resetPos(self, position: Pos, timeout=2):
-        self.logger.info(f"Reseting position to: {position} ")
+        self.log(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
         self.locomotion.reset_pos(position)
         last_time = time.time()
         while True:
             if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):
-                self.logger.info(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
+                self.log(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
                 #self.pos = position
                 break
             if time.time() - last_time > 1:
-                self.logger.info("reset_again")
+                self.log("reset_again")
                 self.reset_pos_pub.send(position.to_proto())
                 last_time = time.time()
             time.sleep(0.1)
 
     def resetPosNonBlocking(self,position:Pos):
-        self.logger.info(f"Reseting position to: {position} ")
+        self.log(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
         self.locomotion.reset_pos(position)
         
@@ -376,14 +379,14 @@ class Robot:
         \nArgs, string:waypoint, float|None:theta"""
         if theta is None :
             theta = self.pos.theta
-            #self.logger.info(theta*180/pi)
+            #self.log(theta*180/pi)
         x,y = self.nav.getCoords(waypoint)
         return self.setTargetPos(Pos(x,y,theta))
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         #self.pathFinder(closest,waypoint)
 
     def resetPosFromNav(self, waypoint, theta=None):
-        self.logger.info("Reseted nav at : {waypoint}")
+        self.log("Reseted nav at : {waypoint}")
         if theta is None:
             theta = self.pos.theta
         x,y = self.nav.getCoords(waypoint)
@@ -399,12 +402,12 @@ class Robot:
         nav_pos = self.nav.findPath(self.pos.theta,orientation)
 
         self.n_points = len(self.nav.chemin)
-        self.logger.info(f"entree: {self.nav.entree}")
+        self.log(f"entree: {self.nav.entree}")
         self.current_point_index = 0
         self.nav.current = self.nav.chemin[self.current_point_index]
-        self.logger.info(f"Path found : {self.nav.chemin}")
+        self.log(f"Path found : {self.nav.chemin}")
         self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
-        #self.logger.info("Pos's are : ",self.nav_pos)
+        #self.log("Pos's are : ",self.nav_pos)
         self.folowingPath = True
     
     def closeToNavPoint(self, nav_id):
@@ -414,7 +417,7 @@ class Robot:
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
         Nécéssite de vider continuement la liste des points de nav !"""
-        end = self.closeToNavPoint(-1)
+        end = self.closeToNavPoint(-1) and self.hasReachedTarget()
         if end:
             self.folowingPath = False
         return end 

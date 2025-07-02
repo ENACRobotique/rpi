@@ -7,6 +7,8 @@ class World:
         self.enemy_pos = None           # enemy position if known, else None
         self.matchStartTime: float = -1      # Match start time. negative if match not started
         self.backInZone = False
+        self.Gradin = {"G3":False,"G4":False}
+        self.gradin_pousse_pousse = False
     
     def time_left(self) -> float:
         if self.matchStartTime < 0:
