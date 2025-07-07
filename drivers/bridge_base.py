@@ -49,13 +49,11 @@ class Duckoder(Protocol):
         self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
         self.pid_sub = ProtoSubscriber("pid_gains",llpb.MotorPid)
         self.speed_cons_sub = ProtoSubscriber("speed_cons",hgpb.Speed)
-        self.system_modes_sub = ProtoSubscriber("system_modes",llpb.System)
         
         self.target_pos_sub.set_callback(self.set_target)
         self.reset_pos_sub.set_callback(self.reset_position)
         self.pid_sub.set_callback(self.set_pid)
         self.speed_cons_sub.set_callback(self.set_speed)
-        self.system_modes_sub.set_callback(self.set_modes)
         
 
     def connection_made(self, transport):
@@ -85,7 +83,7 @@ class Duckoder(Protocol):
                     hgm = hgpb.Ins(vtheta=m.ins.vtheta,theta=m.ins.theta)
                     self.ins_pub.send(hgm)
                 if topic == "motors" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = llpb.Motors(m1=m.motors.m1, m2=m.motors.m2, m3=m.motors.m3)
+                    hgm = llpb.Motors(m=m.motors.m)
                     if m.motors.type == llpb.Motors.MotorDataType.MOTORS_POS_CONS:
                         self.motors_pos_cons_pub.send(hgm)
                     elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_SPEED:
@@ -132,7 +130,11 @@ class Duckoder(Protocol):
         d = {msg_name: {}}
         for f in inner.DESCRIPTOR.fields:
             field_name = f.name
-            d[msg_name][field_name] = getattr(inner, field_name)
+            if f.label == f.LABEL_REPEATED:
+                pass
+                d[msg_name][field_name] = [di for di in getattr(inner, field_name)]
+            else:
+                d[msg_name][field_name] = getattr(inner, field_name)
         return json.dumps(d)
 
 
@@ -180,15 +182,6 @@ class Duckoder(Protocol):
         llmsg.speed.vy = hlm.vy
         llmsg.speed.vtheta = hlm.vtheta
         self.send_message(llmsg)
-    
-    def set_modes(self, topic_name, hlm, time):
-        llmsg = llpb.Message()
-        llmsg.msg_type = llpb.Message.MsgType.COMMAND
-        llmsg.system.asserv = hlm.asserv
-        llmsg.system.guidance = hlm.guidance
-        llmsg.system.odometry = hlm.odometry
-        self.send_message(llmsg)
-
 
 if __name__ == "__main__":
     port = sys.argv[1] if len(sys.argv) > 1 else "/dev/robot_base"
