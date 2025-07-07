@@ -11,13 +11,11 @@ import json
 import socket
 import struct
 import math
+import argparse
 
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
-
-plotjuggler_udp = ("192.168.42.201", 9870)
-PLOTJUGGLER = False
 
 
 class RxState(Enum):
@@ -27,13 +25,13 @@ class RxState(Enum):
     
 
 class Duckoder(Protocol):
-    def __init__(self, plotjuggler=True):
+    def __init__(self):
         Protocol.__init__(self)
         self.transport = None
         self._buffer = b'  '
         self._rx_state = RxState.IDLE
         self._msg_rcv = None
-        if PLOTJUGGLER:
+        if args.plotjuggler:
             self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ecal_core.initialize(sys.argv, "Bridge low level")
         self.odom_pos_pub = ProtoPublisher("odom_pos", hgpb.Position)
@@ -77,10 +75,10 @@ class Duckoder(Protocol):
         for c in data:
             if self._decode(c.to_bytes(1, 'little')):
                 m = llpb.Message.FromString(self._msg_rcv)
-                if PLOTJUGGLER:
+                if args.plotjuggler:
                     jj = self.msg_to_json(m)
                     #print(jj)
-                    self.so.sendto(jj.encode(), plotjuggler_udp)
+                    self.so.sendto(jj.encode(), (args.addr, args.port))
                 inner = m.WhichOneof('inner')
                 if m.msg_type == llpb.Message.MsgType.STATUS:
                     if inner == "pos":
@@ -185,9 +183,15 @@ class Duckoder(Protocol):
         self.send_message(llmsg)
 
 if __name__ == "__main__":
-    port = sys.argv[1] if len(sys.argv) > 1 else "/dev/robot_base"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--serial", default="/dev/robot_base", help="base serial port")
+    parser.add_argument("-p", "--plotjuggler", action="store_true", default=False, help="Send data to plotjuggler")
+    parser.add_argument("-a", "--addr", default="192.168.42.201", help="Plotjuggler server ip address")
+    parser.add_argument("-u", "--port", default=9870, help="Plotjuggler server port", type=int)
+    args = parser.parse_args()
 
-    ser=Serial(port, 230400)
+
+    ser=Serial(args.serial, 230400)
     with ReaderThread(ser, Duckoder) as p:
         while True:
             time.sleep(1)
