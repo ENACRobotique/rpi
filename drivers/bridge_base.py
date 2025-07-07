@@ -45,6 +45,20 @@ class Duckoder(Protocol):
         self.motors_speed_pub = ProtoPublisher("motors_speed", llpb.Motors)
         self.motors_pos_pub = ProtoPublisher("motors_pos", llpb.Motors)
         self.motors_pos_cons_pub = ProtoPublisher("motors_pos_cons", llpb.Motors)
+
+        self.topic_pubs = {
+            llpb.Topic.POS_ROBOT_W:     self.odom_pos_pub,
+            llpb.Topic.POS_CARROT_W:    self.carrot_pos_pub,
+            llpb.Topic.MOVE_ROBOT_R:    self.odom_move_pub
+        }
+
+        self.motors_pubs = {
+            llpb.Motors.MotorDataType.MOTORS_POS_CONS:  self.motors_pos_cons_pub,
+            llpb.Motors.MotorDataType.MOTORS_SPEED:     self.motors_speed_pub,
+            llpb.Motors.MotorDataType.MOTORS_CMD:       self.motors_cmd_pub,
+            llpb.Motors.MotorDataType.MOTORS_POS:       self.motors_pos_pub,
+        }
+
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
         self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
         self.pid_sub = ProtoSubscriber("pid_gains",llpb.MotorPid)
@@ -67,31 +81,18 @@ class Duckoder(Protocol):
                     jj = self.msg_to_json(m)
                     #print(jj)
                     self.so.sendto(jj.encode(), plotjuggler_udp)
-                topic = m.WhichOneof('inner')
-                if topic == "pos" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = hgpb.Position(x=m.pos.x,y=m.pos.y,theta=m.pos.theta)
-                    if m.pos.obj == llpb.Pos.PosObject.POS_ROBOT_W:
-                        self.odom_pos_pub.send(hgm)
-                    elif m.pos.obj == llpb.Pos.PosObject.POS_CARROT_W:
-                        self.carrot_pos_pub.send(hgm)
-                    elif m.pos.obj == llpb.Pos.PosObject.MOVE_ROBOT_R:
-                        self.odom_move_pub.send(hgm)
-                if topic == "speed" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = hgpb.Speed(vx=m.speed.vx,vy=m.speed.vy,vtheta=m.speed.vtheta)
-                    self.odom_speed_pub.send(hgm)
-                if topic == "ins" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = hgpb.Ins(vtheta=m.ins.vtheta,theta=m.ins.theta)
-                    self.ins_pub.send(hgm)
-                if topic == "motors" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = llpb.Motors(m=m.motors.m)
-                    if m.motors.type == llpb.Motors.MotorDataType.MOTORS_POS_CONS:
-                        self.motors_pos_cons_pub.send(hgm)
-                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_SPEED:
-                        self.motors_speed_pub.send(hgm)
-                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_CMD:
-                        self.motors_cmd_pub.send(hgm)
-                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_POS:
-                        self.motors_pos_pub.send(hgm)
+                inner = m.WhichOneof('inner')
+                if m.msg_type == llpb.Message.MsgType.STATUS:
+                    if inner == "pos":
+                        if m.topic in self.topic_pubs:
+                            self.topic_pubs[m.topic].send(m.pos)
+                    if inner == "speed":
+                        self.odom_speed_pub.send(m.speed)
+                    if inner == "ins":
+                        self.ins_pub.send(m.ins)
+                    if inner == "motors":
+                        if m.motors.type in self.motors_pubs:
+                            self.motors_pubs[m.motors.type].send(m.motors)
 
 
     def _decode(self, c):
@@ -126,7 +127,7 @@ class Duckoder(Protocol):
         if msg_name == 'motors':
             msg_name = msg.motors.MotorDataType.Name(msg.motors.type)
         elif msg_name == 'pos':
-            msg_name = msg.pos.PosObject.Name(msg.pos.obj)
+            msg_name = llpb.Topic.Name(msg.topic)
         d = {msg_name: {}}
         for f in inner.DESCRIPTOR.fields:
             field_name = f.name
@@ -154,7 +155,7 @@ class Duckoder(Protocol):
         llmsg.pos.x = hlm.x
         llmsg.pos.y = hlm.y
         llmsg.pos.theta = hlm.theta
-        llmsg.pos.obj = llpb.Pos.PosObject.POS_ROBOT_W
+        llmsg.topic = llpb.Topic.POS_ROBOT_W
         self.send_message(llmsg)
 
     def reset_position(self, topic_name, hlm, time):
@@ -163,7 +164,7 @@ class Duckoder(Protocol):
         llmsg.pos.x = hlm.x
         llmsg.pos.y = hlm.y
         llmsg.pos.theta = hlm.theta
-        llmsg.pos.obj = llpb.Pos.PosObject.RECALAGE
+        llmsg.topic = llpb.Topic.RECALAGE
         self.send_message(llmsg)
 
     def set_pid(self, topic_name, hlm, time):
