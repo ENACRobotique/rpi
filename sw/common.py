@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from math import cos,sin,sqrt, pi
 import numpy as np
+import generated.common_pb2 as common_pb
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
@@ -49,10 +50,10 @@ class Pos:
         return sqrt(self.x**2 + self.y**2)
 
     def to_proto(self):
-        return robot_pb.Position(x=self.x, y=self.y, theta=self.theta) # type: ignore
+        return common_pb.Position(x=self.x, y=self.y, theta=self.theta) # type: ignore
     
     @staticmethod
-    def from_proto(p: robot_pb.Position):
+    def from_proto(p: common_pb.Position):
         return Pos(p.x, p.y, p.theta) # type: ignore
 
     @staticmethod
@@ -98,10 +99,10 @@ class Speed:
     vtheta: float
 
     def to_proto(self):
-        return robot_pb.Speed(vx=self.vx, vy=self.vy, vtheta=self.vtheta) # type: ignore
+        return common_pb.Speed(vx=self.vx, vy=self.vy, vtheta=self.vtheta) # type: ignore
     
     @staticmethod
-    def from_proto(s: robot_pb.Speed):
+    def from_proto(s: common_pb.Speed):
         return Speed(s.vx, s.vy, s.vtheta) # type: ignore
     
     def xy_norm(self):

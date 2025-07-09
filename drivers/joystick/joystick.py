@@ -6,8 +6,9 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 import sys
 sys.path.append("../..")
-import generated.robot_state_pb2 as robot_state_pb2
-import generated.messages_pb2 as message_pb2
+# import generated.robot_state_pb2 as robot_state_pb2
+import generated.common_pb2 as common_pb
+# import generated.messages_pb2 as message_pb2
 from sw.IO.actionneurs import IO_Manager
 
 
@@ -76,8 +77,8 @@ class JoystickEcal ():
         ecal_core.initialize([], "Joystick")
         time.sleep(1) # on laisse ecal se reveiller
 
-        self.speed_publisher = ProtoPublisher("speed_cons", robot_state_pb2.Speed)
-        self.message = robot_state_pb2.Speed()
+        self.speed_publisher = ProtoPublisher("speed_cons", common_pb.Speed)
+        self.message = common_pb.Speed()
         self.IO_manager = IO_Manager()
 
         self.verrouLock = False
