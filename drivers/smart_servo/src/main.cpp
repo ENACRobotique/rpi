@@ -157,7 +157,7 @@ int main(int argc, char** argv){
   
   int serial_port = open(argv[1], O_RDWR);
 
-  if(init_serial(serial_port, B500000)) {
+  if(init_serial(serial_port, 500000)) {
     std::cout << "Error configuring serial port!" << std::endl;
   }
   
@@ -165,7 +165,7 @@ int main(int argc, char** argv){
 
   STS3032 sts(serial_port);
   //sts.init();
-  sts.setSerialBaudrate(B500000);
+  sts.setSerialBaudrate(500000);
   p_sts = &sts;
 
   Dynamixel dyn(serial_port);

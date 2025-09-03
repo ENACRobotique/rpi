@@ -5,12 +5,9 @@
 #include <string.h>
 #include <fcntl.h> // Contains file controls like O_RDWR
 #include <errno.h> // Error integer and strerror() function
-#include <termios.h> // Contains POSIX terminal control definitions
 #include <unistd.h> // write(), read(), close()
 #include <linux/serial.h>
-/* Include definition for RS485 ioctls: TIOCGRS485 and TIOCSRS485 */
-#include <sys/ioctl.h>
-
+#include <asm/termbits.h>
 
 // #define RPI
 #define ECHO_BUFFER_SIZE 100
@@ -22,13 +19,17 @@ struct gpiod_line* line;
 #endif
 
 
+
+//int ioctl(int fd, unsigned long op, ...);
+
 int init_serial(int fd, speed_t speed) {
     // Create new termios struct, we call it 'tty' for convention
-  struct termios tty;
+  struct termios2 tty;
 
   // Read in existing settings, and handle any error
-  if(tcgetattr(fd, &tty) != 0) {
-      printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+  //if(tcgetattr(fd, &tty) != 0) {
+  if(ioctl(fd, TCGETS2, &tty) != 0) {
+      printf("Error %i from ioctl TCGETS2: %s\n", errno, strerror(errno));
       return 1;
   }
 
@@ -38,6 +39,12 @@ int init_serial(int fd, speed_t speed) {
   tty.c_cflag |= CS8; // 8 bits per byte (most common)
   tty.c_cflag &= ~CRTSCTS; // Disable RTS/CTS hardware flow control (most common)
   tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL = 1)
+
+  // Set non standard baudrate
+  tty.c_cflag &= ~CBAUD;
+  tty.c_cflag |= BOTHER;
+  tty.c_ispeed = speed;
+  tty.c_ospeed = speed;
 
   tty.c_lflag &= ~ICANON;
   tty.c_lflag &= ~ECHO; // Disable echo
@@ -49,19 +56,14 @@ int init_serial(int fd, speed_t speed) {
 
   tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
   tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
-  // tty.c_oflag &= ~OXTABS; // Prevent conversion of tabs to spaces (NOT PRESENT ON LINUX)
-  // tty.c_oflag &= ~ONOEOT; // Prevent removal of C-d chars (0x004) in output (NOT PRESENT ON LINUX)
 
   tty.c_cc[VTIME] = 1;    // Wait for up to 0.1s (1 deciseconds), returning as soon as any data is received.
   tty.c_cc[VMIN] = 0;
 
-  // Set in/out baud rate to be 9600
-  cfsetispeed(&tty, speed);
-  cfsetospeed(&tty, speed);
 
   // Save tty settings, also checking for error
-  if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-      printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+  if(ioctl(fd, TCSETS2, &tty) != 0) {
+      printf("Error %i from ioctl TCSETS2: %s\n", errno, strerror(errno));
       return 1;
   }
   return 0;
@@ -133,7 +135,7 @@ int writeData(int fd, uint8_t* data, size_t len, bool echo) {
             //ok
         } else {
             printf("Error: Echo does not match\n");
-            tcflush(fd, TCIOFLUSH); // empty buffer
+//            tcflush(fd, TCIOFLUSH); // empty buffer
             usleep(100000); // wait 100ms
             return -1;
         }
