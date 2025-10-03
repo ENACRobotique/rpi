@@ -93,8 +93,6 @@ public:
 
     // void setResponseLevel(uint8_t rl) {response_level = (ResponseLevel)rl;}
 
-protected:
-
     /**
      * Read @record.len bytes from servo @record.id, starting at address record.reg.
      */
@@ -105,6 +103,8 @@ protected:
      * @param is_reg_write Perform a registered write. The servo then wait for ACTION to execute the command.
      */
     Status write(record_t* record, bool is_reg_write=false);
+
+protected:
 
     /**
      * Execute command given with reg_write

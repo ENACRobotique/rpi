@@ -14,8 +14,10 @@
 #include "STS3032.h"
 #include "serial.h"
 #include "Dynamixel.h"
+#include "smart_servo.h"
 
 using SS = enac::SmartServo;
+using SAPRecord = enac::SAPRecord;
 STS3032* p_sts;
 Dynamixel* p_dynamixel;
 
@@ -144,6 +146,51 @@ int move(const std::string& method_,
 }
 
 
+int read_reg(const std::string& method_,
+         const std::string& req_type_,
+         const std::string& resp_type_,
+         const std::string& request_,
+         std::string& response_) {
+
+  SAPRecord msg;
+  msg.ParseFromString(request_);
+  SmartServo::record_t record = {
+    .id = (uint8_t) msg.id(),
+    .reg = (uint8_t) msg.reg(),
+    .len = (uint8_t) msg.len(),
+  };
+  SmartServo::Status status = p_sts->read(&record);
+  if(status == SmartServo::Status::OK) {
+    msg.set_data(record.data, record.len);
+  }
+  msg.SerializeToString(&response_);
+
+  return 0;
+}
+
+int write_reg(const std::string& method_,
+         const std::string& req_type_,
+         const std::string& resp_type_,
+         const std::string& request_,
+         std::string& response_) {
+
+  SAPRecord msg;
+  msg.ParseFromString(request_);
+  SmartServo::record_t record = {
+    .id = (uint8_t) msg.id(),
+    .reg = (uint8_t) msg.reg(),
+    .len = (uint8_t) msg.data().size(),
+  };
+  memcpy(record.data, msg.data().data(), msg.data().size());
+  SmartServo::Status status = p_sts->write(&record);
+
+  msg.SerializeToString(&response_);
+  if(status == SmartServo::Status::OK) {
+    return 0;
+  }else{
+    return 1;
+  }
+}
 
 
 void handleServo(const SS& msg, SmartServo* p_servo);
@@ -154,10 +201,18 @@ int main(int argc, char** argv){
     std::cout << "Please specify serial port" << std::endl;
     return -1;
   }
+
+  int baudrate = 500000;
+  if(argc == 3) {
+    baudrate = atoi(argv[2]);
+    if(baudrate == 0) {
+      baudrate = 500000;
+    }
+  }
   
   int serial_port = open(argv[1], O_RDWR);
 
-  if(init_serial(serial_port, 500000)) {
+  if(init_serial(serial_port, baudrate)) {
     std::cout << "Error configuring serial port!" << std::endl;
   }
   
@@ -165,7 +220,7 @@ int main(int argc, char** argv){
 
   STS3032 sts(serial_port);
   //sts.init();
-  sts.setSerialBaudrate(500000);
+  sts.setSerialBaudrate(baudrate);
   p_sts = &sts;
 
   Dynamixel dyn(serial_port);
@@ -178,6 +233,12 @@ int main(int argc, char** argv){
   eCAL::CServiceServer server("actuators");
   server.AddDescription("read_pos", "SS", "id", "SS", "position");
   server.AddMethodCallback("read_pos", "SS", "SS", move);
+  
+  server.AddDescription("read_reg", "SAPRecord", "", "SAPRecord", "");
+  server.AddMethodCallback("read_reg", "SAPRecord", "SAPRecord", read_reg);
+  
+  server.AddDescription("write_reg", "SAPRecord", "", "SAPRecord", "");
+  server.AddMethodCallback("write_reg", "SAPRecord", "SAPRecord", write_reg);
   server.Create("");
 
 

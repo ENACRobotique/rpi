@@ -8,7 +8,7 @@ from queue import Queue, Empty
 
 sys.path.append("../../")
 
-from generated.actionneurs_pb2 import SmartServo
+from generated.actionneurs_pb2 import SmartServo, SAPRecord
 
 
 RESP_TIMEOUT = 0.1
@@ -19,22 +19,28 @@ AX12 = SmartServo.ServoType.AX12
 class servoIO:
   def __init__(self) -> None:
     if not ecal_core.is_initialized():
-      ecal_core.initialize(sys.argv, "smart servo test publisher")  
-    self.publisher = ProtoPublisher("smart_servo", SmartServo)
+      ecal_core.initialize(sys.argv, "smart servo test publisher")
     self.client = ecal_service.Client("actuators")
     self.client.add_response_callback(self.response_cb)
     self.q = Queue()
     self.message = SmartServo()
+    self.q_readreg = Queue()
 
   
   def response_cb(self, service_info, response):
-    msg_resp = SmartServo()
-    msg_resp.ParseFromString(response)
+    if service_info["method_name"]=="write_reg":
+      pass
+    elif service_info["method_name"]=="read_reg":
+      msg_resp = SAPRecord()
+      msg_resp.ParseFromString(response)
+      self.q_readreg.put(msg_resp)
+    else:
+      msg_resp = SmartServo()
+      msg_resp.ParseFromString(response)
 
-    if msg_resp.command == SmartServo.CommandType.READ_POS:
-      self.q.put(msg_resp)
-    if msg_resp.command == SmartServo.CommandType.IS_MOVING:
-      self.q.put(msg_resp)
+      if msg_resp.command == SmartServo.CommandType.READ_POS or \
+         msg_resp.command == SmartServo.CommandType.IS_MOVING:
+        self.q.put(msg_resp)
     
 
 
@@ -155,6 +161,29 @@ class servoIO:
         return msg_resp.moving
     except Empty:
       print("no response...")
+      
+  def setTotalPos(self, id, total_pos: bool):
+    if total_pos:
+      self.write(id, 0x12, b'\x7C')
+    else:
+      self.write(id, 0x12, b'\x6C')
+
+  def write(self, id,  reg, data, type=default):
+    rec = SAPRecord(id=id, reg=reg, len=len(data), data=data)
+    msg_bin = rec.SerializeToString()
+    self.client.call_method("write_reg", msg_bin)
+
+  def read(self, id, reg, len):
+    rec = SAPRecord(id=id, reg=reg, len=len)
+    self.client.call_method("read_reg", rec.SerializeToString())
+    try:
+      msg_resp = self.q_readreg.get(timeout=RESP_TIMEOUT)
+      if msg_resp.id == id and msg_resp.reg == reg and msg_resp.len == len:
+        return msg_resp.data
+    except Empty:
+      print("no response...")
+
+
 
 if __name__ == "__main__":
   pedro = servoIO()
