@@ -8,6 +8,7 @@ from scipy.optimize import least_squares, OptimizeResult
 import time, sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from generated import robot_state_pb2 as robot_pb
+from generated import common_pb2 as common_pb
 from generated import lidar_data_pb2 as lidar_pb
 from common import Pos
 import itertools
@@ -54,16 +55,16 @@ class LidarLoca:
         self.sub_lidar = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
         self.sub_lidar.set_callback(self.amalgames_cb)
         
-        self.sub_odom = ProtoSubscriber("odom_pos", robot_pb.Position)
+        self.sub_odom = ProtoSubscriber("odom_pos", common_pb.Position)
         self.sub_odom.set_callback(self.odom_pos_cb)
 
-        self.sub_reset_pos = ProtoSubscriber("reset", robot_pb.Position)
+        self.sub_reset_pos = ProtoSubscriber("reset", common_pb.Position)
         self.sub_reset_pos.set_callback(self.reset_pos_cb)
 
         self.sub_color = ProtoSubscriber("color",robot_pb.Side)
         self.sub_color.set_callback(self.color_cb)
         # Publishers
-        self.pub_lidar = ProtoPublisher("lidar_pos", robot_pb.Position)
+        self.pub_lidar = ProtoPublisher("lidar_pos", common_pb.Position)
         self.pub_balises_odom = ProtoPublisher("balises_odom", lidar_pb.Balises)
         self.pub_closest_to_odom_beacons = ProtoPublisher("balises_near_odom", lidar_pb.Balises)
         self.BEACONS = BEACONS_BLUE

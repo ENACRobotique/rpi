@@ -4,6 +4,7 @@ sys.path.append('../generated')
 import time
 import messages_pb2 as llpb
 import robot_state_pb2 as hgpb
+import common_pb2 as common_pb
 import math
 from math import cos, sin, atan2, sqrt, pi, radians
 from copy import deepcopy
@@ -47,22 +48,22 @@ class Locomotion(Thread):
         if not ecal_core.is_initialized():
             ecal_core.initialize(sys.argv, "locomotion")
 
-        self.speed_pub = ProtoPublisher("speed_cons", hgpb.Speed)
-        self.reset_pos_pub = ProtoPublisher("reset", hgpb.Position)
+        self.speed_pub = ProtoPublisher("speed_cons", common_pb.Speed)
+        self.reset_pos_pub = ProtoPublisher("reset", common_pb.Position)
 
-        self.odom_speed_sub = ProtoSubscriber("odom_speed", hgpb.Speed)
+        self.odom_speed_sub = ProtoSubscriber("odom_speed", common_pb.Speed)
         self.odom_speed_sub.set_callback(self.on_odom_speed)
 
-        self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
+        self.target_pos_sub = ProtoSubscriber("set_position", common_pb.Position)
         self.target_pos_sub.set_callback(self.on_target_pos)
         
-        self.odom_pos_sub = ProtoSubscriber("odom_pos", hgpb.Position)
+        self.odom_pos_sub = ProtoSubscriber("odom_pos", common_pb.Position)
         self.odom_pos_sub.set_callback(self.on_odom_pos)
         
-        self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
+        self.reset_pos_sub = ProtoSubscriber("reset", common_pb.Position)
         self.reset_pos_sub.set_callback(self.on_reset_pos)
         
-        self.lidar_sub = ProtoSubscriber("lidar_pos", hgpb.Position)
+        self.lidar_sub = ProtoSubscriber("lidar_pos", common_pb.Position)
         self.lidar_sub.set_callback(self.on_lidar_pos)
 
         self.kp = 3
@@ -96,7 +97,7 @@ class Locomotion(Thread):
             if time.time() - self.time_threshold < self.speed_cons_timeout:
                 self.speed_pub.send(self.last_speed.to_proto())
             else:
-                self.speed_pub.send(hgpb.Speed(vx=0, vy=0, vtheta=0))
+                self.speed_pub.send(common_pb.Speed(vx=0, vy=0, vtheta=0))
                 self.loco_state = LocoState.IDLE
             return
         
@@ -121,7 +122,7 @@ class Locomotion(Thread):
             # pendant quelques secondes le temps de bien converger
             if time.time() - self.time_threshold > FINALIZING_TIME:
                 self.loco_state = LocoState.IDLE
-                self.speed_pub.send(hgpb.Speed(vx=0, vy=0, vtheta=0))
+                self.speed_pub.send(common_pb.Speed(vx=0, vy=0, vtheta=0))
                 # print("Arrivé!")
                 return
         
@@ -166,7 +167,7 @@ class Locomotion(Thread):
         self.pos = pos
         # en cas de recalage on annule tous les déplacements en cours
         self.loco_state = LocoState.IDLE
-        self.speed_pub.send(hgpb.Speed(vx=0, vy=0, vtheta=0))
+        self.speed_pub.send(common_pb.Speed(vx=0, vy=0, vtheta=0))
 
     def on_odom_pos(self, topic, msg, timestamp):
         self.pos = Pos(msg.x, msg.y, msg.theta)

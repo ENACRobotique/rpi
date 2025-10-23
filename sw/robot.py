@@ -6,6 +6,7 @@ import time
 from math import sqrt, pi, cos, sin, atan2, radians,degrees
 import sys
 import logging
+import generated.common_pb2 as common_pb
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
@@ -130,10 +131,10 @@ class Robot:
 
         ### SUB ECAL ###
 
-        self.positionReportSub = ProtoSubscriber("odom_pos",robot_pb.Position)
+        self.positionReportSub = ProtoSubscriber("odom_pos",common_pb.Position)
         self.positionReportSub.set_callback(self.onReceivePosition)
 
-        self.speedReportSub = ProtoSubscriber("odom_speed",robot_pb.Speed)
+        self.speedReportSub = ProtoSubscriber("odom_speed",common_pb.Speed)
         self.speedReportSub.set_callback(self.onReceiveSpeed)
         
         self.balises_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
@@ -143,7 +144,7 @@ class Robot:
         self.balises_sub.set_callback(self.on_detected_beacons)
 
         # When Using Robokontrol
-        self.setPositionSub = ProtoSubscriber("set_position", robot_pb.Position)
+        self.setPositionSub = ProtoSubscriber("set_position", common_pb.Position)
         self.setPositionSub.set_callback(self.onSetTargetPostition)
 
         #self.proximitySub = ProtoSubscriber("proximity_status",lidar_pb.Proximity)
@@ -160,7 +161,7 @@ class Robot:
         # self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
         
         ### PUB ECAL ###
-        self.reset_pos_pub = ProtoPublisher("reset", robot_pb.Position)
+        self.reset_pos_pub = ProtoPublisher("reset", common_pb.Position)
 
         # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
@@ -176,7 +177,7 @@ class Robot:
         #self.resume_pub = ProtoPublisher("resume",robot_pb.no_args_func_)
 
         self.logs_pub =StringPublisher("logs")
-        self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",robot_pb.Position) for i in range(3)]
+        self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",common_pb.Position) for i in range(3)]
         time.sleep(1)
 
         self.nav.initialisation()

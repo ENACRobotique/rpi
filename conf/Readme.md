@@ -86,6 +86,8 @@ sudo apt install network-manager
 
 Copy `80-robot.rules` to `/etc/udev/rules.d/`, and edit it to change the configuration according to your setup (pi4 vs pi5, ...)
 
+Add the user "robot" to the "dialout" group to access serial peripherals:
+`sudo usermod -aG dialout robot`
 
 ## Packages
 

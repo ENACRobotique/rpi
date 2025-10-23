@@ -11,13 +11,11 @@ import json
 import socket
 import struct
 import math
+import argparse
 
 import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 from ecal.core.subscriber import ProtoSubscriber
-
-plotjuggler_udp = ("192.168.42.201", 9870)
-PLOTJUGGLER = False
 
 
 class RxState(Enum):
@@ -27,13 +25,13 @@ class RxState(Enum):
     
 
 class Duckoder(Protocol):
-    def __init__(self, plotjuggler=True):
+    def __init__(self):
         Protocol.__init__(self)
         self.transport = None
         self._buffer = b'  '
         self._rx_state = RxState.IDLE
         self._msg_rcv = None
-        if PLOTJUGGLER:
+        if args.plotjuggler:
             self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ecal_core.initialize(sys.argv, "Bridge low level")
         self.odom_pos_pub = ProtoPublisher("odom_pos", hgpb.Position)
@@ -45,17 +43,29 @@ class Duckoder(Protocol):
         self.motors_speed_pub = ProtoPublisher("motors_speed", llpb.Motors)
         self.motors_pos_pub = ProtoPublisher("motors_pos", llpb.Motors)
         self.motors_pos_cons_pub = ProtoPublisher("motors_pos_cons", llpb.Motors)
+
+        self.topic_pubs = {
+            llpb.Topic.POS_ROBOT_W:     self.odom_pos_pub,
+            llpb.Topic.POS_CARROT_W:    self.carrot_pos_pub,
+            llpb.Topic.MOVE_ROBOT_R:    self.odom_move_pub
+        }
+
+        self.motors_pubs = {
+            llpb.Motors.MotorDataType.MOTORS_POS_CONS:  self.motors_pos_cons_pub,
+            llpb.Motors.MotorDataType.MOTORS_SPEED:     self.motors_speed_pub,
+            llpb.Motors.MotorDataType.MOTORS_CMD:       self.motors_cmd_pub,
+            llpb.Motors.MotorDataType.MOTORS_POS:       self.motors_pos_pub,
+        }
+
         self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
         self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
         self.pid_sub = ProtoSubscriber("pid_gains",llpb.MotorPid)
         self.speed_cons_sub = ProtoSubscriber("speed_cons",hgpb.Speed)
-        self.system_modes_sub = ProtoSubscriber("system_modes",llpb.System)
         
         self.target_pos_sub.set_callback(self.set_target)
         self.reset_pos_sub.set_callback(self.reset_position)
         self.pid_sub.set_callback(self.set_pid)
         self.speed_cons_sub.set_callback(self.set_speed)
-        self.system_modes_sub.set_callback(self.set_modes)
         
 
     def connection_made(self, transport):
@@ -65,35 +75,22 @@ class Duckoder(Protocol):
         for c in data:
             if self._decode(c.to_bytes(1, 'little')):
                 m = llpb.Message.FromString(self._msg_rcv)
-                if PLOTJUGGLER:
+                if args.plotjuggler:
                     jj = self.msg_to_json(m)
                     #print(jj)
-                    self.so.sendto(jj.encode(), plotjuggler_udp)
-                topic = m.WhichOneof('inner')
-                if topic == "pos" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = hgpb.Position(x=m.pos.x,y=m.pos.y,theta=m.pos.theta)
-                    if m.pos.obj == llpb.Pos.PosObject.POS_ROBOT_W:
-                        self.odom_pos_pub.send(hgm)
-                    elif m.pos.obj == llpb.Pos.PosObject.POS_CARROT_W:
-                        self.carrot_pos_pub.send(hgm)
-                    elif m.pos.obj == llpb.Pos.PosObject.MOVE_ROBOT_R:
-                        self.odom_move_pub.send(hgm)
-                if topic == "speed" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = hgpb.Speed(vx=m.speed.vx,vy=m.speed.vy,vtheta=m.speed.vtheta)
-                    self.odom_speed_pub.send(hgm)
-                if topic == "ins" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = hgpb.Ins(vtheta=m.ins.vtheta,theta=m.ins.theta)
-                    self.ins_pub.send(hgm)
-                if topic == "motors" and m.msg_type == llpb.Message.MsgType.STATUS:
-                    hgm = llpb.Motors(m1=m.motors.m1, m2=m.motors.m2, m3=m.motors.m3)
-                    if m.motors.type == llpb.Motors.MotorDataType.MOTORS_POS_CONS:
-                        self.motors_pos_cons_pub.send(hgm)
-                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_SPEED:
-                        self.motors_speed_pub.send(hgm)
-                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_CMD:
-                        self.motors_cmd_pub.send(hgm)
-                    elif m.motors.type == llpb.Motors.MotorDataType.MOTORS_POS:
-                        self.motors_pos_pub.send(hgm)
+                    self.so.sendto(jj.encode(), (args.addr, args.port))
+                inner = m.WhichOneof('inner')
+                if m.msg_type == llpb.Message.MsgType.STATUS:
+                    if inner == "pos":
+                        if m.topic in self.topic_pubs:
+                            self.topic_pubs[m.topic].send(m.pos)
+                    if inner == "speed":
+                        self.odom_speed_pub.send(m.speed)
+                    if inner == "ins":
+                        self.ins_pub.send(m.ins)
+                    if inner == "motors":
+                        if m.motors.type in self.motors_pubs:
+                            self.motors_pubs[m.motors.type].send(m.motors)
 
 
     def _decode(self, c):
@@ -128,11 +125,15 @@ class Duckoder(Protocol):
         if msg_name == 'motors':
             msg_name = msg.motors.MotorDataType.Name(msg.motors.type)
         elif msg_name == 'pos':
-            msg_name = msg.pos.PosObject.Name(msg.pos.obj)
+            msg_name = llpb.Topic.Name(msg.topic)
         d = {msg_name: {}}
         for f in inner.DESCRIPTOR.fields:
             field_name = f.name
-            d[msg_name][field_name] = getattr(inner, field_name)
+            if f.label == f.LABEL_REPEATED:
+                pass
+                d[msg_name][field_name] = [di for di in getattr(inner, field_name)]
+            else:
+                d[msg_name][field_name] = getattr(inner, field_name)
         return json.dumps(d)
 
 
@@ -152,7 +153,7 @@ class Duckoder(Protocol):
         llmsg.pos.x = hlm.x
         llmsg.pos.y = hlm.y
         llmsg.pos.theta = hlm.theta
-        llmsg.pos.obj = llpb.Pos.PosObject.POS_ROBOT_W
+        llmsg.topic = llpb.Topic.POS_ROBOT_W
         self.send_message(llmsg)
 
     def reset_position(self, topic_name, hlm, time):
@@ -161,7 +162,7 @@ class Duckoder(Protocol):
         llmsg.pos.x = hlm.x
         llmsg.pos.y = hlm.y
         llmsg.pos.theta = hlm.theta
-        llmsg.pos.obj = llpb.Pos.PosObject.RECALAGE
+        llmsg.topic = llpb.Topic.RECALAGE
         self.send_message(llmsg)
 
     def set_pid(self, topic_name, hlm, time):
@@ -180,20 +181,17 @@ class Duckoder(Protocol):
         llmsg.speed.vy = hlm.vy
         llmsg.speed.vtheta = hlm.vtheta
         self.send_message(llmsg)
-    
-    def set_modes(self, topic_name, hlm, time):
-        llmsg = llpb.Message()
-        llmsg.msg_type = llpb.Message.MsgType.COMMAND
-        llmsg.system.asserv = hlm.asserv
-        llmsg.system.guidance = hlm.guidance
-        llmsg.system.odometry = hlm.odometry
-        self.send_message(llmsg)
-
 
 if __name__ == "__main__":
-    port = sys.argv[1] if len(sys.argv) > 1 else "/dev/robot_base"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--serial", default="/dev/robot_base", help="base serial port")
+    parser.add_argument("-p", "--plotjuggler", action="store_true", default=False, help="Send data to plotjuggler")
+    parser.add_argument("-a", "--addr", default="192.168.42.201", help="Plotjuggler server ip address")
+    parser.add_argument("-u", "--port", default=9870, help="Plotjuggler server port", type=int)
+    args = parser.parse_args()
 
-    ser=Serial(port, 230400)
+
+    ser=Serial(args.serial, 230400)
     with ReaderThread(ser, Duckoder) as p:
         while True:
             time.sleep(1)

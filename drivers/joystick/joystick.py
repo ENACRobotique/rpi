@@ -6,8 +6,9 @@ import ecal.core.core as ecal_core
 from ecal.core.publisher import ProtoPublisher
 import sys
 sys.path.append("../..")
-import generated.robot_state_pb2 as robot_state_pb2
-import generated.messages_pb2 as message_pb2
+# import generated.robot_state_pb2 as robot_state_pb2
+import generated.common_pb2 as common_pb
+# import generated.messages_pb2 as message_pb2
 from sw.IO.actionneurs import IO_Manager
 
 
@@ -44,8 +45,6 @@ BATTLETRON = {
     "THETA_sens" : -1,
     "THETA_offset" : 0.1, #à régler
     "THETA_dead_zone": 0.1, # à régler
-    "frame_robot":1, #bouton CARRÉ
-    "frame_table":3, #bouton ROND
     "theta_supra_luminique":11, #bouton
     "vitesse_supra_luminique": 12, #bouton
     "glisse" : 1, #hat (fleche haut et bas)
@@ -71,7 +70,6 @@ class JoystickEcal ():
         self.axis = []
         self.hats = []
         self.conf = BATTLETRON
-        self.frame = FRAME_R
         self.glisseMode = PLANCHE
         self.glisseState = IDLE
         self.last_time = 0
@@ -79,16 +77,14 @@ class JoystickEcal ():
         ecal_core.initialize([], "Joystick")
         time.sleep(1) # on laisse ecal se reveiller
 
-        self.speed_publisher = ProtoPublisher("speed_cons", robot_state_pb2.Speed)
-        self.message = robot_state_pb2.Speed()
-        self.Mode_pub = ProtoPublisher("system_modes",message_pb2.System)
+        self.speed_publisher = ProtoPublisher("speed_cons", common_pb.Speed)
+        self.message = common_pb.Speed()
         self.IO_manager = IO_Manager()
 
         self.verrouLock = False
         self.brasUP = False
         self.grabHaut = False
         self.grabBas = False
-        # self.change_frame() # on passe en frame Robot
         
     def __repr__(self):
         return f"{len(self.axis)} Axis: {self.axis} \t{len(self.buttons)} Buttons : {self.buttons} \t{len(self.hats)} Hats : {self.hats}"
@@ -181,48 +177,17 @@ class JoystickEcal ():
         #print(self.message)
         cons_at_0 = abs(self.message.vx) < 0.1 and abs(self.message.vy) < 0.1 and abs(self.message.vtheta) <= 0.1
         if cons_at_0:
-            print("cons at 0")
             if not self.cons_timer_on:
                 self.last_time = time.time()
                 self.cons_timer_on = True
-                print("started timer")
             if self.cons_timer_on :
                 timeout = abs(time.time()- self.last_time) > TIMEOUT_COMMAND
         else:
             timeout = False
             self.cons_timer_on = False
 
-        if timeout:
-            print("timeout")
-        else:
+        if not timeout:
             self.speed_publisher.send(self.message)
-        if self.buttons[self.conf["frame_robot"]]:
-            # print("LA",self.buttons[self.conf["frame_robot"]])
-            self.set_frame(FRAME_R)
-        if self.buttons[self.conf["frame_table"]]:
-            # print("LA",self.buttons[self.conf["frame_robot"]])
-            self.set_frame(FRAME_W)
-
-    def set_mode(self, asserv, guidance):
-        print(asserv,guidance)
-        mode = message_pb2.System()
-        mode.asserv = asserv
-        mode.guidance = guidance
-        mode.odometry = message_pb2.System.OdometryFlags.ODOMETRY_ENABLED
-        self.Mode_pub.send(mode)
-    
-    def set_frame(self,frame):
-        
-        if frame == FRAME_R:
-            self.frame = FRAME_R
-            print("mode ",message_pb2.System.GuidanceFlags.GUIDANCE_ROBOT_FRAME | message_pb2.System.GuidanceFlags.GUIDANCE_BASIC)
-            self.set_mode(message_pb2.System.AsservFlags.ASSERV_POS,message_pb2.System.GuidanceFlags.GUIDANCE_ROBOT_FRAME | message_pb2.System.GuidanceFlags.GUIDANCE_BASIC)
-        
-        elif frame == FRAME_W:
-            self.frame = FRAME_W
-            self.set_mode(message_pb2.System.AsservFlags.ASSERV_POS,message_pb2.System.GuidanceFlags.GUIDANCE_BASIC)
-        print("Frame 1W|0R = ", self.frame)
-        
 
 if __name__ == '__main__':
     pygame.init()
