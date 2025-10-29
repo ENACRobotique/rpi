@@ -13,6 +13,7 @@ import argparse
 from enum import Enum
 from scipy.spatial.transform import Rotation
 import time
+from threading import Event
 
 
 class Source(Enum):
@@ -32,15 +33,37 @@ class ArucoFinder:
         self.arucos = arucos
         self.display = display
         
+        self.event = Event()
+        self.img = None     # img received from eCAL
+
+        self.aruco_pub = ProtoPublisher("Arucos", Position_aruco)
+        if self.display:
+            self.cam_pub = ProtoPublisher("images_"+str(self.name), cipb.CompressedImage)
+        
+        # ArUco settings (API OpenCV 4.7+)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        self.aruco_params = cv2.aruco.DetectorParameters()
+        self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
+
+        self.camera_matrix = None
+        self.dist_coeffs = None
+        
+        self.open_capture()
+    
+    def open_capture(self):
         if src_type == Source.CAM:
             self.cap = cv2.VideoCapture(src)
             if self.cap is None:
                 print(f"Failed to open {self.name} with id {src}")
-                return
-            #self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
-            #self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
-            w, h = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-            print(f"Opened camera with resolution {w}x{h}!\n")
+                exit(-1)
+            if args.width is not None and args.height is not None:
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
+            if args.fps is not None:
+                print(f"setting fps at {args.fps}...")
+                self.cap.set(cv2.CAP_PROP_FPS, args.fps)
+            w, h, f = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT), self.cap.get(cv2.CAP_PROP_FPS)
+            print(f"Opened camera with resolution {w}x{h} at {f}fps!\n")
         elif src_type == Source.VIDEO:
             self.cap = cv2.VideoCapture(src)
             if self.cap is None:
@@ -51,37 +74,19 @@ class ArucoFinder:
         elif src_type == Source.ECAL:
             self.sub = ProtoSubscriber(src, cipb.CompressedImage)
             self.sub.set_callback(self.on_img)
-        
-        if self.display:
-            self.cam_pub = ProtoPublisher("images_"+str(self.name), cipb.CompressedImage)
-        
-        
-        
-        self.aruco_pub = ProtoPublisher("Arucos", Position_aruco)
-        
 
-        # ArUco settings (API OpenCV 4.7+)
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        self.aruco_params = cv2.aruco.DetectorParameters()
-        self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
-        
-        self.resolution = (640, 480) #width, height
-        self.getCalibration(f'{self.name}_matrix_1920x1080.npy', f'{self.name}_coeffs_1920x1080.npy', (1920,1080))
-
-    def getCalibration(self, matrix, coefs, resolution = (640,480)):
+    def getCalibration(self, w, h):
         """Provide Calibration Matrix and distance coefs as .npy file"""
         # Charger la calibration
-        self.camera_matrix = np.load(matrix)
-        self.dist_coeffs = np.load(coefs)
-        self.resolution = resolution
+        f_mat = f'calibrations/{self.name}_matrix_{w}x{h}.npy'
+        f_coef = f'calibrations/{self.name}_coeffs_{w}x{h}.npy'
+        self.camera_matrix = np.load(f_mat)
+        self.dist_coeffs = np.load(f_coef)
     
     def on_img(self, topic, msg: cipb.CompressedImage, t):
         nparr = np.frombuffer(msg.data, np.uint8)
-        # Décode l'image
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        processed = self.process(frame)
-        if self.display:
-            self.send_processed_frame(processed)
+        self.img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        self.event.set()
 
     def send_processed_frame(self, frame):
         img_encode = cv2.imencode(".jpg", frame)[1]
@@ -110,14 +115,13 @@ class ArucoFinder:
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers([corners], size, self.camera_matrix, self.dist_coeffs)
                 if tvecs is not None:
                     rv, tv = rvecs[0], tvecs[0]
-                    xs.append(tv[0][2])
-                    ys.append(tv[0][0])
-                    zs.append(-tv[0][1])
+                    xs.append(tv[0][0])
+                    ys.append(tv[0][1])
+                    zs.append(tv[0][2])
                     aruIds.append(id)
 
                     # Convert rvec to rotation matrix
                     rotation_matrix, _ = cv2.Rodrigues(np.array(rv))
-                    ### first transform the matrix to euler angles
                     r =  Rotation.from_matrix(rotation_matrix)
                     (qx, qy, qz, qw) = r.as_quat(False)
                     qxs.append(qx)
@@ -126,18 +130,23 @@ class ArucoFinder:
                     qws.append(qw)
             self.arucoFound = Position_aruco(x=xs, y=ys, z=zs, qx=qxs, qy=qys, qz=qzs, qw=qws, ArucoId=aruIds, cameraName=self.name)
             self.aruco_pub.send(self.arucoFound)
-        
         return frame
     
     def run(self):
         while True:
             if self.src_type == Source.CAM or self.src_type == Source.VIDEO:
                 ret, frame = self.cap.read()
-                processed = self.process(frame)
-                if self.display:
-                    self.send_processed_frame(processed)
             else:
-                time.sleep(1)
+                self.event.wait()
+                frame = self.img.copy()
+            
+            if self.camera_matrix is None:
+                h, w, _ = frame.shape
+                self.getCalibration(w, h)
+            
+            processed = self.process(frame)
+            if self.display:
+                self.send_processed_frame(processed)
 
 
 if __name__ == "__main__":
@@ -147,6 +156,9 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--video', help='Video file', default=None)
     parser.add_argument('-t', '--topic', help='eCAL topic', default=None)
     parser.add_argument('-d', '--display', action='store_true', default=False, help='send annotetd images over ecal')
+    parser.add_argument('-W', '--width', type=int, help='image width', default=None)
+    parser.add_argument('-H', '--height', type=int, help='image height', default=None)
+    parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
     args = parser.parse_args()
 
     if args.cam is not None:
@@ -161,7 +173,7 @@ if __name__ == "__main__":
     else:
         print("Please specify the source: cam, video or ecal topic.")
     
-    arucos = {47:30, 36:30, 20:100, 21:100, 22:100, 23:100}
+    arucos = {47:30, 36:30, 20:100, 21:100, 22:100, 23:100, 13:30}
 
     af = ArucoFinder(args.name, src_type, src, arucos, args.display)
 
