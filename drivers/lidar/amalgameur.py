@@ -1,7 +1,8 @@
-#!/usr/bin/python3
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+#!/usr/bin/env python3
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 import time, os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
 import numpy as np
@@ -17,16 +18,16 @@ MAX_SIZE = 500
 
 class Amalgameur:
     def __init__(self) -> None:
-        ecal_core.initialize(sys.argv, "lidar_amalgameur")
+        ecal_core.initialize("lidar_amalgameur")
 
-        self.sub_lidar = ProtoSubscriber("lidar_data", lidar_pb.Lidar)
-        self.sub_lidar.set_callback(self.on_lidar)
-        self.pub_amalgames = ProtoPublisher("amalgames", lidar_pb.Amalgames)
+        self.sub_lidar = ProtoSubscriber(lidar_pb.Lidar, "lidar_data")
+        self.sub_lidar.set_receive_callback(self.on_lidar)
+        self.pub_amalgames = ProtoPublisher(lidar_pb.Amalgames, "amalgames")
 
-    def on_lidar(self, topic_name, msg, time):
-        quality = np.array(msg.quality) > QUALITY_REJECTION_VAL
-        distances = np.array(msg.distances)[quality]
-        angles = np.array(msg.angles)[quality]
+    def on_lidar(self, pub_id : ecal_core.TopicId, data : ReceiveCallbackData[lidar_pb.Lidar]):
+        quality = np.array(data.message.quality) > QUALITY_REJECTION_VAL
+        distances = np.array(data.message.distances)[quality]
+        angles = np.array(data.message.angles)[quality]
 
         distance_filter = distances < MAX_DIST
 
