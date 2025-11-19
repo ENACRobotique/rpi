@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 import sys
 import cv2
 import numpy as np
@@ -15,15 +16,16 @@ from enum import Enum
 
 class CamVisu:
     def __init__(self, args) -> None:
-        ecal_core.initialize([], "Ecal cam visu")
-        self.sub = ProtoSubscriber(args.topic, cipb.CompressedImage)
+        if not ecal_core.is_initialized():
+            ecal_core.initialize("Ecal cam visu")
+        self.sub = ProtoSubscriber(cipb.CompressedImage, args.topic)
         self.img = None
         self.rotate = args.rotate
         self.event = Event()
-        self.sub.set_callback(self.on_img)
+        self.sub.set_receive_callback(self.on_img)
 
-    def on_img(self, topic, msg: cipb.CompressedImage, t):
-        nparr = np.frombuffer(msg.data, np.uint8)
+    def on_img(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[cipb.CompressedImage]):
+        nparr = np.frombuffer(data.message.data, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         match self.rotate:
             case '0':

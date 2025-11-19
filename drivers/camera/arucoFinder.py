@@ -3,9 +3,10 @@ import cv2
 import numpy as np
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 from generated.robot_state_pb2 import Position_aruco
 from generated import CompressedImage_pb2 as cipb
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -25,7 +26,7 @@ class Source(Enum):
 class ArucoFinder:
     def __init__(self, name, src_type, src, arucos, display):
         if not ecal_core.is_initialized():
-            ecal_core.initialize(sys.argv, "arucoFinder")
+            ecal_core.initialize("arucoFinder")
         
         self.name = name
         self.src_type = src_type
@@ -36,9 +37,9 @@ class ArucoFinder:
         self.event = Event()
         self.img = None     # img received from eCAL
 
-        self.aruco_pub = ProtoPublisher("Arucos", Position_aruco)
+        self.aruco_pub = ProtoPublisher(Position_aruco, "Arucos")
         if self.display:
-            self.cam_pub = ProtoPublisher("images_"+str(self.name), cipb.CompressedImage)
+            self.cam_pub = ProtoPublisher(cipb.CompressedImage, "images_"+str(self.name))
         
         # ArUco settings (API OpenCV 4.7+)
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -72,8 +73,8 @@ class ArucoFinder:
             w, h = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
             print(f"Opened video with resolution {w}x{h}!\n")
         elif src_type == Source.ECAL:
-            self.sub = ProtoSubscriber(src, cipb.CompressedImage)
-            self.sub.set_callback(self.on_img)
+            self.sub = ProtoSubscriber(cipb.CompressedImage, src)
+            self.sub.set_receive_callback(self.on_img)
 
     def getCalibration(self, w, h):
         """Provide Calibration Matrix and distance coefs as .npy file"""
@@ -83,8 +84,8 @@ class ArucoFinder:
         self.camera_matrix = np.load(f_mat)
         self.dist_coeffs = np.load(f_coef)
     
-    def on_img(self, topic, msg: cipb.CompressedImage, t):
-        nparr = np.frombuffer(msg.data, np.uint8)
+    def on_img(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[cipb.CompressedImage]):
+        nparr = np.frombuffer(data.message.data, np.uint8)
         self.img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         self.event.set()
 

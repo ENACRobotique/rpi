@@ -4,14 +4,14 @@ sys.path.append('../../generated')
 import time
 import messages_pb2 as llpb
 
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
 
 
 if __name__ == "__main__":
-    ecal_core.initialize(sys.argv, "set_pid")
-    pid_pub = ProtoPublisher("pid_gains", llpb.MotorPid)
+    if not ecal_core.is_initialized():
+        ecal_core.initialize("set_pid")
+    pid_pub = ProtoPublisher(llpb.MotorPid, "pid_gains")
     time.sleep(1)
     pid_msg = llpb.MotorPid()
 

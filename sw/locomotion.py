@@ -9,9 +9,10 @@ import math
 from math import cos, sin, atan2, sqrt, pi, radians
 from copy import deepcopy
 
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 from common import Pos, Speed, clamp, normalize_angle
 from enum import Enum
 from threading import Thread
@@ -46,25 +47,25 @@ class Locomotion(Thread):
     def __init__(self):
         Thread.__init__(self)
         if not ecal_core.is_initialized():
-            ecal_core.initialize(sys.argv, "locomotion")
+            ecal_core.initialize("locomotion")
 
-        self.speed_pub = ProtoPublisher("speed_cons", common_pb.Speed)
-        self.reset_pos_pub = ProtoPublisher("reset", common_pb.Position)
+        self.speed_pub = ProtoPublisher(common_pb.Speed, "speed_cons")
+        self.reset_pos_pub = ProtoPublisher(common_pb.Position, "reset")
 
-        self.odom_speed_sub = ProtoSubscriber("odom_speed", common_pb.Speed)
-        self.odom_speed_sub.set_callback(self.on_odom_speed)
+        self.odom_speed_sub = ProtoSubscriber(common_pb.Speed, "odom_speed")
+        self.odom_speed_sub.set_receive_callback(self.on_odom_speed)
 
-        self.target_pos_sub = ProtoSubscriber("set_position", common_pb.Position)
-        self.target_pos_sub.set_callback(self.on_target_pos)
+        self.target_pos_sub = ProtoSubscriber(common_pb.Position, "set_position")
+        self.target_pos_sub.set_receive_callback(self.on_target_pos)
         
-        self.odom_pos_sub = ProtoSubscriber("odom_pos", common_pb.Position)
-        self.odom_pos_sub.set_callback(self.on_odom_pos)
+        self.odom_pos_sub = ProtoSubscriber(common_pb.Position, "odom_pos")
+        self.odom_pos_sub.set_receive_callback(self.on_odom_pos)
         
-        self.reset_pos_sub = ProtoSubscriber("reset", common_pb.Position)
-        self.reset_pos_sub.set_callback(self.on_reset_pos)
+        self.reset_pos_sub = ProtoSubscriber(common_pb.Position, "reset")
+        self.reset_pos_sub.set_receive_callback(self.on_reset_pos)
         
-        self.lidar_sub = ProtoSubscriber("lidar_pos", common_pb.Position)
-        self.lidar_sub.set_callback(self.on_lidar_pos)
+        self.lidar_sub = ProtoSubscriber(common_pb.Position, "lidar_pos")
+        self.lidar_sub.set_receive_callback(self.on_lidar_pos)
 
         self.kp = 3
         self.kp_ang = 1.5
@@ -169,15 +170,15 @@ class Locomotion(Thread):
         self.loco_state = LocoState.IDLE
         self.speed_pub.send(common_pb.Speed(vx=0, vy=0, vtheta=0))
 
-    def on_odom_pos(self, topic, msg, timestamp):
-        self.pos = Pos(msg.x, msg.y, msg.theta)
+    def on_odom_pos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
+        self.pos = Pos.from_proto(data.message)
         #self.last_odom_pos_time = time.time()
     
-    def on_target_pos(self, topic, msg, timestamp):
-        self.go_to(Pos.from_proto(msg))
+    def on_target_pos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
+        self.go_to(Pos.from_proto(data.message))
     
-    def on_reset_pos(self, topic, msg, timestamp):
-        self.reset_pos(Pos.from_proto(msg))
+    def on_reset_pos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
+        self.reset_pos(Pos.from_proto(data.message))
         
     
     def run(self):
@@ -198,14 +199,14 @@ class Locomotion(Thread):
     def select_velocity(self, velocity: Velocity):
         self.speed, _ = velocity.value
 
-    def on_odom_speed(self, topic_name, msg, timestamp):
-        self.odom_speed = Speed.from_proto(msg)
+    def on_odom_speed(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Speed]):
+        self.odom_speed = Speed.from_proto(data.message)
 
-    def on_lidar_pos(self, topic_name, msg, timestamp):
-        self.lidar_pos = Pos.from_proto(msg)
+    def on_lidar_pos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
+        self.lidar_pos = Pos.from_proto(data.message)
         if abs(self.last_speed.vtheta) <= 0.2 and abs(self.odom_speed.vtheta) <= 0.2 :
             self.pos = self.lidar_pos
-            self.reset_pos_pub.send(msg)
+            self.reset_pos_pub.send(data.message)
 
 
 if __name__ == '__main__':

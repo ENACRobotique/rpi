@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 from lcd_driver import *
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 
 import sys, os, time
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
@@ -11,11 +12,12 @@ import generated.robot_state_pb2 as rpb
 
 class ECAL_LCD:
     def __init__(self, port) -> None:
-        ecal_core.initialize(sys.argv, "eCAL_LCD_driver")
-        self.state_pub = ProtoPublisher("LCDState", rpb.LCDState)
-        self.event_pub = ProtoPublisher("LCDEvent", rpb.LCDEvent)
-        self.display_sub = ProtoSubscriber("LCDOut", rpb.LCDOut)
-        self.display_sub.set_callback(self.display_lcd)
+        if not ecal_core.is_initialized():
+            ecal_core.initialize("eCAL_LCD_driver")
+        self.state_pub = ProtoPublisher(rpb.LCDState, "LCDState")
+        self.event_pub = ProtoPublisher(rpb.LCDEvent, "LCDEvent")
+        self.display_sub = ProtoSubscriber(rpb.LCDOut, "LCDOut")
+        self.display_sub.set_receive_callback(self.display_lcd)
         self.lcd = LCD(port, self.lcd_event_cb)
     
     def lcd_event_cb(self, btn: Button, val):
@@ -33,7 +35,8 @@ class ECAL_LCD:
         msg.potar = self.lcd.get_state(Button.POTAR)
         self.state_pub.send(msg)
     
-    def display_lcd(self, topic_name, msg, timestamp):
+    def display_lcd(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[rpb.LCDOut]):
+        msg = data.message
         self.lcd.display(msg.line1, msg.line2, msg.red, msg.green, msg.blue, msg.buzzer)
 
 

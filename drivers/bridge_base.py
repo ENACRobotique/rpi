@@ -13,9 +13,10 @@ import struct
 import math
 import argparse
 
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 
 
 class RxState(Enum):
@@ -33,16 +34,17 @@ class Duckoder(Protocol):
         self._msg_rcv = None
         if args.plotjuggler:
             self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        ecal_core.initialize(sys.argv, "Bridge low level")
-        self.odom_pos_pub = ProtoPublisher("odom_pos", hgpb.Position)
-        self.odom_move_pub = ProtoPublisher("odom_move", hgpb.Position)
-        self.odom_speed_pub = ProtoPublisher("odom_speed", hgpb.Speed)
-        self.carrot_pos_pub = ProtoPublisher("carrot_pos", hgpb.Position)
-        self.ins_pub = ProtoPublisher("ins", hgpb.Ins)
-        self.motors_cmd_pub = ProtoPublisher("motors_cmd", llpb.Motors)
-        self.motors_speed_pub = ProtoPublisher("motors_speed", llpb.Motors)
-        self.motors_pos_pub = ProtoPublisher("motors_pos", llpb.Motors)
-        self.motors_pos_cons_pub = ProtoPublisher("motors_pos_cons", llpb.Motors)
+        if not ecal_core.is_initialized():
+            ecal_core.initialize("Bridge low level")
+        self.odom_pos_pub = ProtoPublisher(hgpb.Position, "odom_pos")
+        self.odom_move_pub = ProtoPublisher(hgpb.Position, "odom_move")
+        self.odom_speed_pub = ProtoPublisher(hgpb.Speed, "odom_speed")
+        self.carrot_pos_pub = ProtoPublisher(hgpb.Position, "carrot_pos")
+        self.ins_pub = ProtoPublisher(hgpb.Ins, "ins")
+        self.motors_cmd_pub = ProtoPublisher(llpb.Motors, "motors_cmd")
+        self.motors_speed_pub = ProtoPublisher(llpb.Motors, "motors_speed")
+        self.motors_pos_pub = ProtoPublisher(llpb.Motors, "motors_pos")
+        self.motors_pos_cons_pub = ProtoPublisher(llpb.Motors, "motors_pos_cons")
 
         self.topic_pubs = {
             llpb.Topic.POS_ROBOT_W:     self.odom_pos_pub,
@@ -57,15 +59,15 @@ class Duckoder(Protocol):
             llpb.Motors.MotorDataType.MOTORS_POS:       self.motors_pos_pub,
         }
 
-        self.target_pos_sub = ProtoSubscriber("set_position", hgpb.Position)
-        self.reset_pos_sub = ProtoSubscriber("reset", hgpb.Position)
-        self.pid_sub = ProtoSubscriber("pid_gains",llpb.MotorPid)
-        self.speed_cons_sub = ProtoSubscriber("speed_cons",hgpb.Speed)
-        
-        self.target_pos_sub.set_callback(self.set_target)
-        self.reset_pos_sub.set_callback(self.reset_position)
-        self.pid_sub.set_callback(self.set_pid)
-        self.speed_cons_sub.set_callback(self.set_speed)
+        self.target_pos_sub = ProtoSubscriber(hgpb.Position, "set_position")
+        self.reset_pos_sub = ProtoSubscriber(hgpb.Position, "reset")
+        self.pid_sub = ProtoSubscriber(llpb.MotorPid, "pid_gains")
+        self.speed_cons_sub = ProtoSubscriber(hgpb.Speed, "speed_cons")
+
+        self.target_pos_sub.set_receive_callback(self.set_target)
+        self.reset_pos_sub.set_receive_callback(self.reset_position)
+        self.pid_sub.set_receive_callback(self.set_pid)
+        self.speed_cons_sub.set_receive_callback(self.set_speed)
         
 
     def connection_made(self, transport):
@@ -147,25 +149,22 @@ class Duckoder(Protocol):
         # print([c for c in buffer])
         self.transport.write(buffer)
     
-    def set_target(self, topic_name, hlm, time):
-        llmsg = llpb.Message()
+    def set_target(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
+        hlm = data.message
+        llmsg = llpb.Message(pos=hlm)
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
-        llmsg.pos.x = hlm.x
-        llmsg.pos.y = hlm.y
-        llmsg.pos.theta = hlm.theta
         llmsg.topic = llpb.Topic.POS_ROBOT_W
         self.send_message(llmsg)
 
-    def reset_position(self, topic_name, hlm, time):
-        llmsg = llpb.Message()
+    def reset_position(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
+        hlm = data.message
+        llmsg = llpb.Message(pos=hlm)
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
-        llmsg.pos.x = hlm.x
-        llmsg.pos.y = hlm.y
-        llmsg.pos.theta = hlm.theta
         llmsg.topic = llpb.Topic.RECALAGE
         self.send_message(llmsg)
 
-    def set_pid(self, topic_name, hlm, time):
+    def set_pid(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[llpb.MotorPid]):
+        hlm = data.message
         llmsg = llpb.Message()
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
         llmsg.motor_pid.motor_no = hlm.motor_no
@@ -174,7 +173,8 @@ class Duckoder(Protocol):
         llmsg.motor_pid.kd = hlm.kd
         self.send_message(llmsg)
 
-    def set_speed(self, topic_name, hlm, time):
+    def set_speed(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Speed]):
+        hlm = data.message
         llmsg = llpb.Message()
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
         llmsg.speed.vx = hlm.vx

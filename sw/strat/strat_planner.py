@@ -10,7 +10,7 @@ from IO.IO_BT import *
 from bt_essentials import*
 from planner import Planner, Action
 from actions import *
-import ecal.core.core as ecal_core
+import ecal.nanobind_core as ecal_core
 import musics
 
 

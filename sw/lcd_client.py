@@ -1,7 +1,8 @@
 #!/usr/bin/python3
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 import sys, os, time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import generated.robot_state_pb2 as rpb
@@ -152,12 +153,12 @@ class Text(Page):
 class LCDClient(Thread):
     def __init__(self, page_init: Page, on_event, on_state) -> None:
         Thread.__init__(self)
-        self.state_sub = ProtoSubscriber("LCDState", rpb.LCDState)
-        self.event_sub = ProtoSubscriber("LCDEvent", rpb.LCDEvent)
-        self.display_pub = ProtoPublisher("LCDOut", rpb.LCDOut)
+        self.state_sub = ProtoSubscriber(rpb.LCDState, "LCDState")
+        self.event_sub = ProtoSubscriber(rpb.LCDEvent, "LCDEvent")
+        self.display_pub = ProtoPublisher(rpb.LCDOut, "LCDOut")
         self.current_page = page_init
-        self.event_sub.set_callback(self.event_cb)
-        self.state_sub.set_callback(self.state_cb)
+        self.event_sub.set_receive_callback(self.event_cb)
+        self.state_sub.set_receive_callback(self.state_cb)
         self.on_event = on_event
         self.on_state = on_state
         self.red = False
@@ -173,7 +174,8 @@ class LCDClient(Thread):
         msg = rpb.LCDOut(line1=line1, line2=line2, red=self.red, green=self.green, blue=self.blue, buzzer=self.buzz)
         self.display_pub.send(msg)
     
-    def event_cb(self, topic_name, msg, timestamp):
+    def event_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[rpb.LCDEvent]):
+        msg = data.message
         self.on_event(msg)
         # if msg.button == rpb.LCDEvent.Button.COLOR and msg.value == 1:
         #     print("color!!!")
@@ -184,9 +186,9 @@ class LCDClient(Thread):
             self.current_page = ret
         self.display()
     
-    def state_cb(self, topic_name, msg, timestamp):
+    def state_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[rpb.LCDState]):
         if self.on_state is not None:
-            self.on_state(msg)
+            self.on_state(data.message)
     
     def run(self):
         while True:
@@ -199,7 +201,8 @@ class LCDClient(Thread):
 if __name__ == '__main__':
     def color_cb(color):
         print(color)
-    ecal_core.initialize(sys.argv, "LCD_client")
+    if not ecal_core.is_initialized():
+        ecal_core.initialize("LCD_client")
     m=Menu("Robot", None)
     color_choices = Choice("Couleur", m, ["Bleu", "Jaune"], color_cb)
     tt = Text("Simple Text", m, "plop")

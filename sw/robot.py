@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher, StringPublisher
-from ecal.core.subscriber import ProtoSubscriber, StringSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
+from ecal.msg.string.core import Publisher as StringPublisher
 import time
 from math import sqrt, pi, cos, sin, atan2, radians,degrees
 import sys
@@ -69,7 +71,8 @@ class Robot:
     def __init__(self, name="robotStateHolder"):
         """x et y sont en mètres
         theta est en radian"""
-        ecal_core.initialize(sys.argv, name)
+        if not ecal_core.is_initialized():
+            ecal_core.initialize(name)
         self.logger = logging.getLogger(name)
         logging.basicConfig(filename=next_path("/home/robot/logs/strat_log_{}.log"), level=logging.INFO)
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -131,53 +134,53 @@ class Robot:
 
         ### SUB ECAL ###
 
-        self.positionReportSub = ProtoSubscriber("odom_pos",common_pb.Position)
-        self.positionReportSub.set_callback(self.onReceivePosition)
+        self.positionReportSub = ProtoSubscriber(common_pb.Position, "odom_pos")
+        self.positionReportSub.set_receive_callback(self.onReceivePosition)
 
-        self.speedReportSub = ProtoSubscriber("odom_speed",common_pb.Speed)
-        self.speedReportSub.set_callback(self.onReceiveSpeed)
-        
-        self.balises_sub = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
-        self.balises_sub.set_callback(self.detection)
+        self.speedReportSub = ProtoSubscriber(common_pb.Speed, "odom_speed")
+        self.speedReportSub.set_receive_callback(self.onReceiveSpeed)
 
-        self.balises_sub = ProtoSubscriber("balises_near_odom", lidar_pb.Balises)
-        self.balises_sub.set_callback(self.on_detected_beacons)
+        self.balises_sub = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
+        self.balises_sub.set_receive_callback(self.detection)
+
+        self.balises_sub = ProtoSubscriber(lidar_pb.Balises, "balises_near_odom")
+        self.balises_sub.set_receive_callback(self.on_detected_beacons)
 
         # When Using Robokontrol
-        self.setPositionSub = ProtoSubscriber("set_position", common_pb.Position)
-        self.setPositionSub.set_callback(self.onSetTargetPostition)
+        self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
+        self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
 
-        #self.proximitySub = ProtoSubscriber("proximity_status",lidar_pb.Proximity)
-        #self.proximitySub.set_callback(self.onProximityStatus)
+        #self.proximitySub = ProtoSubscriber(lidar_pb.Proximity, "proximity_status")
+        #self.proximitySub.set_receive_callback(self.onProximityStatus)
 
 
-        self.vl53_0_sub = ProtoSubscriber("vl53_0",lidar_pb.Lidar)
-        self.vl53_0_sub.set_callback(lambda topic_name, msg, timestamp : self.on_vl53(Actionneur.AimantBasGauche, topic_name, msg, timestamp))
-        self.vl53_1_sub = ProtoSubscriber("vl53_1",lidar_pb.Lidar)
-        self.vl53_1_sub.set_callback(lambda topic_name, msg, timestamp : self.on_vl53(Actionneur.AimantBasDroit, topic_name, msg, timestamp))
+        self.vl53_0_sub = ProtoSubscriber(lidar_pb.Lidar, "vl53_0")
+        self.vl53_0_sub.set_receive_callback(lambda pub_id, data: self.on_vl53(Actionneur.AimantBasGauche, pub_id, data))
+        self.vl53_1_sub = ProtoSubscriber(lidar_pb.Lidar, "vl53_1")
+        self.vl53_1_sub.set_receive_callback(lambda pub_id, data: self.on_vl53(Actionneur.AimantBasDroit, pub_id, data))
         # self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
         # self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince3))
         # self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
         # self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
-        
+
         ### PUB ECAL ###
-        self.reset_pos_pub = ProtoPublisher("reset", common_pb.Position)
+        self.reset_pos_pub = ProtoPublisher(common_pb.Position, "reset")
 
         # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
-        self.color_pub = ProtoPublisher("color", robot_pb.Side)
+        self.color_pub = ProtoPublisher(robot_pb.Side, "color")
 
-        self.pid_pub = ProtoPublisher("pid_gains", base_pb.MotorPid)
+        self.pid_pub = ProtoPublisher(base_pb.MotorPid, "pid_gains")
 
         #self.claw_pub = ProtoPublisher("set_pince", robot_pb.SetState)
         #self.score_pub = ProtoPublisher("set_score", robot_pb.Match)
-                
+
         #self.slow_pub = ProtoPublisher("slow",robot_pb.no_args_func_)
         #self.stop_pub = ProtoPublisher("stop",robot_pb.no_args_func_)
         #self.resume_pub = ProtoPublisher("resume",robot_pb.no_args_func_)
 
-        self.logs_pub =StringPublisher("logs")
-        self.objects_pubs = [ProtoPublisher(f"Obstacle{i}",common_pb.Position) for i in range(3)]
+        self.logs_pub = StringPublisher("logs")
+        self.objects_pubs = [ProtoPublisher(common_pb.Position, f"Obstacle{i}") for i in range(3)]
         time.sleep(1)
 
         self.nav.initialisation()
@@ -346,19 +349,20 @@ class Robot:
         self.locomotion.reset_pos(position)
         
     
-    def onSetTargetPostition (self, topic_name, msg, timestamp):
+    def onSetTargetPostition (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
-        self.last_target = Pos.from_proto(msg)
+        self.last_target = Pos.from_proto(data.message)
 
-    def onReceivePosition (self, topic_name, msg, timestamp):
+    def onReceivePosition (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
+        msg = data.message
         self.pos = Pos.from_proto(msg)
         self.nb_pos_received += 1
         self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 
-    def onReceiveSpeed(self, topic_name, msg, timestamp):
+    def onReceiveSpeed(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Speed]):
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
-        self.speed = Speed.from_proto(msg)
+        self.speed = Speed.from_proto(data.message)
     
 
     def set_pid_gain(self, gain, value):
@@ -423,14 +427,16 @@ class Robot:
             self.folowingPath = False
         return end 
     
-    def on_detected_beacons(self, topic_name, msg, timestamp):
+    def on_detected_beacons(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Balises]):
+        msg = data.message
         if self.lcd.current_page == self.beacons_page:
             nb_beacons_detected = len(msg.index)
             self.lcd.buzz = ord('0')
             self.beacons_updates += 1
             self.beacons_page.set_text(f"Balises", f"{nb_beacons_detected} beacons {self.beacons_updates}")
         
-    def detection(self, topic_name, msg, timestamp):
+    def detection(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Amalgames]):
+        msg = data.message
         """ Try to find ennemies 
         \nSend 3 detected object Pos on ecal to visualize but saves all of them """
         def filter_pos(pos_size):
@@ -607,8 +613,8 @@ class Robot:
         #print(f"{degrees(angle):+03.0f} : {dist:+05.2f} : sdterr:{stderr:.2f}")
         return angle, dist, stderr
 
-    def on_vl53(self, actionneur, topic_name, msg, timestamp):
-        self.vl53_data[actionneur] = list(msg.distances)
+    def on_vl53(self, actionneur, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Lidar]):
+        self.vl53_data[actionneur] = list(data.message.distances)
 
 
 if __name__ == "__main__":

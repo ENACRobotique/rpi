@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 import sys
 import cv2
 import numpy as np
@@ -20,9 +21,10 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
     args = parser.parse_args()
 
-    ecal_core.initialize([], "cam2ecal")
+    if not ecal_core.is_initialized():
+        ecal_core.initialize("cam2ecal")
 
-    pub = ProtoPublisher(args.topic, cipb.CompressedImage)
+    pub = ProtoPublisher(cipb.CompressedImage, args.topic)
     cam = cv2.VideoCapture(args.cam)
     if not cam.isOpened():
         print("Can't open camera!!!")

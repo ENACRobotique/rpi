@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 import numpy as np
 from collections import namedtuple
 from scipy.optimize import least_squares, OptimizeResult
@@ -44,7 +45,7 @@ BEACON_MIN_SIZE = 50 # mm
 class LidarLoca:
     def __init__(self):
         if not ecal_core.is_initialized():
-            ecal_core.initialize(sys.argv, "loca_lidar")
+            ecal_core.initialize("loca_lidar")
         
         # last odom_pos received
         self.odom_pos = Pos(0, 0, 0)
@@ -52,24 +53,25 @@ class LidarLoca:
         self.estimated_pos = Pos(0, 0, 0)
 
         # Subscribers
-        self.sub_lidar = ProtoSubscriber("amalgames", lidar_pb.Amalgames)
-        self.sub_lidar.set_callback(self.amalgames_cb)
-        
-        self.sub_odom = ProtoSubscriber("odom_pos", common_pb.Position)
-        self.sub_odom.set_callback(self.odom_pos_cb)
+        self.sub_lidar = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
+        self.sub_lidar.set_receive_callback(self.amalgames_cb)
 
-        self.sub_reset_pos = ProtoSubscriber("reset", common_pb.Position)
-        self.sub_reset_pos.set_callback(self.reset_pos_cb)
+        self.sub_odom = ProtoSubscriber(common_pb.Position, "odom_pos")
+        self.sub_odom.set_receive_callback(self.odom_pos_cb)
 
-        self.sub_color = ProtoSubscriber("color",robot_pb.Side)
-        self.sub_color.set_callback(self.color_cb)
+        self.sub_reset_pos = ProtoSubscriber(common_pb.Position, "reset")
+        self.sub_reset_pos.set_receive_callback(self.reset_pos_cb)
+
+        self.sub_color = ProtoSubscriber(robot_pb.Side, "color")
+        self.sub_color.set_receive_callback(self.color_cb)
         # Publishers
-        self.pub_lidar = ProtoPublisher("lidar_pos", common_pb.Position)
-        self.pub_balises_odom = ProtoPublisher("balises_odom", lidar_pb.Balises)
-        self.pub_closest_to_odom_beacons = ProtoPublisher("balises_near_odom", lidar_pb.Balises)
+        self.pub_lidar = ProtoPublisher(common_pb.Position, "lidar_pos")
+        self.pub_balises_odom = ProtoPublisher(lidar_pb.Balises, "balises_odom")
+        self.pub_closest_to_odom_beacons = ProtoPublisher(lidar_pb.Balises, "balises_near_odom")
         self.BEACONS = BEACONS_BLUE
 
-    def color_cb(self, topic_name, msg, time):
+    def color_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Side]):
+        msg = data.message
         self.color = msg.color
         if self.color == robot_pb.Side.Color.BLUE:
             self.BEACONS = BEACONS_BLUE
@@ -80,27 +82,27 @@ class LidarLoca:
         self.odom_pos = pos_recalage
         self.estimated_pos = pos_recalage
 
-    def reset_pos_cb(self, topic_name, msg, time):
-        self.recalage(Pos.from_proto(msg))
+    def reset_pos_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
+        self.recalage(Pos.from_proto(data.message))
 
-    def odom_pos_cb(self, topic_name, msg, time):
+    def odom_pos_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """ 
         Integrate odometry to estimated robot pos and send beacons expected positions.
         """
-        new_odom_pos = Pos.from_proto(msg)
+        new_odom_pos = Pos.from_proto(data.message)
         # get the odometry move since last odom_pos
         dpos = new_odom_pos - self.odom_pos
         self.odom_pos = new_odom_pos
 
         # add the odometry move to the last estimated position
-        self.estimated_pos += dpos
+        #self.estimated_pos += dpos
         self.pub_lidar.send(self.estimated_pos.to_proto())
 
         # send the positions in robot frame where we expect the beacons to be
         beacon_odom = {beacon_id: bpos.to_frame(self.estimated_pos) for beacon_id, bpos in self.BEACONS.items()}
         self.send_beacons_pos(beacon_odom, self.pub_balises_odom)
     
-    def amalgames_cb(self, topic_name, msg, time):
+    def amalgames_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Amalgames]):
         def estimate_pos(estimatedBeacons):
             assert(len(estimatedBeacons) >=2)
             result = self.estimate(estimatedBeacons)
@@ -108,6 +110,7 @@ class LidarLoca:
             estimated_pos = Pos.from_np(result.x)
             return estimated_pos, result.cost, estimatedBeacons
 
+        msg = data.message
         estimatedBeacons_comb = self.estimate_beacons_pos(msg)
         filtered_combs = filter(lambda x: len(x) >= 2, estimatedBeacons_comb)  # filter out combinations with less than 2 beacons
         estimated_poses = map(estimate_pos, filtered_combs)

@@ -5,8 +5,9 @@ import math
 import sys
 sys.path.append('../generated')
 import lidar_data_pb2  as pbl
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 
 
 class RadarView(QtWidgets.QWidget):
@@ -14,9 +15,10 @@ class RadarView(QtWidgets.QWidget):
 
     def __init__(self, nb, parent):
         QtWidgets.QWidget.__init__(self, parent)
-        ecal_core.initialize(sys.argv, "VL53Visu")
-        self.lidar_sub = ProtoSubscriber(f"vl53_{nb}", pbl.Lidar)
-        self.lidar_sub.set_callback(self.handle_lidar_data)
+        if not ecal_core.is_initialized():
+            ecal_core.initialize("VL53Visu")
+        self.lidar_sub = ProtoSubscriber(pbl.Lidar, f"vl53_{nb}")
+        self.lidar_sub.set_receive_callback(self.handle_lidar_data)
         self.vl53_data.connect(self.handle_data)
         self.data = []
         self.data = [0 for _ in range(64)]
@@ -30,8 +32,8 @@ class RadarView(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.MinimumExpanding
         )
 
-    def handle_lidar_data(self, topic_name, msg, time):
-        self.vl53_data.emit(list(msg.distances))
+    def handle_lidar_data(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[pbl.Lidar]):
+        self.vl53_data.emit(list(data.message.distances))
 
     def handle_data(self, distances):
         self.data = distances

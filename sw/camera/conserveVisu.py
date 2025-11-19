@@ -8,9 +8,10 @@ except:
     visu_available = False
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 from generated.robot_state_pb2 import Position_aruco
 import time as t
 from scipy.spatial.transform import Rotation
@@ -31,17 +32,18 @@ TIMEOUT = 1  # second
 class visuConserve:
     def __init__(self):
         if not ecal_core.is_initialized():
-                ecal_core.initialize(sys.argv, "arucoVisu")
+            ecal_core.initialize("arucoVisu")
 
-        aruco_sub = ProtoSubscriber("Arucos", Position_aruco) # en mm
-        aruco_sub.set_callback(self.getAruco)
+        aruco_sub = ProtoSubscriber(Position_aruco, "Arucos") # en mm
+        aruco_sub.set_receive_callback(self.getAruco)
         self.MabelArucos = []
         self.DipperArucos = []
         self.DipperClusters = []
         self.MabelClusters = []
         self.last_time = 0
 
-    def getAruco(self, topic_name, msg, time):
+    def getAruco(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[Position_aruco]):
+        msg = data.message
         camName = msg.cameraName
         indexes = np.array(msg.index)
         xs = np.array(msg.x)
@@ -58,7 +60,7 @@ class visuConserve:
         self.last_time = t.time()
 
         Xs = [(x,y,rot) for (x,y,rot,ar) in zip(xs, ys, rots, Arucos) if ar==CONSERVE_ID]
-        
+
         if camName == "dipper":
             self.DipperArucos = [indexes, xs, ys, zs, Arucos, rots]
             self.DipperClusters = self.get_cluster(Xs)

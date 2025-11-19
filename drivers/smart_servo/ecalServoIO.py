@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 import sys
 import time
-import ecal.core.core as ecal_core
+import ecal.nanobind_core as ecal_core
 import ecal.core.service as ecal_service
-from ecal.core.publisher import ProtoPublisher
 from queue import Queue, Empty
 
 sys.path.append("../../")
@@ -19,7 +18,7 @@ AX12 = SmartServo.ServoType.AX12
 class servoIO:
   def __init__(self) -> None:
     if not ecal_core.is_initialized():
-      ecal_core.initialize(sys.argv, "smart servo test publisher")
+      ecal_core.initialize("smart servo test publisher")
     self.client = ecal_service.Client("actuators")
     self.client.add_response_callback(self.response_cb)
     self.q = Queue()

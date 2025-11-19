@@ -3,21 +3,23 @@ import sys
 sys.path.append('../generated')
 import lidar_data_pb2  as pbl
 import robot_state_pb2 as hlm
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 
 
 # Le vl pour la présentation cité de l'espace est le 1
 
 class RadarDetect():
     def __init__(self, nb):
-        self.lidar_sub = ProtoSubscriber(f"vl53_{nb}", pbl.Lidar)
-        self.lidar_sub.set_callback(self.handle_vl53)
+        self.lidar_sub = ProtoSubscriber(pbl.Lidar, f"vl53_{nb}")
+        self.lidar_sub.set_receive_callback(self.handle_vl53)
         self.distance_matrix = np.empty((8,8))
-        self.eye_pub = ProtoPublisher(f"eye_{nb}",hlm.Eye)
+        self.eye_pub = ProtoPublisher(hlm.Eye, f"eye_{nb}")
 
-    def handle_vl53(self, topic_name, msg, time):
+    def handle_vl53(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[pbl.Lidar]):
+        msg = data.message
         self.distances = list(msg.distances)
         distance_matrix = np.empty((8,8))
         def idx(x, y):
@@ -148,7 +150,8 @@ class RadarDetect():
         
 
 if __name__ == "__main__":
-    ecal_core.initialize(sys.argv, "VL53DetectPlant")
+    if not ecal_core.is_initialized():
+        ecal_core.initialize("VL53DetectPlant")
     vl_1 = RadarDetect(1)
     while True:
         pass

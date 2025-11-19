@@ -2,8 +2,8 @@
 import pygame
 from pygame.joystick import Joystick
 import time
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
 import sys
 sys.path.append("../..")
 # import generated.robot_state_pb2 as robot_state_pb2
@@ -74,10 +74,11 @@ class JoystickEcal ():
         self.glisseState = IDLE
         self.last_time = 0
         self.cons_timer_on = False
-        ecal_core.initialize([], "Joystick")
+        if not ecal_core.is_initialized():
+            ecal_core.initialize("Joystick")
         time.sleep(1) # on laisse ecal se reveiller
 
-        self.speed_publisher = ProtoPublisher("speed_cons", common_pb.Speed)
+        self.speed_publisher = ProtoPublisher(common_pb.Speed, "speed_cons")
         self.message = common_pb.Speed()
         self.IO_manager = IO_Manager()
 

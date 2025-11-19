@@ -4,8 +4,9 @@ import numpy as np
 import os, sys
 import argparse
 from enum import Enum
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 from generated import CompressedImage_pb2 as cipb
 from threading import Event
 
@@ -70,9 +71,9 @@ class Calibrator:
             print(f"Opened video with resolution {w}x{h}!\n")
         elif src_type == Source.ECAL:
             if not ecal_core.is_initialized():
-                ecal_core.initialize(sys.argv, "arucoFinder")
-            self.sub = ProtoSubscriber(src, cipb.CompressedImage)
-            self.sub.set_callback(self.on_img)
+                ecal_core.initialize("arucoFinder")
+            self.sub = ProtoSubscriber(cipb.CompressedImage, src)
+            self.sub.set_receive_callback(self.on_img)
     
     def stop_capture(self):
         if src_type == Source.CAM:
@@ -82,8 +83,8 @@ class Calibrator:
         elif src_type == Source.ECAL:
             pass
     
-    def on_img(self, topic, msg: cipb.CompressedImage, t):
-        nparr = np.frombuffer(msg.data, np.uint8)
+    def on_img(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[cipb.CompressedImage]):
+        nparr = np.frombuffer(data.message.data, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         self.img = frame
         self.event.set()

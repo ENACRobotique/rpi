@@ -6,8 +6,8 @@ import numpy as np
 import sys
 import re
 from dataclasses import dataclass
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
 import generated.lidar_data_pb2 as lidar_pb
 from numpy import radians
 
@@ -39,8 +39,9 @@ class UST05LN:
         """
         Initialize the UST05LN driver.
         """
-        ecal_core.initialize(sys.argv, "UST05LN LIDAR Driver")
-        self.lidar_pub = ProtoPublisher(topic, lidar_pb.Lidar)
+        if not ecal_core.is_initialized():
+            ecal_core.initialize("UST05LN LIDAR Driver")
+        self.lidar_pub = ProtoPublisher(lidar_pb.Lidar, topic)
         self.ser = Serial(port, 115200)
         self.stop_ranging()
     

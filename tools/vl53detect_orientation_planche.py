@@ -7,9 +7,10 @@ import sys
 sys.path.append('../generated')
 import lidar_data_pb2  as pbl
 import robot_state_pb2 as hlm
-import ecal.core.core as ecal_core
-from ecal.core.subscriber import ProtoSubscriber
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
 import json
 import socket
 import time
@@ -26,9 +27,9 @@ d_capteurs = 100 #distance entre nos capteurs
 class Radar():
     def __init__(self, nb, papa) -> None:
         self.nb = nb
-        self.lidar_sub = ProtoSubscriber(f"vl53_{nb}", pbl.Lidar)
+        self.lidar_sub = ProtoSubscriber(pbl.Lidar, f"vl53_{nb}")
         self.distance_matrix = np.empty((8,8))
-        self.lidar_sub.set_callback(self.get_distance)
+        self.lidar_sub.set_receive_callback(self.get_distance)
         self.papa = papa
         self.y_best = 0
         self.r_best = 0
@@ -36,7 +37,8 @@ class Radar():
         self.angle = 0
         self.slope_best = 0
 
-    def get_distance(self, topic_name, msg, time):
+    def get_distance(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[pbl.Lidar], ):
+        msg = data.message
         pixel_angles = np.array([(i-3.5)*radians(45)/8 for i in range(8)])
         self.distances = list(msg.distances)
         distance_matrix = np.empty((8,8))
@@ -103,7 +105,8 @@ class RadarDetectOrientationPlanche():
         
 
 if __name__ == "__main__":
-    ecal_core.initialize(sys.argv, "VL53DetectOrientation")
+    if not ecal_core.is_initialized():
+        ecal_core.initialize("VL53DetectOrientation")
     vl = RadarDetectOrientationPlanche(0,1)
     while True:
         pass

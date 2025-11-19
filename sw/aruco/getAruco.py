@@ -4,8 +4,8 @@ import numpy as np
 from pyquaternion import Quaternion
 import time
 
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
 import sys
 sys.path.append("../..")
 from generated import robot_state_pb2 as hlm
@@ -109,8 +109,9 @@ if __name__ == "__main__":
     w, h = vs.get(cv2.CAP_PROP_FRAME_WIDTH), vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
     print(f"Opened camera with resolution {w}x{h}!")
 
-    ecal_core.initialize(sys.argv, "aruco")
-    publisher = ProtoPublisher("aruco",hlm.Position_aruco)
+    if not ecal_core.is_initialized():
+        ecal_core.initialize("aruco")
+    publisher = ProtoPublisher(hlm.Position_aruco, "aruco")
 
     time.sleep(1)
     while True:

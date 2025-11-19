@@ -5,9 +5,10 @@ from math import pi
 from NatNetClient import NatNetClient
 sys.path.append('../../generated')
 import robot_state_pb2 as hgpb
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 import pyquaternion
 
 PERIOD = 0.1
@@ -24,8 +25,9 @@ class OptitrackBridge:
     def __init__(self, tracked_id):
         self.tracked_id = tracked_id
         self.last_time = 0
-        ecal_core.initialize(sys.argv, "Optitrack Bridge")
-        self.optitrack_pos_pub = ProtoPublisher("optitrack_pos", hgpb.Position)
+        if not ecal_core.is_initialized():
+            ecal_core.initialize("Optitrack Bridge")
+        self.optitrack_pos_pub = ProtoPublisher(hgpb.Position, "optitrack_pos")
 
         self.streaming_client = NatNetClient()
         self.streaming_client.set_client_address("0.0.0.0")
