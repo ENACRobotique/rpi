@@ -2,4 +2,5 @@ py-trees
 scikit-learn
 opencv-contrib-python
 scipy
+eclipse-ecal
 

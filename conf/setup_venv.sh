@@ -6,7 +6,7 @@ BASE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )
 # Check if the virtual environment already exists
 if [ ! -d "$BASE_DIR/robEnv" ]; then
     # Create the virtual environment with access to system-wide packages
-    python3 -m venv --system-site-packages "$BASE_DIR/robEnv"
+    python3 -m venv "$BASE_DIR/robEnv"
     echo "source $BASE_DIR/robEnv/bin/activate" >> ~/.bashrc
     echo "Virtual environment 'robEnv' created successfully in $BASE_DIR"
 

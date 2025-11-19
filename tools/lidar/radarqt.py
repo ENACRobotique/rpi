@@ -1,13 +1,13 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtCore import QObject, pyqtSignal
 import time
 import math
 import sys
 import argparse
-import ecal.core.core as ecal_core
-from ecal.core.publisher import ProtoPublisher
-from ecal.core.subscriber import ProtoSubscriber
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
 sys.path.append('../../generated')
 import lidar_data_pb2  as pbl
 
@@ -29,16 +29,16 @@ class RadarView(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, parent)
         self.args = args
         if not ecal_core.is_initialized():
-            ecal_core.initialize(sys.argv, "RadarQt receiver")
-        self.lidar_sub = ProtoSubscriber(args.lidar, pbl.Lidar)
-        self.lidar_sub.set_callback(self.handle_lidar_data)
+            ecal_core.initialize("RadarQt receiver")
+        self.lidar_sub = ProtoSubscriber(pbl.Lidar, args.lidar)
+        self.lidar_sub.set_receive_callback(self.handle_lidar_data)
         if args.no_loca:
-            self.lidar_amalgames_sub = ProtoSubscriber("amalgames", pbl.Amalgames)
-            self.lidar_amalgames_sub.set_callback(self.handle_amalgames_data)
-            self.lidar_balises_odom_sub = ProtoSubscriber("balises_odom", pbl.Balises)    
-            self.lidar_balises_odom_sub.set_callback(self.handle_balises_odom_data)   
-            self.lidar_balises_nearodom_sub = ProtoSubscriber("balises_near_odom", pbl.Balises)    
-            self.lidar_balises_nearodom_sub.set_callback(self.handle_balises_nearodom_data)  
+            self.lidar_amalgames_sub = ProtoSubscriber(pbl.Amalgames, "amalgames")
+            self.lidar_amalgames_sub.set_receive_callback(self.handle_amalgames_data)
+            self.lidar_balises_odom_sub = ProtoSubscriber(pbl.Balises, "balises_odom")
+            self.lidar_balises_odom_sub.set_receive_callback(self.handle_balises_odom_data)   
+            self.lidar_balises_nearodom_sub = ProtoSubscriber(pbl.Balises, "balises_near_odom")
+            self.lidar_balises_nearodom_sub.set_receive_callback(self.handle_balises_nearodom_data)  
 
         self.lidar_data_sig.connect(self.lidar_cb)
         self.amalgame_sig.connect(self.lidar_amalgame_cb)
@@ -87,25 +87,25 @@ class RadarView(QtWidgets.QWidget):
         self.nearodom_data=nearodom_data
         self.update()
     
-    def handle_lidar_data(self, topic_name, msg, _time):
+    def handle_lidar_data(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[pbl.Lidar]):
         now = time.time()
         dt = now - self.last_tour_time
         self.last_tour_time = now
         self.period = self.period*0.4 + dt * 0.6   # passe bas
 
-        data = list(zip(msg.angles, msg.distances, msg.quality))
+        data = list(zip(msg.message.angles, msg.message.distances, msg.message.quality))
         self.lidar_data_sig.emit(data)
     
-    def handle_amalgames_data(self,topic, msg, time):
-        data = list(zip(msg.x,msg.y,msg.size))    
+    def handle_amalgames_data(self, pub_id : ecal_core.TopicId, data : ReceiveCallbackData[pbl.Amalgames]):
+        data = list(zip(data.message.x,data.message.y,data.message.size))    
         self.amalgame_sig.emit(data)
 
-    def handle_balises_odom_data(self,topic, msg, time):
-        data = list(zip(msg.index,msg.x,msg.y))    
+    def handle_balises_odom_data(self, pub_id : ecal_core.TopicId, data : ReceiveCallbackData[pbl.Balises]):
+        data = list(zip(data.message.index,data.message.x,data.message.y))    
         self.balises_odom_sig.emit(data)
 
-    def handle_balises_nearodom_data(self,topic, msg, time):
-        data = list(zip(msg.index,msg.x,msg.y))    
+    def handle_balises_nearodom_data(self, pub_id : ecal_core.TopicId, data : ReceiveCallbackData[pbl.Balises]):
+        data = list(zip(data.message.index,data.message.x,data.message.y))    
         self.balises_nearodom_sig.emit(data)
 
 
