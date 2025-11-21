@@ -24,7 +24,3 @@ cmake --build $vl53_driver_path/build
 mkdir -p $servos_driver_path/build
 cmake -S $servos_driver_path -B $servos_driver_path/build
 cmake --build $servos_driver_path/build
-
-mkdir -p $ui_path/build
-cmake -S $ui_path -B $ui_path/build
-cmake --build $ui_path/build

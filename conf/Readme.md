@@ -2,15 +2,27 @@
 
 Instructions for setting up a RaspberryPi for the robot.
 
-The overlays and the network can probably be configured before the first boot.
+To begin, use the rpi imager to flash an SD card with Ubuntu 24.04 server.
 
-To begin, use the rpi imager to flash an SD card with Ubuntu 24.04.
+First, upgrade all packages, then reboot:
+
+```
+sudo apt update
+sudo apt upgrade
+sudo reboot
+```
 
 ## Get this repository
 
-Clone this repository in the home directory:
+Copy the ssh keys from a club's computer (`~/.ssh/id_rsa*`), then clone this repository in the home directory:
 
+```
 git clone --recurse-submodules git@github.com:ENACRobotique/rpi.git
+```
+
+## Packages
+
+Run `install_packages.sh` to install all necessary packages.
 
 ## Overlays (UART, shutdown, bluetooth)
 
@@ -89,9 +101,6 @@ Copy `80-robot.rules` to `/etc/udev/rules.d/`, and edit it to change the configu
 Add the user "robot" to the "dialout" group to access serial peripherals:
 `sudo usermod -aG dialout robot`
 
-## Packages
-
-Run `install_packages.sh` to install all necessary packages.
 
 ## Build drivers
 
@@ -100,6 +109,14 @@ Run `../build.sh`
 ## Python venv
 
 Run `setup_venv.sh` to setup the python virtual environnement and install the dependencies.
+
+## Protobuf
+
+Generate the protobuf python classes: `./proto/generate_proto.sh`
+
+## eCAL networking mode
+
+If you want eCAL to run in network mode, edit the `/etc/ecal/ecal.yaml` file, and set `communication_mode` to `"network"`
 
 ## Manette Bluetooth
 

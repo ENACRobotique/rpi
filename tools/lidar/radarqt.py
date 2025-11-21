@@ -256,13 +256,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--lidar", default="lidar_data", help="LidarData topic name")
     parser.add_argument("-l", "--no-loca", action="store_false", default=True, help="Do not draw localisation helpers")
-    parser.add_argument("-p", "--platform", help="Qt -platform argument", default=None)
+    parser.add_argument("-p", "--pi", action="store_true", default=False, help="run with the linuxfb platform")
     args = parser.parse_args()
 
-    if args.platform is not None:
-        sys.argv.extend(["-platform", args.platform])
+    if args.pi:
+        sys.argv.extend(["-platform", "linuxfb"])
 
-    
     qapp = QtWidgets.QApplication(sys.argv)
     main_window = QtWidgets.QMainWindow()
     central_widget = QtWidgets.QWidget()
@@ -272,8 +271,7 @@ if __name__ == "__main__":
     layout.addWidget(radarView)
     qapp.aboutToQuit.connect(radarView.stop)
     
-    if args.platform == "linuxfb":
-        # probably on raspberry pi...
+    if args.pi:
         main_window.showFullScreen()
     else:
         main_window.show()
