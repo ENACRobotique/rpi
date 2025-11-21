@@ -272,7 +272,11 @@ if __name__ == "__main__":
     layout.addWidget(radarView)
     qapp.aboutToQuit.connect(radarView.stop)
     
-    main_window.show()
+    if args.platform == "linuxfb":
+        # probably on raspberry pi...
+        main_window.showFullScreen()
+    else:
+        main_window.show()
     #app.activateWindow()
     #app.raise_()
     qapp.exec()
