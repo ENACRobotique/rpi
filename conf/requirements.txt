@@ -5,3 +5,5 @@ scipy
 eclipse-ecal
 pygame
 pyserial
+numpy
+PyQt6

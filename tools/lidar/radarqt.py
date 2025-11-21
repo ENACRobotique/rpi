@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from PyQt5 import QtCore, QtWidgets, QtGui
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6 import QtCore, QtWidgets, QtGui
+from PyQt6.QtCore import QObject, pyqtSignal
 import time
 import math
 import sys
@@ -8,7 +8,6 @@ import argparse
 import ecal.nanobind_core as ecal_core
 from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.common.core import ReceiveCallbackData
-sys.path.append('../../generated')
 import lidar_data_pb2  as pbl
 
 TOLERANCE = 500
@@ -56,9 +55,17 @@ class RadarView(QtWidgets.QWidget):
         self.last_angle = 0
         self.mm_to_pixel = 0.1
         self.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.MinimumExpanding
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding
         )
+    
+    def stop(self):
+        self.lidar_sub.remove_receive_callback()
+        if self.args.no_loca:
+            self.lidar_amalgames_sub.remove_receive_callback()
+            self.lidar_balises_odom_sub.remove_receive_callback()
+            self.lidar_balises_nearodom_sub.remove_receive_callback()
+        ecal_core.finalize()
 
     def color_from_quality(self, quality):
         #color_index = quality - 15 + len(self.COLOR_SCALE) / 2
@@ -118,12 +125,12 @@ class RadarView(QtWidgets.QWidget):
         # paint background
         brush = QtGui.QBrush()
         brush.setColor(QtGui.QColor('black'))
-        brush.setStyle(QtCore.Qt.SolidPattern)
+        brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
         rect = QtCore.QRect(0, 0, painter.device().width(), painter.device().height())
         painter.fillRect(rect, brush)
 
         # paint frequency
-        painter.setPen(QtCore.Qt.white)
+        painter.setPen(QtCore.Qt.GlobalColor.white)
         txt = "{:0>5.2f} Hz".format(1/self.period)
         painter.drawText(10, 20, txt)
 
@@ -131,7 +138,7 @@ class RadarView(QtWidgets.QWidget):
         for i, color in enumerate(self.COLOR_SCALE):
             scale_rect = QtCore.QRect(rect.right()-50, 10 + i*20, 40, 20)
             painter.setBrush(QtGui.QColor(color))
-            painter.setPen(QtCore.Qt.NoPen)
+            painter.setPen(QtCore.Qt.PenStyle.NoPen)
             painter.drawRect(scale_rect)
 
         # translate and rotate painter
@@ -139,31 +146,31 @@ class RadarView(QtWidgets.QWidget):
         painter.rotate(-90)
 
         # draw 0° line
-        painter.setPen(QtCore.Qt.gray)
+        painter.setPen(QtCore.Qt.GlobalColor.gray)
         painter.drawLine(QtCore.QPoint(0, 0), QtCore.QPoint(1000, 0))
 
         # paint circles
-        painter.setBrush(QtCore.Qt.NoBrush)
-        painter.setPen(QtCore.Qt.gray)
-        painter.drawEllipse(QtCore.QPoint(0, 0), self.mm_to_pixel * 500, self.mm_to_pixel * 500)
-        painter.drawEllipse(QtCore.QPoint(0, 0), self.mm_to_pixel * 1500, self.mm_to_pixel * 1500)
-        painter.drawEllipse(QtCore.QPoint(0, 0), self.mm_to_pixel * 2500, self.mm_to_pixel * 2500)
-        painter.drawEllipse(QtCore.QPoint(0, 0), self.mm_to_pixel * 3500, self.mm_to_pixel * 3500)
+        painter.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        painter.setPen(QtCore.Qt.GlobalColor.gray)
+        painter.drawEllipse(QtCore.QPointF(0, 0), self.mm_to_pixel * 500, self.mm_to_pixel * 500)
+        painter.drawEllipse(QtCore.QPointF(0, 0), self.mm_to_pixel * 1500, self.mm_to_pixel * 1500)
+        painter.drawEllipse(QtCore.QPointF(0, 0), self.mm_to_pixel * 2500, self.mm_to_pixel * 2500)
+        painter.drawEllipse(QtCore.QPointF(0, 0), self.mm_to_pixel * 3500, self.mm_to_pixel * 3500)
 
-        painter.setPen(QtCore.Qt.white)
-        painter.drawEllipse(QtCore.QPoint(0, 0), self.mm_to_pixel * 1000, self.mm_to_pixel * 1000)
-        painter.drawEllipse(QtCore.QPoint(0, 0), self.mm_to_pixel * 2000, self.mm_to_pixel * 2000)
-        painter.drawEllipse(QtCore.QPoint(0, 0), self.mm_to_pixel * 3000, self.mm_to_pixel * 3000)
+        painter.setPen(QtCore.Qt.GlobalColor.white)
+        painter.drawEllipse(QtCore.QPointF(0, 0), self.mm_to_pixel * 1000, self.mm_to_pixel * 1000)
+        painter.drawEllipse(QtCore.QPointF(0, 0), self.mm_to_pixel * 2000, self.mm_to_pixel * 2000)
+        painter.drawEllipse(QtCore.QPointF(0, 0), self.mm_to_pixel * 3000, self.mm_to_pixel * 3000)
 
 
         # draw center
-        painter.setBrush(QtCore.Qt.green)
-        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtCore.Qt.GlobalColor.green)
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
         painter.drawEllipse(QtCore.QPoint(0, 0), 5, 5)
 
         # paint points
-        painter.setBrush(QtCore.Qt.yellow)
-        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtCore.Qt.GlobalColor.yellow)
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
         for angle, distance, quality in self.data:
             if quality != 0 and distance != 0:
                 pos = QtCore.QPointF(self.mm_to_pixel * distance * math.cos(-angle), self.mm_to_pixel * distance * math.sin(-angle))
@@ -174,14 +181,14 @@ class RadarView(QtWidgets.QWidget):
         
         pen = QtGui.QPen(QtGui.QColor(255, 0, 255), 2)
         painter.setPen(pen)
-        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setBrush(QtCore.Qt.BrushStyle.NoBrush)
         for x, y, size in self.amalgame_data:
             if size < 200:
                 pos = QtCore.QPointF(self.mm_to_pixel * x, -self.mm_to_pixel * y)
                 size *= self.mm_to_pixel
                 painter.drawEllipse(pos, size/2, size/2)
 
-        painter.setPen(QtCore.Qt.NoPen)
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
         
         font = QtGui.QFont()
         font.setPointSize(20)  # Augmente la taille ici si besoin
@@ -243,26 +250,29 @@ class RadarView(QtWidgets.QWidget):
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(400, 400)
 
-
-class ApplicationWindow(QtWidgets.QMainWindow):
-    def __init__(self, args):
-        super().__init__()
-        self._main = QtWidgets.QWidget()
-        self.setCentralWidget(self._main)
-        layout = QtWidgets.QVBoxLayout(self._main)
-        self.radarView = RadarView(args, self._main)
-        layout.addWidget(self.radarView)
     
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--lidar", default="lidar_data", help="LidarData topic name")
     parser.add_argument("-l", "--no-loca", action="store_false", default=True, help="Do not draw localisation helpers")
+    parser.add_argument("-p", "--platform", help="Qt -platform argument", default=None)
     args = parser.parse_args()
 
+    if args.platform is not None:
+        sys.argv.extend(["-platform", args.platform])
+
+    
     qapp = QtWidgets.QApplication(sys.argv)
-    app = ApplicationWindow(args)
-    app.show()
-    app.activateWindow()
-    app.raise_()
-    qapp.exec_()
+    main_window = QtWidgets.QMainWindow()
+    central_widget = QtWidgets.QWidget()
+    main_window.setCentralWidget(central_widget)
+    layout = QtWidgets.QVBoxLayout(central_widget)
+    radarView = RadarView(args)
+    layout.addWidget(radarView)
+    qapp.aboutToQuit.connect(radarView.stop)
+    
+    main_window.show()
+    #app.activateWindow()
+    #app.raise_()
+    qapp.exec()
