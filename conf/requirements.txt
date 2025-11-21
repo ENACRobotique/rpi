@@ -3,4 +3,5 @@ scikit-learn
 opencv-contrib-python
 scipy
 eclipse-ecal
-
+pygame
+pyserial
