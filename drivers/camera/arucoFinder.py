@@ -50,6 +50,13 @@ class ArucoFinder:
         self.dist_coeffs = None
         
         self.open_capture()
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        if src_type == Source.ECAL:
+            self.sub.remove_receive_callback()
     
     def open_capture(self):
         if src_type == Source.CAM:
@@ -176,8 +183,8 @@ if __name__ == "__main__":
     
     arucos = {47:30, 36:30, 20:100, 21:100, 22:100, 23:100, 13:30}
 
-    af = ArucoFinder(args.name, src_type, src, arucos, args.display)
 
-    while ecal_core.ok():
-            af.run()
+    with ArucoFinder(args.name, src_type, src, arucos, args.display) as af:
+        while ecal_core.ok():
+            af.run()#k
 

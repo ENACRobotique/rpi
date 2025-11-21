@@ -118,27 +118,27 @@ def post_tick_handler(snapshot_visitor, behaviour_tree):
 
 # === Boucle principale ===
 if __name__ == "__main__":
-    r = Robot()
-    blackboard = py_trees.blackboard.Client(name="Foo Global")
-    blackboard.register_key(key="robot", access=py_trees.common.Access.WRITE)
-    blackboard.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
-    blackboard.robot = r
-    blackboard.matchTime = 0
-    
-    tree = py_trees.trees.BehaviourTree(main_bt(r))
-    tree.setup(timeout=15)
+    with Robot() as r:
+        blackboard = py_trees.blackboard.Client(name="Foo Global")
+        blackboard.register_key(key="robot", access=py_trees.common.Access.WRITE)
+        blackboard.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
+        blackboard.robot = r
+        blackboard.matchTime = 0
+        
+        tree = py_trees.trees.BehaviourTree(main_bt(r))
+        tree.setup(timeout=15)
 
-    snapshot_visitor = py_trees.visitors.SnapshotVisitor()
-    tree.add_post_tick_handler(
-    functools.partial(post_tick_handler,
-                      snapshot_visitor))
-    tree.visitors.append(snapshot_visitor)
+        snapshot_visitor = py_trees.visitors.SnapshotVisitor()
+        tree.add_post_tick_handler(
+        functools.partial(post_tick_handler,
+                        snapshot_visitor))
+        tree.visitors.append(snapshot_visitor)
 
 
-    while tree.root.status != py_trees.common.Status.SUCCESS:
-        tree.tick()
-        time.sleep(0.01)
-    print("Fin de l'arbre")
-    ecal_core.finalize()
-    r.actionneurs.Servo_IO.client.destroy()
-    r.locomotion.stop()
+        while tree.root.status != py_trees.common.Status.SUCCESS:
+            tree.tick()
+            time.sleep(0.01)
+        print("Fin de l'arbre")
+        ecal_core.finalize()
+        r.actionneurs.Servo_IO.client.destroy()
+        r.locomotion.stop()

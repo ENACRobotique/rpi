@@ -42,61 +42,61 @@ def wait_target(r: Robot):
         sleep(0.5)
 
 if __name__ == "__main__":
-    r = Robot()
-    sleep(1)
-    r.resetPos(Pos(120, 250, 0))
-    sleep(0.1)
-    r.resetPos(Pos(120, 250, 0))
-    sleep(0.1)
-    r.resetPos(Pos(120, 250, 0))
-    t = PlanteTest()
+    with Robot() as r:
+        sleep(1)
+        r.resetPos(Pos(120, 250, 0))
+        sleep(0.1)
+        r.resetPos(Pos(120, 250, 0))
+        sleep(0.1)
+        r.resetPos(Pos(120, 250, 0))
+        t = PlanteTest()
 
-    sleep(2)
+        sleep(2)
 
-    t.pince(OPEN)
-    t.levage(BAS)
+        t.pince(OPEN)
+        t.levage(BAS)
 
 
-    r.setTargetPos(Pos(700, 700, -THETA_PINCE))
-    wait_target(r)
-    
-    # avancer plante
-    r.move(100, THETA_PINCE)
-    wait_target(r)
+        r.setTargetPos(Pos(700, 700, -THETA_PINCE))
+        wait_target(r)
+        
+        # avancer plante
+        r.move(100, THETA_PINCE)
+        wait_target(r)
 
-    t.pince(PLANTE)
+        t.pince(PLANTE)
 
-    # reculer
-    r.move(-100, THETA_PINCE)
-    wait_target(r)
+        # reculer
+        r.move(-100, THETA_PINCE)
+        wait_target(r)
 
-    t.levage(HAUT)
+        t.levage(HAUT)
 
-    r.setTargetPos(POS_POT)
-    wait_target(r)
-    
-    # avancer pot
-    r.move(70, THETA_PINCE)
-    wait_target(r)
+        r.setTargetPos(POS_POT)
+        wait_target(r)
+        
+        # avancer pot
+        r.move(70, THETA_PINCE)
+        wait_target(r)
 
-    t.pince(OPEN)
+        t.pince(OPEN)
 
-    r.move(-80, THETA_PINCE)
-    wait_target(r)
+        r.move(-80, THETA_PINCE)
+        wait_target(r)
 
-    t.levage(BAS)
+        t.levage(BAS)
 
-    r.move(160, THETA_PINCE)
-    wait_target(r)
+        r.move(160, THETA_PINCE)
+        wait_target(r)
 
-    t.pince(POT)
-    t.levage(HAUT)
+        t.pince(POT)
+        t.levage(HAUT)
 
-    r.setTargetPos(Pos(150, 600, pi-THETA_PINCE))
-    wait_target(r)
+        r.setTargetPos(Pos(150, 600, pi-THETA_PINCE))
+        wait_target(r)
 
-    t.pince(OPEN)
+        t.pince(OPEN)
 
-    r.move(-100, THETA_PINCE)
+        r.move(-100, THETA_PINCE)
 
-    exit(0)
+        exit(0)

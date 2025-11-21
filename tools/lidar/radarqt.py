@@ -36,7 +36,7 @@ class RadarView(QtWidgets.QWidget):
             self.lidar_amalgames_sub = ProtoSubscriber(pbl.Amalgames, "amalgames")
             self.lidar_amalgames_sub.set_receive_callback(self.handle_amalgames_data)
             self.lidar_balises_odom_sub = ProtoSubscriber(pbl.Balises, "balises_odom")
-            self.lidar_balises_odom_sub.set_receive_callback(self.handle_balises_odom_data)   
+            self.lidar_balises_odom_sub.set_receive_callback(self.handle_balises_odom_data)
             self.lidar_balises_nearodom_sub = ProtoSubscriber(pbl.Balises, "balises_near_odom")
             self.lidar_balises_nearodom_sub.set_receive_callback(self.handle_balises_nearodom_data)  
 

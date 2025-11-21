@@ -140,8 +140,8 @@ class Robot:
         self.speedReportSub = ProtoSubscriber(common_pb.Speed, "odom_speed")
         self.speedReportSub.set_receive_callback(self.onReceiveSpeed)
 
-        self.balises_sub = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
-        self.balises_sub.set_receive_callback(self.detection)
+        self.amalgames_sub = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
+        self.amalgames_sub.set_receive_callback(self.detection)
 
         self.balises_sub = ProtoSubscriber(lidar_pb.Balises, "balises_near_odom")
         self.balises_sub.set_receive_callback(self.on_detected_beacons)
@@ -189,6 +189,18 @@ class Robot:
 
     def __repr__(self) -> str:
         return "Robot Enac status storage structure"
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.positionReportSub.remove_receive_callback()
+        self.speedReportSub.remove_receive_callback()
+        self.amalgames_sub.remove_receive_callback()
+        self.balises_sub.remove_receive_callback()
+        self.setPositionSub.remove_receive_callback()
+        self.vl53_0_sub.remove_receive_callback()
+        self.vl53_1_sub.remove_receive_callback()
 
     def log(self, message:str):
         self.logger.info(message)
@@ -618,8 +630,8 @@ class Robot:
 
 
 if __name__ == "__main__":
-    r = Robot()
-    while(True):
-        # r.logger.info(r.pos)
-        time.sleep(0.5)
+    with Robot() as r:
+        while(True):
+            # r.logger.info(r.pos)
+            time.sleep(0.5)
         
