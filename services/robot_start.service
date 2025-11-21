@@ -11,6 +11,7 @@ Wants=robot_IO.service
 #Wants=robot_aruco.service
 Wants=robot_strat.service
 Wants=robot_joystick.service
+Wants=robot_ui.service
 
 [Service]
 Type=simple

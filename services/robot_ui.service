@@ -1,0 +1,18 @@
+#
+# /etc/systemd/system/qt-app.service
+#
+
+[Unit]
+Description=Qt_hello
+After=systemd-user-sessions.service
+
+[Service]
+Type=simple
+#User=robot
+WorkingDirectory=/home/robot/rpi/sw/ui/build
+ExecStart=/home/robot/rpi/sw/ui/hello.sh
+Restart=on-failure
+RestartSec=10 
+
+[Install]
+WantedBy=multi-user.target
