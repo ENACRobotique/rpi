@@ -1,7 +1,7 @@
 #include <ecal/ecal.h>
 #include <ecal/msg/protobuf/publisher.h>
 #include <ecal/msg/protobuf/subscriber.h>
-#include <ecal/ecal_server.h>
+#include <ecal/service/server.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <iostream>
@@ -28,15 +28,14 @@ void log_msg(const char *fmt, ...) {
   va_start(args, fmt);
   vsnprintf(print_buffer, 200, fmt, args);
   va_end(args);
-  eCAL::Logging::Log(print_buffer);
+  eCAL::Logging::Log(eCAL::Logging::eLogLevel::log_level_info, print_buffer);
 }
 
 
-int move(const std::string& method_,
-         const std::string& req_type_,
-         const std::string& resp_type_,
+int move(const eCAL::SServiceMethodInformation& method_info_,
          const std::string& request_,
-         std::string& response_) {
+         std::string& response_
+         ) {
 
   SS msg;
   msg.ParseFromString(request_);
@@ -146,9 +145,7 @@ int move(const std::string& method_,
 }
 
 
-int read_reg(const std::string& method_,
-         const std::string& req_type_,
-         const std::string& resp_type_,
+int read_reg(const eCAL::SServiceMethodInformation& method_info_,
          const std::string& request_,
          std::string& response_) {
 
@@ -168,9 +165,7 @@ int read_reg(const std::string& method_,
   return 0;
 }
 
-int write_reg(const std::string& method_,
-         const std::string& req_type_,
-         const std::string& resp_type_,
+int write_reg(const eCAL::SServiceMethodInformation& method_info_,
          const std::string& request_,
          std::string& response_) {
 
@@ -227,19 +222,16 @@ int main(int argc, char** argv){
   p_dynamixel = &dyn;
   
 
-  eCAL::Initialize(argc, argv, "smart_servo_driver");
+  eCAL::Initialize("smart_servo_driver");
 
 
   eCAL::CServiceServer server("actuators");
-  server.AddDescription("read_pos", "SS", "id", "SS", "position");
-  server.AddMethodCallback("read_pos", "SS", "SS", move);
+
+  server.SetMethodCallback({"read_pos", "SS", "SS"}, move);
   
-  server.AddDescription("read_reg", "SAPRecord", "", "SAPRecord", "");
-  server.AddMethodCallback("read_reg", "SAPRecord", "SAPRecord", read_reg);
+  server.SetMethodCallback({"read_reg", "SAPRecord", "SAPRecord"}, read_reg);
   
-  server.AddDescription("write_reg", "SAPRecord", "", "SAPRecord", "");
-  server.AddMethodCallback("write_reg", "SAPRecord", "SAPRecord", write_reg);
-  server.Create("");
+  server.SetMethodCallback({"write_reg", "SAPRecord", "SAPRecord"}, write_reg);
 
 
   
