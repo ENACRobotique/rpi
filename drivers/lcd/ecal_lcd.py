@@ -19,6 +19,13 @@ class ECAL_LCD:
         self.display_sub = ProtoSubscriber(rpb.LCDOut, "LCDOut")
         self.display_sub.set_receive_callback(self.display_lcd)
         self.lcd = LCD(port, self.lcd_event_cb)
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.display_sub.remove_receive_callback()
+
     
     def lcd_event_cb(self, btn: Button, val):
         if isinstance(val, bytes):
@@ -41,10 +48,9 @@ class ECAL_LCD:
 
 
 if __name__ == '__main__':
-    ecal_lcd = ECAL_LCD('/dev/robot_lcd')
-
-    while ecal_core.ok():
-        time.sleep(1)
-        ecal_lcd.send_state()
-    ecal_core.finalize()
+    with ECAL_LCD('/dev/robot_lcd') as ecal_lcd :
+        while ecal_core.ok():
+            time.sleep(1)
+            ecal_lcd.send_state()
+        ecal_core.finalize()
     

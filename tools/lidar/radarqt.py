@@ -59,6 +59,16 @@ class RadarView(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Policy.MinimumExpanding
         )
     
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.lidar_sub.remove_receive_callback()
+        if args.no_loca:
+            self.lidar_amalgames_sub.remove_receive_callback()
+            self.lidar_balises_odom_sub.remove_receive_callback()
+            self.lidar_balises_nearodom_sub.remove_receive_callback()
+        
     def stop(self):
         self.lidar_sub.remove_receive_callback()
         if self.args.no_loca:
@@ -268,13 +278,16 @@ if __name__ == "__main__":
     main_window.setCentralWidget(central_widget)
     layout = QtWidgets.QVBoxLayout(central_widget)
     radarView = RadarView(args)
-    layout.addWidget(radarView)
-    qapp.aboutToQuit.connect(radarView.stop)
-    
-    if args.pi:
-        main_window.showFullScreen()
-    else:
-        main_window.show()
-    #app.activateWindow()
-    #app.raise_()
-    qapp.exec()
+
+    with RadarView(args) as radarView:
+
+        layout.addWidget(radarView)
+        qapp.aboutToQuit.connect(radarView.stop)
+        
+        if args.pi:
+            main_window.showFullScreen()
+        else:
+            main_window.show()
+        #app.activateWindow()
+        #app.raise_()
+        qapp.exec()

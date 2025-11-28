@@ -24,6 +24,13 @@ class Amalgameur:
         self.sub_lidar.set_receive_callback(self.on_lidar)
         self.pub_amalgames = ProtoPublisher(lidar_pb.Amalgames, "amalgames")
 
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.sub_lidar.remove_receive_callback()
+
+
     def on_lidar(self, pub_id : ecal_core.TopicId, data : ReceiveCallbackData[lidar_pb.Lidar]):
         quality = np.array(data.message.quality) > QUALITY_REJECTION_VAL
         distances = np.array(data.message.distances)[quality]
@@ -111,7 +118,6 @@ class Amalgameur:
 
 
 if __name__ == "__main__":
-    d  = Amalgameur()
-
-    while ecal_core.ok():
-        time.sleep(1)
+    with Amalgameur() as d :
+        while ecal_core.ok():
+            time.sleep(1)
