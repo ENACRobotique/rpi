@@ -151,7 +151,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--cam', type=int, help='Camera ID', default=None)
     parser.add_argument('-v', '--video', help='Video file', default=None)
     parser.add_argument('-t', '--topic', help='eCAL topic', default=None)
-    parser.add_argument('-d', '--dir', default='../../drivers/camera/calibrations/', help='Directory for calibration files')
+    parser.add_argument('-d', '--dir', default='../../data/camera_calibrations/', help='Directory for calibration files')
     args = parser.parse_args()
 
     if args.cam is not None:

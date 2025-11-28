@@ -86,8 +86,8 @@ class ArucoFinder:
     def getCalibration(self, w, h):
         """Provide Calibration Matrix and distance coefs as .npy file"""
         # Charger la calibration
-        f_mat = f'calibrations/{self.name}_matrix_{w}x{h}.npy'
-        f_coef = f'calibrations/{self.name}_coeffs_{w}x{h}.npy'
+        f_mat = f'../../data/camera_calibrations/{self.name}_matrix_{w}x{h}.npy'
+        f_coef = f'../../data/camera_calibrations/{self.name}_coeffs_{w}x{h}.npy'
         self.camera_matrix = np.load(f_mat)
         self.dist_coeffs = np.load(f_coef)
     
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--cam', type=int, help='Camera ID', default=None)
     parser.add_argument('-v', '--video', help='Video file', default=None)
     parser.add_argument('-t', '--topic', help='eCAL topic', default=None)
-    parser.add_argument('-d', '--display', action='store_true', default=False, help='send annotetd images over ecal')
+    parser.add_argument('-d', '--display', action='store_true', default=False, help='send annotated images over ecal')
     parser.add_argument('-W', '--width', type=int, help='image width', default=None)
     parser.add_argument('-H', '--height', type=int, help='image height', default=None)
     parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)

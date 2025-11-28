@@ -6,7 +6,7 @@ Wants=robot_amalgameur_driver.service
 [Service]
 Type=simple
 
-ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/loca_lidar.py
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/lidar/loca_lidar.py
 
 Restart=on-failure
 RestartSec=2 
