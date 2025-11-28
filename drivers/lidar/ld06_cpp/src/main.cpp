@@ -76,7 +76,7 @@ int main(int argc, char** argv){
 
   
   // Initialize eCAL and create a protobuf publisher
-  eCAL::Initialize(argc, argv, "ld06_driver");
+  eCAL::Initialize("ld06_driver");
   eCAL::protobuf::CPublisher<enac::Lidar> publisher("lidar_data");
 
 
