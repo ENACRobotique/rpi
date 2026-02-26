@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package enac;
+
+message Position {
+    float x = 1;
+    float y = 2;
+    float theta = 3;
+}
+
+message Trajectoire{
+    repeated Position pos = 1;
+}
+
+message Speed {
+    float vx = 1;
+    float vy = 2;
+    float vtheta = 3;
+}
+
+message Ins {
+    float vtheta = 1;
+    float theta = 2;
+    float bias = 3;
+    float variance = 4;
+  }

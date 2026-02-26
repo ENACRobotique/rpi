@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package enac;
+
+import public "common.proto";
+
+message no_args_func_ {
+    float nothing = 1;
+}
+
+message Position_aruco {
+    repeated float x = 1;
+    repeated float y = 2;
+    repeated float z = 3;
+    repeated float theta = 4;
+    repeated float ArucoId = 5;
+    repeated float index = 6;
+    string cameraName = 7;
+    repeated float qx = 8;
+    repeated float qy = 9;
+    repeated float qz = 10;
+    repeated float qw = 11;
+}
+
+message Eye {
+    int32 nombre_pot = 1;
+    bool serie = 2;
+    repeated float distance = 3;
+}
+
+
+message IO {
+    int32 id = 1;
+    int32 val = 2;
+}
+
+
+message LCDOut {
+    string line1 = 1;
+    string line2 = 2;
+    bool red = 3;
+    bool green = 4;
+    bool blue = 5;
+    int32 buzzer = 6;
+}
+
+message LCDState {
+    int32 ok = 1;
+    int32 ret = 2;
+    int32 color = 3;
+    int32 tirette = 4;
+    int32 potar = 5;
+}
+
+message LCDEvent {
+    enum Button {
+        OK = 0;
+        RET = 1;
+        COLOR = 2;
+        TIRETTE = 3;
+        POTAR = 4;
+    }
+    Button button = 1;
+    int32 value = 2;
+}
+
+message Side {
+    enum Color {
+        BLUE = 0;
+        YELLOW = 1;
+    }
+    Color color = 1;
+}
+
+
+// message Match {
+//     string status = 1;
+//     int32 score = 2;
+// }
+
+
+// message SetState {
+//     int32 plate_position = 1; // Position of the "plateau"
+//     int32 plate_number = 2; // Number of the action, value to display, ...
+//     bool cerise_drop=3;
+//     int32 claw_state = 4;
+// }
+
+
+
+// message Action {
+//     int32 action = 1;
+// }
+
