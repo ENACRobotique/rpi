@@ -3,6 +3,7 @@ import sys
 import time
 import ecal.nanobind_core as ecal_core
 from queue import Queue, Empty
+import struct
 
 sys.path.append("../../")
 
@@ -173,6 +174,33 @@ class servoIO:
         return msg_resp.data
     else:
       print("no response...")
+  
+  def pump(self, id, state):
+    self.write(id, 0x20, struct.pack("<B", state))
+
+  def valve(self, id, state):
+    self.write(id, 0x21, struct.pack("<B", state))
+
+  def valve_use(self, id):
+    self.write(id, 0x22, struct.pack("<B", 1))
+
+  def id_change(self, id, state): 
+    self.write(id, 0x02, struct.pack("<B", state))
+
+  def baudrate(self, id, state): 
+    self.write(id, 0x06, struct.pack("<B", state))
+
+  def readCurrent(self, id):
+    data = self.read(id, 0x23, 2)
+    (current,) = struct.unpack("<H", data)
+    return current 
+  
+
+    
+
+  
+
+
 
 
 
