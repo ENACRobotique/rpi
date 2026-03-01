@@ -19,6 +19,8 @@ if __name__ == "__main__":
     parser.add_argument('-W', '--width', type=int, help='image width', default=None)
     parser.add_argument('-H', '--height', type=int, help='image height', default=None)
     parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
+    parser.add_argument('-s', '--scale', type=float, default=None)
+    parser.add_argument('--fourcc', type=str, help='fourcc type (MJPG, H264, ...)', default=None)
     args = parser.parse_args()
 
     if not ecal_core.is_initialized():
@@ -31,6 +33,9 @@ if __name__ == "__main__":
         exit(-1)
     else:
         print(f"cam {args.cam} opened.")
+    
+    if args.fourcc is not None:
+        cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc(*args.fourcc))
     
     if args.width is not None and args.height is not None:
         cam.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
@@ -45,6 +50,8 @@ if __name__ == "__main__":
 
     while True:
         ret, frame = cam.read()
+        if args.scale is not None:
+                frame = cv2.resize(frame, None, fx=args.scale, fy=args.scale)
         img_encode = cv2.imencode(".jpg", frame)[1]
         byte_encode = img_encode.tobytes()
         ci = cipb.CompressedImage(timestamp=Timestamp(), data=byte_encode, format='jpeg')

@@ -30,12 +30,12 @@ class Source(Enum):
     ECAL = 2
 
 class Calibrator:
-    def __init__(self, name, src_type, src) -> None:
+    def __init__(self, name, src_type, src, args) -> None:
         self.name = name
         self.src_type = src_type
         self.dir = args.dir
 
-        self.init_capture(src_type, src)
+        self.init_capture(src_type, src, args)
 
         # Préparation des points 3D de référence (repère monde)
         self.objp = np.zeros((NB_CORNERS_Y * NB_CORNERS_X, 3), np.float32)
@@ -51,15 +51,22 @@ class Calibrator:
         self.event = Event()
 
 
-    def init_capture(self, src_type, src):
+    def init_capture(self, src_type, src, args):
         if src_type == Source.CAM:
             self.cap = cv2.VideoCapture(src)
             if self.cap is None:
                 print(f"Failed to open camera {src}")
                 return
-            #self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-            #self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-            #self.cap.set(cv2.CAP_PROP_FPS, 30)
+            if args.fourcc is not None:
+                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc(*args.fourcc))
+            if args.width is not None and args.height is not None:
+                print(f"setting resoltution at {args.width}x{args.height}....")
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
+            if args.fps is not None:
+                print(f"setting fps at {args.fps}...")
+                self.cap.set(cv2.CAP_PROP_FPS, args.fps)
+
             w, h, f = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT), self.cap.get(cv2.CAP_PROP_FPS)
             print(f"Opened camera with resolution {w}x{h} at {f}fps!\n")
         elif src_type == Source.VIDEO:
@@ -151,6 +158,10 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--cam', type=int, help='Camera ID', default=None)
     parser.add_argument('-v', '--video', help='Video file', default=None)
     parser.add_argument('-t', '--topic', help='eCAL topic', default=None)
+    parser.add_argument('-W', '--width', type=int, help='image width, for camera', default=None)
+    parser.add_argument('-H', '--height', type=int, help='image height, for camera', default=None)
+    parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
+    parser.add_argument('--fourcc', type=str, help='fourcc type (MJPG, H264, ...)', default=None)
     parser.add_argument('-d', '--dir', default='../../data/camera_calibrations/', help='Directory for calibration files')
     args = parser.parse_args()
 
@@ -166,5 +177,5 @@ if __name__ == "__main__":
     else:
         print("Please specify the source: cam, video or ecal topic.")
     
-    calibrator = Calibrator(args.name, src_type, src)
+    calibrator = Calibrator(args.name, src_type, src, args)
     calibrator.run()
