@@ -21,6 +21,7 @@ class CamVisu:
         self.sub = ProtoSubscriber(cipb.CompressedImage, args.topic)
         self.img = None
         self.rotate = args.rotate
+        self.scale = args.scale
         self.event = Event()
         self.sub.set_receive_callback(self.on_img)
 
@@ -28,32 +29,34 @@ class CamVisu:
         nparr = np.frombuffer(data.message.data, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         match self.rotate:
-            case '0':
-                self.img = img
-            case '180':
-                self.img = cv2.rotate(img, cv2.ROTATE_180)
-                self.event.set()
             case '90':
-                self.img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-                self.event.set()
-            case '90ccw':
-                self.img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+            case '180':
+                img = cv2.rotate(img, cv2.ROTATE_180)
+            case '-90':
+                img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+        if self.scale is not None:
+                img = cv2.resize(img, None, fx=self.scale, fy=self.scale)
+        self.img = img
         self.event.set()
         
     
     def run(self):
         while True:
             self.event.wait()
-            cv2.imshow('Camera', self.img)
+            cv2.imshow(args.topic, self.img)
             # Press 'q' to exit the loop
             if cv2.waitKey(1) == ord('q'):
+                self.sub.remove_receive_callback()
                 break
 
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument('-t', '--topic', help='eCAL topic', default="cam")
-    parser.add_argument('-r', '--rotate', choices=['180', '90', '90ccw'], default='0')
+    parser.add_argument('-r', '--rotate', choices=['90', '180', '-90'], default='0')
+    parser.add_argument('-s', '--scale', type=float, default=None)
     args = parser.parse_args()
 
     rcv = CamVisu(args)
