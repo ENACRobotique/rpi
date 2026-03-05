@@ -7,7 +7,7 @@ import ecal.nanobind_core as ecal_core
 from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.proto.core import Publisher as ProtoPublisher
 from ecal.msg.common.core import ReceiveCallbackData
-from generated.robot_state_pb2 import Position_aruco
+from generated.robot_state_pb2 import Aruco, Arucos
 from generated import CompressedImage_pb2 as cipb
 from google.protobuf.timestamp_pb2 import Timestamp
 import argparse
@@ -37,7 +37,7 @@ class ArucoFinder:
         self.event = Event()
         self.img = None     # img received from eCAL
 
-        self.aruco_pub = ProtoPublisher(Position_aruco, "Arucos")
+        self.aruco_pub = ProtoPublisher(Arucos, "Arucos")
         if self.display:
             self.cam_pub = ProtoPublisher(cipb.CompressedImage, "images_"+str(self.name))
         
@@ -115,8 +115,7 @@ class ArucoFinder:
             cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
 
         if detected_corners:
-            xs, ys, zs, aruIds= [],[],[],[]
-            qws, qxs, qys, qzs = [],[],[],[]
+            arucos = []
             for corners, id in zip(detected_corners, detected_ids):
                 id = id[0]
                 if id not in self.arucos:
@@ -125,20 +124,18 @@ class ArucoFinder:
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers([corners], size, self.camera_matrix, self.dist_coeffs)
                 if tvecs is not None:
                     rv, tv = rvecs[0], tvecs[0]
-                    xs.append(tv[0][0])
-                    ys.append(tv[0][1])
-                    zs.append(tv[0][2])
-                    aruIds.append(id)
 
                     # Convert rvec to rotation matrix
                     rotation_matrix, _ = cv2.Rodrigues(np.array(rv))
                     r =  Rotation.from_matrix(rotation_matrix)
                     (qx, qy, qz, qw) = r.as_quat(False)
-                    qxs.append(qx)
-                    qys.append(qy)
-                    qzs.append(qz)
-                    qws.append(qw)
-            self.arucoFound = Position_aruco(x=xs, y=ys, z=zs, qx=qxs, qy=qys, qz=qzs, qw=qws, ArucoId=aruIds, cameraName=self.name)
+
+
+                    ar = Aruco(x=tv[0][0], y=tv[0][1], z=tv[0][2],qx=qx, qy=qy, qz=qz, qw=qw, ArucoId=id )
+                    arucos.append(ar)
+
+
+            self.arucoFound = Arucos(arucos=arucos, cameraName=self.name)
             self.aruco_pub.send(self.arucoFound)
         return frame
     
