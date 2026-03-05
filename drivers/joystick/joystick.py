@@ -10,7 +10,7 @@ sys.path.append("../..")
 import generated.common_pb2 as common_pb
 # import generated.messages_pb2 as message_pb2
 from sw.IO.actionneurs import IO_Manager
-
+from joystick_confs import *
 
 MAX_SPEED = 300
 V_THETA = 2
@@ -18,45 +18,7 @@ V_THETA = 2
 FRAME_W = 1
 FRAME_R = 0
 
-ATTACK3_CONF = {
-    "X": 1, #axe
-    "X_sens" : -1, #facteur
-    "X_offset": 0.,
-    "X_dead_zone": 0.1,
-    "Y": 0, #axe
-    "Y_sens" : -1,
-    "Y_offset" : 0.,
-    "Y_dead_zone": 0.1,
-    "angle_gauche": 3, #bouton
-    "angle_droit":4, #bouton
-    "vitesse_supra_luminique": 0 #bouton
-}
 
-BATTLETRON = {
-    "X": 4, #axe 1
-    "X_sens" : -1, #facteur
-    "X_offset": 0.15,
-    "X_dead_zone": 0.1,
-    "Y": 3, #axe 0
-    "Y_sens" : -1,
-    "Y_offset" : -0.6,
-    "Y_dead_zone": 0.1,
-    "THETA": 0, #axe 3
-    "THETA_sens" : -1,
-    "THETA_offset" : 0.1, #à régler
-    "THETA_dead_zone": 0.1, # à régler
-    "theta_supra_luminique":11, #bouton
-    "vitesse_supra_luminique": 12, #bouton
-    "glisse" : 1, #hat (fleche haut et bas)
-    "selectGlisse" : 0, #hat (fleche gauche et droite) 
-    "bras" : 6, #bouton gachette gauche
-    "verrou" : 7, #bouton gachette droite
-    "grabHaut" : 4, #bouton bumper gauche
-    "grabBas" : 5, #bouton bumper droit
-    "action_1" : 0, #bouton bumper gauche
-    "action_2" : 2, #bouton bumper gauche
-
-}
 TIMEOUT_COMMAND = 1
 PLANCHE = 0
 RENTREUR = 1
@@ -72,8 +34,7 @@ class JoystickEcal ():
         self.conf = BATTLETRON
         self.glisseMode = PLANCHE
         self.glisseState = IDLE
-        self.last_time = 0
-        self.cons_timer_on = False
+        self.count_zero = 0
         if not ecal_core.is_initialized():
             ecal_core.initialize("Joystick")
         time.sleep(1) # on laisse ecal se reveiller
@@ -175,20 +136,14 @@ class JoystickEcal ():
         if self.conf == ATTACK3_CONF:
             self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         
-        #print(self.message)
-        cons_at_0 = abs(self.message.vx) < 0.1 and abs(self.message.vy) < 0.1 and abs(self.message.vtheta) <= 0.1
-        if cons_at_0:
-            if not self.cons_timer_on:
-                self.last_time = time.time()
-                self.cons_timer_on = True
-            if self.cons_timer_on :
-                timeout = abs(time.time()- self.last_time) > TIMEOUT_COMMAND
+        if self.message.vx == 0 and self.message.vy == 0 and self.message.vtheta == 0:
+            self.count_zero += 1
         else:
-            timeout = False
-            self.cons_timer_on = False
-
-        if not timeout:
+            self.count_zero = 0
+        
+        if self.count_zero < 10:
             self.speed_publisher.send(self.message)
+        
 
 if __name__ == '__main__':
     pygame.init()
@@ -197,19 +152,10 @@ if __name__ == '__main__':
     joysticks_ecal = JoystickEcal()        
     joysticks_ecal.open()
     joysticks_ecal.set_conf(BATTLETRON)
-    #tree = py_trees.trees.BehaviourTree(joystick_bt(joysticks_ecal.IO_manager))
-    #tree.setup(timeout=15)
-    #tick = 0
+
     while True :
-        for event in pygame.event.get():
-            # print(event)
-            joysticks_ecal.update_value()
-            # print(f'Glissière :{joysticks_ecal.glisseMode}\n')
-            # print(joysticks_ecal)
+        pygame.event.get()
+        joysticks_ecal.update_value()
         joysticks_ecal.publish_command()
-        #print(f"Tick {tick} \n")
-        #tree.tick()
-        #tick = tick + 1
         time.sleep(0.1)
     
-

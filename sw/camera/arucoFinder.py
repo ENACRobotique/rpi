@@ -64,6 +64,8 @@ class ArucoFinder:
             if self.cap is None:
                 print(f"Failed to open {self.name} with id {src}")
                 exit(-1)
+            if args.fourcc is not None:
+                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc(*args.fourcc))
             if args.width is not None and args.height is not None:
                 self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
                 self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
@@ -167,6 +169,7 @@ if __name__ == "__main__":
     parser.add_argument('-W', '--width', type=int, help='image width', default=None)
     parser.add_argument('-H', '--height', type=int, help='image height', default=None)
     parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
+    parser.add_argument('--fourcc', type=str, help='fourcc type (MJPG, H264, ...)', default=None)
     args = parser.parse_args()
 
     if args.cam is not None:
