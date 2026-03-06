@@ -24,14 +24,14 @@ class RadarView(QtWidgets.QWidget):
     balises_nearodom_sig=pyqtSignal(list)
     transforms_sig=pyqtSignal(list)
 
-    def __init__(self, args, parent=None):
+    def __init__(self, topic, no_loca, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
-        self.args = args
+        self.no_loca = no_loca
         if not ecal_core.is_initialized():
             ecal_core.initialize("RadarQt receiver")
-        self.lidar_sub = ProtoSubscriber(pbl.Lidar, args.lidar)
+        self.lidar_sub = ProtoSubscriber(pbl.Lidar, topic)
         self.lidar_sub.set_receive_callback(self.handle_lidar_data)
-        if args.no_loca:
+        if no_loca:
             self.lidar_amalgames_sub = ProtoSubscriber(pbl.Amalgames, "amalgames")
             self.lidar_amalgames_sub.set_receive_callback(self.handle_amalgames_data)
             self.lidar_balises_odom_sub = ProtoSubscriber(pbl.Balises, "balises_odom")
@@ -64,14 +64,14 @@ class RadarView(QtWidgets.QWidget):
     
     def __exit__(self, exc_type, exc_value, traceback):
         self.lidar_sub.remove_receive_callback()
-        if args.no_loca:
+        if self.no_loca:
             self.lidar_amalgames_sub.remove_receive_callback()
             self.lidar_balises_odom_sub.remove_receive_callback()
             self.lidar_balises_nearodom_sub.remove_receive_callback()
         
     def stop(self):
         self.lidar_sub.remove_receive_callback()
-        if self.args.no_loca:
+        if self.no_loca:
             self.lidar_amalgames_sub.remove_receive_callback()
             self.lidar_balises_odom_sub.remove_receive_callback()
             self.lidar_balises_nearodom_sub.remove_receive_callback()
