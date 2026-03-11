@@ -5,7 +5,7 @@ After=network.target network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/robot/rpi/tools/lidar
-ExecStart=/home/robot/rpi/robEnv/bin/python3  /home/robot/rpi/tools/lidar/radarqt.py -p
+ExecStart=/home/robot/rpi/robEnv/bin/python3  /home/robot/rpi/sw/walUIgi/walUIgi.py -p
 Restart=on-failure
 RestartSec=10 
 
