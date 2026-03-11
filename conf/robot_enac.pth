@@ -1,6 +1,7 @@
 RPI/
-RPI/
 RPI/sw
 RPI/generated
 RPI/sw/IO
 RPI/sw/strat
+RPI/sw/actuators
+RPI/tools/lidar

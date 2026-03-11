@@ -20,8 +20,6 @@ set(source_files
   src/main.cpp
   src/serial.cpp
   src/smart_servo.cpp
-  src/Dynamixel.cpp
-  src/STS3032.cpp
 )
 
 set(PROTO_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/../../proto)

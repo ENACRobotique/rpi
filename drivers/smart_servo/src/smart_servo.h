@@ -22,11 +22,6 @@ typedef struct __attribute__((packed)) {
 class SmartServo {
 public:
 
-	enum RotationDirection{
-		Counterclockwise = 0,
-		Clockwise = 1
-	};
-
     typedef struct {
         uint8_t id;
         uint8_t reg;
@@ -61,21 +56,7 @@ public:
     void init();
 
     void setSerialBaudrate(uint32_t speed);
-    virtual SmartServo::Status setBaudrate(uint8_t id, uint32_t speed) = 0;
-    virtual SmartServo::Status setID(uint8_t id, uint8_t newID) = 0;
-    virtual SmartServo::Status move(uint8_t id, uint16_t position, bool reg_write=false) = 0;
-    virtual SmartServo::Status moveSpeed(uint8_t id, uint16_t position, uint16_t speed, bool reg_write=false) = 0;
-    virtual SmartServo::Status setEndless(uint8_t id, bool status) = 0;
-    virtual SmartServo::Status turn(uint8_t id, RotationDirection direction, uint16_t speed) = 0;
-    virtual SmartServo::Status setTorque(uint8_t id, uint16_t torque) = 0;
-    virtual SmartServo::Status torqueEnable(uint8_t id, bool enable) = 0;
-    virtual SmartServo::Status setLimits(uint8_t id, uint16_t minAngle, uint16_t maxAngle) = 0;
 
-    virtual SmartServo::Status setMultiturn(uint8_t id, uint8_t factor) {return NOT_IMPLEMENTED;};
-    virtual SmartServo::Status lock_eprom(uint8_t id, bool lock) {return NOT_IMPLEMENTED;};
-
-    virtual int readPosition(uint8_t id) = 0;
-    
     /**
      * Send ping to servo.
      */
@@ -131,7 +112,6 @@ protected:
 private:
 
     Status readStatus();
-    Status readEcho();
     void flushSerialInput();
     
 
