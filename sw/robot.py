@@ -16,7 +16,6 @@ from IO.actionneurs import *
 from common import Pos, Speed, next_path, normalize_angle
 import locomotion
 
-from camera.conserveVisu import visuConserve
 from scipy.stats import linregress
 
 from enum import Enum
@@ -81,9 +80,6 @@ class Robot:
         self.last_target = Pos(0, 0, 0)
         self.nav = nav.Nav() #Nav
         self.command_sent = False
-        self.vl53_data: dict[Actionneur,None|tuple] = {Actionneur.AimantBasDroit: None,
-                           Actionneur.AimantBasGauche: None
-                           }
         
         self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
@@ -279,7 +275,6 @@ class Robot:
         msg = data.message
         self.pos = Pos.from_proto(msg)
         self.nb_pos_received += 1
-        self.pos_page.set_text(f"x:{msg.x:.0f} y:{msg.y:.0f}", f"theta:{msg.theta:.2f}")
 
     def onReceiveSpeed(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Speed]):
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
