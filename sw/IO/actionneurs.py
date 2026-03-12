@@ -1,87 +1,64 @@
 from enum import Enum
-import sys
-sys.path.append("../../")
-from drivers.smart_servo.ecalServoIO import servoIO
-from generated import actionneurs_pb2 as actionneurs_pb
+from sap_master import SAPMaster
 import time
+from sts3032 import STS3032
+
+TENTACLE_SPEED = 1741
+
+
+class PosTentacle(Enum):
+    BAS = 0
+    HAUT = 1
 
 
 class Actionneur(Enum):
-    #todo : Droit = la droite du robot par rapport à son axe X
     AimantBasDroit = 4
-    AimantBasGauche = 3
-    AscenseurAimant = 5
     
-    AimantHautDroit = 6 
-    AimantHautGauche = 7
-    Rentreur = 8
+    ##écran en face de soit, tentacules Gauches (tentG) ou droit (tentD), de même pour les pompes
+    tentG1 = 22 # (Tentacle)
+    tentG2 = 23
+    tentG3 = 20
+    tentG4 = 21
+    
+    tentD1 = 4 
+    tentD2 = 8 
+    tentD3 = 3 
+    tentD4 = 5
+    
+    pompG1 = 40
+    pompG2 = 41
+    pompG3 = 42
+    pompG4 = 43
 
-    PlancheDroit = 1
-    PlancheGauche = 2
-    VerrouPince = 9
-    BrasPince = 11 # AX
-
-    AscenseurBanderolle = 10
 
 class ValeurActionneur(Enum):
     STSLowSpeed = 3000
-    AimantBasDroitGRAB = 3100
-    AimantBasDroitDROP = 3800
-
-    AimantBasGaucheGRAB = 2950
-    AimantBasGaucheDROP = 2285
-
-    AimantHautDroitGRAB = 1550
-    AimantHautDroitDROP = 2400
-
-    AimantHautGaucheGRAB = 1740
-    AimantHautGaucheDROP = 1030
     
-    # MULTITURN FACTOR 2
-    AscenseurAimantUP = 4150
-    AscenseurAimantDOWN = 390
-    AscenseurAimantINTERMEDIAIRE = 3200
-    AscenseurAimantRAISED = 600
-
+    tentG1Haut = 936
+    tentG1Bas = 1921
+    tentG2Haut = 3064
+    tentG2Bas = 2113
+    tentG3Haut = 970 
+    tentG3Bas = 1981
+    tentG4Haut = 1139
+    tentG4Bas = 2044
     
-    RentreurIN = 500
-    RentreurOUT = 3980
-    RentreurPUSH = 3000
+    tentD1Haut = 0
+    tentD1Bas = 0
+    tentD2Haut = 23
+    tentD2Bas = 0
+    tentD3Haut = 20
+    tentD3Bas = 0
+    tentD4Haut = 21
+    tentD4Bas = 0
 
-    BrasPinceIN = 450
-    BrasPinceOUT = 200
-    BrasPinceFINAL = 160
-    VerrouPinceLOCK = 1750
-    VerrouPinceUNLOCK = 2500
 
-    PlancheDELTA = 2600
 
-    BanderolleUp = 4000
-    BanderolleDown = 1000
-
-    
-servoPosError = 20 # on prend large
-
-UP = 1
-DOWN = 2
-MID = 3
-
-INSIDE = 1
-OUTSIDE = 2
-PUSH = 3
 
 class IO_Manager:
     def __init__(self):
-        self.Servo_IO = servoIO()
+        self.sap_master = SAPMaster()
         
-        #Handling Planche servos
-        self.liftCalibrated = False
-        self.liftG_init = -1
-        self.liftD_init = -1
-        self.liftG_up = -1
-        self.liftD_up = -1
-        self.liftG_down = -1
-        self.liftD_down = -1
 
     def __repr__(self) -> str:
         return "Robot Enac IOs managment class"
@@ -90,221 +67,31 @@ class IO_Manager:
         """Passage de tout les actionneurs à leur position de début de match \n"""
         pass
 
-    def calibrateLift(self):
-        """ Calibrating will make the servo back to first turn !\n"""
-        self.Servo_IO.setEndless(Actionneur.PlancheGauche.value, False)
-        self.Servo_IO.setEndless(Actionneur.PlancheDroit.value, False)
-        g = 0
-        d = 0
-        fg = False # Calibration fail flags
-        fd = False # Calibration fail flags
-        self.liftG_init = -1
-        self.liftD_init = -1
 
-        while self.liftG_init == -1:
-            g = g + 1
-            self.liftG_init = self.Servo_IO.readPos(Actionneur.PlancheGauche.value)
-            if g > 5: # In case of timeout reading, number of checks are arbitrary
-                print("Cannot calibrate liftG, check connections")
-                fg = True
-                break
-
-        while self.liftD_init == -1:
-            d = d + 1
-            self.liftD_init = self.Servo_IO.readPos(Actionneur.PlancheDroit.value)
-            if d > 5: # In case of timeout reading, number of checks are arbitrary
-                print("Cannot calibrate liftD, check connections")
-                fd = True
-                break
-
-        self.liftD_up = self.liftD_init//4
-        self.liftD_down = self.liftD_init//4+ValeurActionneur.PlancheDELTA.value+200
-        self.liftD_mid = self.liftD_down - 1500
+    def read(self, actionneur : Actionneur):
+        return self.sap_master.sts3032.readPos(actionneur.value)
         
-        self.liftG_up = self.liftG_init//4 +ValeurActionneur.PlancheDELTA.value+100
-        self.liftG_down = self.liftG_init//4
-        self.liftG_mid = self.liftG_down + 1500
 
-        self.liftCalibrated = True
-        if not fg or not fd:
-            self.liftBanderole(UP)
-            print("Lift calibration sucessfull !")
-
-
-    def liftPlancheContinu(self, direction, sync:bool =False):
-        """ 
-        direction \n
-        1 or UP : haut\n
-        -1 or DOWN : bas\n
-        0 or STOP : pas bouger\n
-        """
-        self.Servo_IO.setEndless(Actionneur.PlancheDroit.value,True)
-        self.Servo_IO.setEndless(Actionneur.PlancheGauche.value,True)
-
-        if direction == 1 :
-            self.Servo_IO.turn(Actionneur.PlancheDroit.value,1,ValeurActionneur.STSLowSpeed.value)
-            self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,ValeurActionneur.STSLowSpeed.value)
-            
-        elif direction == -1:
-            self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,ValeurActionneur.STSLowSpeed.value)
-            self.Servo_IO.turn(Actionneur.PlancheGauche.value,1,ValeurActionneur.STSLowSpeed.value)
-
-        else :
-            self.Servo_IO.turn(Actionneur.PlancheDroit.value,0,0)
-            self.Servo_IO.turn(Actionneur.PlancheGauche.value,0,0)
-    
-    def stockConserveContinu(self, direction, sync:bool =False):
-        self.Servo_IO.setEndless(Actionneur.Rentreur.value,True)
-        if direction == 1:
-            self.Servo_IO.turn(Actionneur.Rentreur.value,0,ValeurActionneur.STSLowSpeed.value)
-
-        elif direction == -1:
-            self.Servo_IO.turn(Actionneur.Rentreur.value,1,ValeurActionneur.STSLowSpeed.value)
-
-        else :
-            self.Servo_IO.turn(Actionneur.Rentreur.value,0,0)
-
-    def liftConserveContinu(self, direction, sync:bool =False):
-        self.Servo_IO.setEndless(Actionneur.AscenseurAimant.value,True)
-        if direction == 1 :
-            self.Servo_IO.turn(Actionneur.AscenseurAimant.value,0,ValeurActionneur.STSLowSpeed.value)
-
-        elif direction == -1:
-            self.Servo_IO.turn(Actionneur.AscenseurAimant.value,1,ValeurActionneur.STSLowSpeed.value)
-
-        else :
-            self.Servo_IO.turn(Actionneur.AscenseurAimant.value,0,0)
-
-
-    def liftPlanches(self, pos:int, sync:bool = False):
-        """Monter ou descendre les planches\n
-        Si fdc non calibrés la fonction ne fera rien"""
-        if self.liftCalibrated:
-            if pos == UP:
-                print("up")
-                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_up, 4000)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_up, 4000)     
-            elif pos == MID:
-                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_mid, 4000)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_mid, 4000)     
-
-            else:
-                self.Servo_IO.moveSpeed(Actionneur.PlancheGauche.value, self.liftG_down, 4000)
-                self.Servo_IO.moveSpeed(Actionneur.PlancheDroit.value, self.liftD_down, 4000)                  
-        
-    def lockPlanche(self, lock:bool, sync:bool = False):
-        """ Tenir ou lâcher la planche du haut"""
-        if lock:
-            self.Servo_IO.move(Actionneur.VerrouPince.value, ValeurActionneur.VerrouPinceLOCK.value)
-            
-        else :
-            self.Servo_IO.move(Actionneur.VerrouPince.value, ValeurActionneur.VerrouPinceUNLOCK.value)
+    def HeilG(self, position : PosTentacle):
+        if position == PosTentacle.BAS:
+            self.sap_master.sts3032.move_speed(Actionneur.tentG1.value, ValeurActionneur.tentG1Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG2.value, ValeurActionneur.tentG2Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG3.value, ValeurActionneur.tentG3Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG4.value, ValeurActionneur.tentG4Bas.value, TENTACLE_SPEED)
+        elif position == PosTentacle.HAUT:
+            self.sap_master.sts3032.move_speed(Actionneur.tentG1.value, ValeurActionneur.tentG1Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG2.value, ValeurActionneur.tentG2Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG3.value, ValeurActionneur.tentG3Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG4.value, ValeurActionneur.tentG4Haut.value, TENTACLE_SPEED)
             
         
-    def deployPince(self, deploy:bool, sync:bool = False):
-        """Déployer ou rentrer la pince"""
-        if deploy:
-            self.Servo_IO.move(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceOUT.value, actionneurs_pb.SmartServo.ServoType.AX12)
-            
-        else :
-            self.Servo_IO.move(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceIN.value, actionneurs_pb.SmartServo.ServoType.AX12)
-    
-    def PinceFINAL(self, deploy:bool, sync:bool = False):
-        """Déployer ou rentrer la pince"""
-        if deploy:
-            self.Servo_IO.move(Actionneur.BrasPince.value, ValeurActionneur.BrasPinceFINAL.value, actionneurs_pb.SmartServo.ServoType.AX12)
-            
-            
-    
-    def moveRentreur(self, inside: int, sync:bool = False):
-        self.Servo_IO.setEndless(Actionneur.Rentreur.value, False)
-        if inside==INSIDE:
-            self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurIN.value)
-        elif inside == OUTSIDE:
-            self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurOUT.value)
-        elif inside == PUSH:
-            self.Servo_IO.move(Actionneur.Rentreur.value, ValeurActionneur.RentreurPUSH.value)
-            
+    def HeilD(self):
+        self.sap_master.sts3032.move_speed(Actionneur.tentD1.value, 1000, TENTACLE_SPEED)
+        self.sap_master.sts3032.move_speed(Actionneur.tentD2.value, 1000, TENTACLE_SPEED)
+        self.sap_master.sts3032.move_speed(Actionneur.tentD3.value, 1000, TENTACLE_SPEED)
+        self.sap_master.sts3032.move_speed(Actionneur.tentD4.value, 1000, TENTACLE_SPEED)
         
-    def liftConserve(self, pos:ValeurActionneur, sync:bool = False):
-        self.Servo_IO.setEndless(Actionneur.AscenseurAimant.value, False)
-        self.Servo_IO.move(Actionneur.AscenseurAimant.value, pos.value)
-            
-            
-    def grabLowConserve(self, grab : bool, sync:bool = False):
-        if grab : 
-            self.Servo_IO.move(Actionneur.AimantBasGauche.value,ValeurActionneur.AimantBasGaucheGRAB.value)
-            self.Servo_IO.move(Actionneur.AimantBasDroit.value,ValeurActionneur.AimantBasDroitGRAB.value)
-            
-        else: 
-            self.Servo_IO.move(Actionneur.AimantBasGauche.value,ValeurActionneur.AimantBasGaucheDROP.value)
-            self.Servo_IO.move(Actionneur.AimantBasDroit.value,ValeurActionneur.AimantBasDroitDROP.value)
-            
+    def Heil(self,id):
         
-    def grabHighConserve(self, grab : bool, sync:bool = False):
-        if grab : 
-            self.Servo_IO.move(Actionneur.AimantHautGauche.value,ValeurActionneur.AimantHautGaucheGRAB.value)
-            self.Servo_IO.move(Actionneur.AimantHautDroit.value,ValeurActionneur.AimantHautDroitGRAB.value)
-            
-        else: 
-            self.Servo_IO.move(Actionneur.AimantHautGauche.value,ValeurActionneur.AimantHautGaucheDROP.value)
-            self.Servo_IO.move(Actionneur.AimantHautDroit.value,ValeurActionneur.AimantHautDroitDROP.value)
-    
-    def deployMacon(self):
-        """Deployer l'actionneur Maçon\n
-         Il faut Calibrer l'ascenceur planche avant !!!\n
-         NON BLOQUANT
-         """
-        self.deployPince(True)
-        self.lockPlanche(False)
-        self.grabHighConserve(False)
-        self.grabLowConserve(False)
-        self.liftPlanches(DOWN)
-
-    # def ramasseGradin(self):
-    #     """BLOQUANT"""
-    #     self.liftPlanches(UP) #Soulève les planches
-    #     time.sleep(0.5)
-    #     self.grabHighConserve(False)        # lache les préhenseur du haut
-    #     self.grabLowConserve(True)          # sort les préhenseur du bas
-    #     time.sleep(0.3)
-    #     self.liftConserve(UP)      # monte les conserves
-    #     time.sleep(2)
-    #     self.moveRentreur(OUTSIDE)          # sort le rentreur
-    #     time.sleep(0.1)
-    #     self.grabHighConserve(True)         # attrape par le haut
-    #     time.sleep(1.5)
-    #     self.grabLowConserve(False)         # lache par le bas
-    #     time.sleep(0.25)
-    #     self.lockPlanche(True)              # attrape la planche du haut
-    #     self.liftConserve(DOWN)    # descend l'ascenseur à conserve
-    #     time.sleep(0.5)
-
-    #     self.grabLowConserve(True)          # temporaire pour eviter de peter le robot
-    #     time.sleep(0.7)
-
-    #     self.moveRentreur(INSIDE)           # rentre les conserves
-    #     time.sleep(0.3)
-    #     self.grabLowConserve(False) # lache les préhenseur bas
-    
-    # def construitGradin(self):
-    #     """BLOQUANT"""
-    #     self.liftPlanches(DOWN)          # Descend la planche du 1er etage
-    #     time.sleep(2.5)
-    #     self.moveRentreur(OUTSIDE)          # Sort les conserves
-    #     time.sleep(1.8)
-    #     self.grabHighConserve(False)        # Lache les conserves
-    #     time.sleep(0.3)
-    #     self.moveRentreur(INSIDE)           # Rentre le rentreur
-    #     time.sleep(0.5)
-    #     self.lockPlanche(False)             # lache la planche du haut
-    #     time.sleep(0.5)
-    #     self.grabLowConserve(False)         # lache les conserves du bas
-
-    def liftBanderole(self, up:bool, sync:bool = False):
-        """Monter ou descendre la banderole\n
-        Si fdc non calibrés la fonction ne fera rien"""        
-        if up:
-            self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, ValeurActionneur.BanderolleUp.value, 4000)
-        else:
-            self.Servo_IO.moveSpeed(Actionneur.AscenseurBanderolle.value, ValeurActionneur.BanderolleDown.value, 4000)
+        pass
+  
