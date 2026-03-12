@@ -3,6 +3,8 @@ from sap_master import SAPMaster
 import time
 from sts3032 import STS3032
 
+TENTACLE_SPEED = 1741
+
 
 class PosTentacle(Enum):
     BAS = 0
@@ -34,12 +36,12 @@ class ValeurActionneur(Enum):
     
     tentG1Haut = 936
     tentG1Bas = 1921
-    tentG2Haut = 2113
-    tentG2Bas = 3064
-    tentG3Haut = 1981
-    tentG3Bas = 970
-    tentG4Haut = 2044
-    tentG4Bas = 1139
+    tentG2Haut = 3064
+    tentG2Bas = 2113
+    tentG3Haut = 970 
+    tentG3Bas = 1981
+    tentG4Haut = 1139
+    tentG4Bas = 2044
     
     tentD1Haut = 0
     tentD1Bas = 0
@@ -72,22 +74,22 @@ class IO_Manager:
 
     def HeilG(self, position : PosTentacle):
         if position == PosTentacle.BAS:
-            self.sap_master.sts3032.move(Actionneur.tentG1.value, ValeurActionneur.tentG1Bas)
-            self.sap_master.sts3032.move(Actionneur.tentG2.value, ValeurActionneur.tentG2Bas)
-            self.sap_master.sts3032.move(Actionneur.tentG3.value, ValeurActionneur.tentG3Bas)
-            self.sap_master.sts3032.move(Actionneur.tentG4.value, ValeurActionneur.tentG4Bas)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG1.value, ValeurActionneur.tentG1Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG2.value, ValeurActionneur.tentG2Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG3.value, ValeurActionneur.tentG3Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG4.value, ValeurActionneur.tentG4Bas.value, TENTACLE_SPEED)
         elif position == PosTentacle.HAUT:
-            self.sap_master.sts3032.move(Actionneur.tentG1.value, ValeurActionneur.tentG1Haut)
-            self.sap_master.sts3032.move(Actionneur.tentG2.value, ValeurActionneur.tentG2Haut)
-            self.sap_master.sts3032.move(Actionneur.tentG3.value, ValeurActionneur.tentG3Haut)
-            self.sap_master.sts3032.move(Actionneur.tentG4.value, ValeurActionneur.tentG4Haut)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG1.value, ValeurActionneur.tentG1Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG2.value, ValeurActionneur.tentG2Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG3.value, ValeurActionneur.tentG3Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG4.value, ValeurActionneur.tentG4Haut.value, TENTACLE_SPEED)
             
         
     def HeilD(self):
-        self.sap_master.sts3032.move(Actionneur.tentD1.value, 1000)
-        self.sap_master.sts3032.move(Actionneur.tentD2.value, 1000)
-        self.sap_master.sts3032.move(Actionneur.tentD3.value, 1000)
-        self.sap_master.sts3032.move(Actionneur.tentD4.value, 1000)
+        self.sap_master.sts3032.move_speed(Actionneur.tentD1.value, 1000, TENTACLE_SPEED)
+        self.sap_master.sts3032.move_speed(Actionneur.tentD2.value, 1000, TENTACLE_SPEED)
+        self.sap_master.sts3032.move_speed(Actionneur.tentD3.value, 1000, TENTACLE_SPEED)
+        self.sap_master.sts3032.move_speed(Actionneur.tentD4.value, 1000, TENTACLE_SPEED)
         
     def Heil(self,id):
         

@@ -18,6 +18,9 @@ class STS3032:
     
     def move(self, id, pos):
         self.protocol.write(id, STSMemoryMap.GOAL_POSITION.value, struct.pack('<H', pos))
+        
+    def move_speed(self, id, pos, speed):
+        self.protocol.write(id, STSMemoryMap.GOAL_POSITION.value, struct.pack('<HHH', pos,1000, speed))
     
 
 class STSMemoryMap(Enum):
