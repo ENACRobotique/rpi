@@ -5,7 +5,7 @@ from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.common.core import ReceiveCallbackData
 from ecal.msg.string.core import Publisher as StringPublisher
 import time
-from math import sqrt, pi, cos, sin, atan2, radians,degrees
+from math import sqrt, atan2, radians
 import sys
 import logging
 import generated.common_pb2 as common_pb
@@ -13,20 +13,17 @@ import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
 from IO.actionneurs import * 
-import common
-from common import Pos, Speed, dist_to_line, next_path, normalize_angle
+from common import Pos, Speed, next_path, normalize_angle
 import locomotion
-import musics
+
 from camera.conserveVisu import visuConserve
-import random as rd
 from scipy.stats import linregress
 
 from enum import Enum
-from dataclasses import dataclass
 import numpy as np
 import sw.nav.nav as nav 
 
-import lcd_client as lcd
+
 HEIGHT = 2000
 WIDTH = 3000
 DELTA = 40
@@ -82,7 +79,7 @@ class Robot:
         self.nb_pos_received = 0
         self.speed = Speed(0, 0, 0)
         self.last_target = Pos(0, 0, 0)
-        self.nav = nav.Nav()
+        self.nav = nav.Nav() #Nav
         self.command_sent = False
         self.vl53_data: dict[Actionneur,None|tuple] = {Actionneur.AimantBasDroit: None,
                            Actionneur.AimantBasGauche: None
@@ -99,38 +96,6 @@ class Robot:
         self.actionneurs = IO_Manager()
         self.locomotion = locomotion.Locomotion()
         self.locomotion.start()
-        self.cameras = visuConserve()
-        #self.tirette = robot_pb.IHM.T_NONE
-        #self.color = robot_pb.IHM.C_NONE
-        #self.proximityStatus = None
-
-        #self.lastCommandNumber = None
-        #self.lastFinishedActionNumber = None
-        #self.pointsEstimes =0
-
-        m=lcd.Menu("Robot", None)
-        strat_choices_page = lcd.Choice("Strat", m, [s for s in Strat], self.set_strat)
-        #detect_range_page = lcd.Number("Dist detection", m, 20, 150, None)
-        self.pos_page = lcd.Text("Position", m, "---")
-        self.status_page = lcd.Text("Status", m, "---")
-        self.score_page = lcd.Text("Score", m, "0")
-        calibration_menu = lcd.Menu("Calibrations", m)
-        self.beacons_page = lcd.Text("Balises", m, "0 beacons")
-        self.beacons_updates = 0
-        pid_page = lcd.Menu("PID", m)
-        m.add_subpages(strat_choices_page, self.status_page, self.pos_page, self.score_page, pid_page, calibration_menu, self.beacons_page)
-
-        self.calibration_lift_state = lcd.Text("State", calibration_menu, str(self.actionneurs.liftCalibrated))
-        calibration_lift_choice = lcd.Choice("Lifts", calibration_menu, ["Push to cal"], self.calibrateLift)
-        calibration_menu.add_subpages(calibration_lift_choice, self.calibration_lift_state)
-
-        kp_page = lcd.Number("Kp", pid_page, 0, 10, lambda x: self.set_pid_gain(0, x))
-        ki_page = lcd.Number("Ki", pid_page, 0, 1, lambda x: self.set_pid_gain(1, x))
-        kd_page = lcd.Number("Kd", pid_page, 0, 5, lambda x: self.set_pid_gain(2, x))
-        pid_page.add_subpages(kp_page, ki_page, kd_page)
-
-        self.lcd = lcd.LCDClient(m, self.on_lcd_event, self.on_lcd_state)
-        self.lcd.start()
 
         ### SUB ECAL ###
 
@@ -158,10 +123,6 @@ class Robot:
         self.vl53_0_sub.set_receive_callback(lambda pub_id, data: self.on_vl53(Actionneur.AimantBasGauche, pub_id, data))
         self.vl53_1_sub = ProtoSubscriber(lidar_pb.Lidar, "vl53_1")
         self.vl53_1_sub.set_receive_callback(lambda pub_id, data: self.on_vl53(Actionneur.AimantBasDroit, pub_id, data))
-        # self.vl53_3_sub = ProtoSubscriber("vl53_3",lidar_pb.Lidar)
-        # self.vl53_3_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince3))
-        # self.vl53_4_sub = ProtoSubscriber("vl53_4",lidar_pb.Lidar)
-        # self.vl53_4_sub.set_callback(lambda topic_name, msg, timestamp : self.vl53_detect_plante(msg, Actionneur.Pince4))
 
         ### PUB ECAL ###
         self.reset_pos_pub = ProtoPublisher(common_pb.Position, "reset")
@@ -172,12 +133,6 @@ class Robot:
 
         self.pid_pub = ProtoPublisher(base_pb.MotorPid, "pid_gains")
 
-        #self.claw_pub = ProtoPublisher("set_pince", robot_pb.SetState)
-        #self.score_pub = ProtoPublisher("set_score", robot_pb.Match)
-
-        #self.slow_pub = ProtoPublisher("slow",robot_pb.no_args_func_)
-        #self.stop_pub = ProtoPublisher("stop",robot_pb.no_args_func_)
-        #self.resume_pub = ProtoPublisher("resume",robot_pb.no_args_func_)
 
         self.logs_pub = StringPublisher("logs")
         self.objects_pubs = [ProtoPublisher(common_pb.Position, f"Obstacle{i}") for i in range(3)]
@@ -214,63 +169,22 @@ class Robot:
         msg = robot_pb.Side()
         if self.color == Team.JAUNE:
             msg.color = robot_pb.Side.Color.YELLOW
-            self.lcd.red = True
-            self.lcd.green = True
-            self.lcd.blue = False
         else:
             msg.color = robot_pb.Side.Color.BLUE
-            self.lcd.red = False
-            self.lcd.green = False
-            self.lcd.blue = True
         self.logger.info(f"Equipe : {c}")
         self.color_pub.send(msg)
 
 
-
-    def on_lcd_event(self, event):
-        if event.button == robot_pb.LCDEvent.Button.COLOR and event.value == 1:
-            color = Team.BLEU if self.color == Team.JAUNE else Team.JAUNE
-            self.set_color(color)
-        elif event.button == robot_pb.LCDEvent.Button.TIRETTE:
-            self.tirette = Tirette(event.value)
-
-    
-    def on_lcd_state(self, state):
-        self.tirette = Tirette(state.tirette)
-
     def updateScore(self,points):
-        self.buzz(ord('B'))
-        time.sleep(0.1)
-        self.buzz(ord('E')+7)
-        time.sleep(0.1)
-        #self.buzz(ord('0'))
+
         self.score += points
         self.score_page.set_text(f"Score",f"{self.score}")
-        self.lcd.set_page(self.score_page)
-    
-    def buzz(self,tone):
-        """Args , string:tone
-        \ntone : ['A'-'G'] + 7*octave : note à cette octave (0<=octave<=2)"""
-        self.lcd.buzz = tone
-        self.lcd.display()
 
+    
+ 
     def set_strat(self, strat):
         self.strat = strat
 
-    def shuffle_play(self):
-        for music in musics.playlist :
-            self.play_music(music)
-
-    def play_music(self, music):
-        """Joue une musique"""
-        for tone, duration in music:
-            self.buzz(tone)
-            time.sleep(duration)
-    
-    def calibrateLift(self, dummy):
-        self.actionneurs.calibrateLift()
-        self.calibration_lift_state.set_text(f"Lifts Cal:",f"{self.actionneurs.liftCalibrated}")
-        self.lcd.set_page(self.calibration_lift_state)
     
     def ready_to_go(self):
         """ Rassembler les conditions nécéssaires pour que le robot commence son match"""
@@ -316,11 +230,6 @@ class Robot:
         self.locomotion.set_move_speed(speed)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
-    # def move_rel(self,x,y,blocking=False, timeout = 10):
-    #     if x : 
-    #         self.move(sqrt(x**2+y**2),atan2(y,x),blocking, timeout)
-    #     else :
-    #         self.move(y,pi/2*np.sign(y),blocking, timeout)
     
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
@@ -443,7 +352,6 @@ class Robot:
         msg = data.message
         if self.lcd.current_page == self.beacons_page:
             nb_beacons_detected = len(msg.index)
-            self.lcd.buzz = ord('0')
             self.beacons_updates += 1
             self.beacons_page.set_text(f"Balises", f"{nb_beacons_detected} beacons {self.beacons_updates}")
         
@@ -511,67 +419,8 @@ class Robot:
 # ____________________________ #
 
 
-    def detect_one_conserve(self, actionneur):
-        if self.vl53_data[actionneur] is None:
-            return None
-        
-        def idx(x, y):
-            #return (7 - y) * 8 + (7 - x)
-            return (8*x+(7-y))
-        
-        x_dist = [0 for _ in range (8)]
-        for x in range (8):
-            for y in range(2,8):
-                x_dist[x]+= (self.vl53_data[actionneur])[idx(x,y)]
-        
-        min_x = min(enumerate(x_dist), key=lambda x: x[1])
-        return min_x[0], min_x[1]/6
-        
-    def detect_best_conserve(self, actionneur):
-        if self.vl53_data[actionneur] is None:
-            return None
-        
-        def idx(x, y):
-            #return (7 - y) * 8 + (7 - x)
-            return (8*x+(7-y))
-        
-        def find_min_loc(tab):
-            min_loc = []
-            n = len(tab)
-
-            for i in range(n):
-                if (i == 0 or tab[i] < tab[i-1]) and (i == n-1 or tab[i] < tab[i+1]):
-                    min_loc.append((i,tab[i]))
-
-            return min_loc
 
 
-        def remove_same_min(mini):
-            for (ind1,val1) in mini:
-                for (ind2, val2) in mini:
-                    if ind1 == ind2 + 2:
-                        mini.remove(min((ind1,val1),(ind2,val2), key=lambda a : a[0]))
-            return mini                    
-
-        def select_best_conserve(mini):
-            min_val = min(mini, key=lambda x: x[1])[1]
-            for ind, val in mini:
-                if val > min_val + 600:
-                    mini.remove((ind,val))
-            dist2_center = [abs(3.5-ind) for (ind,val) in mini]
-            ind_min = min(enumerate(dist2_center), key=lambda x: x[1])[0]
-            return mini[ind_min]
-
-        y_cons = [0 for _ in range (8)]
-        for x in range (8):
-            for y in range(2,8):
-                y_cons[x]+= (self.vl53_data[actionneur])[idx(x,y)]
-
-        min_loc = find_min_loc(y_cons)
-        min_loc = remove_same_min(min_loc)
-        indice_x,distance_capteur_conserve = select_best_conserve(min_loc) 
-        return indice_x, distance_capteur_conserve/6
-    
 
     def vl53_planche(self, actionneur):
         def curved_linspace_sin(base, amplitude, num):
