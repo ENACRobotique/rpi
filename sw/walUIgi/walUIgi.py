@@ -25,7 +25,7 @@ from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.common.core import ReceiveCallbackData
 
 from lidar.radar_view import RadarView
-
+from drivers.smart_servo.ecalServoIO import servoIO
 
 ########################
 # 
@@ -36,6 +36,9 @@ from lidar.radar_view import RadarView
 
 LISTE_SERVICE = ["robot_aruco","robot_bridge","robot_IO","robot_lidar_driver","robot_lidar_amalgameur","robot_lidar_loca","robot_optitrack","robot_start","robot_strat","robot_vl53","robot_ui","robot_lcd"]
 TOTAL_SERVICE = len(LISTE_SERVICE)
+
+LISTE_ID_ACTIONNEURS = [20,21,22,23,40,41,42,43]
+TOTAL_ACTIONNEURS = len(LISTE_ID_ACTIONNEURS)
 
 class Robot:
     def __init__(self):
@@ -48,7 +51,7 @@ class Robot:
         self.score = 0
 
         self.total_actionneur = 0
-        
+        self.nbServicesActifs=0
 
         self.map_width = 3000 #mm
         self.map_height = 2000 #mm
@@ -137,7 +140,7 @@ class TabStatus(QtWidgets.QWidget):
         self.l_baseRoulante = QtWidgets.QLabel("Base roulante"); self.l_baseRoulante.setStyleSheet("color: red")
         self.icon_baseRoulante = QtWidgets.QLabel("X")
 
-        self.l_status_service = QtWidgets.QLabel(f"0/{TOTAL_SERVICE} services"); self.l_status_service.setStyleSheet("color: red")
+        self.l_status_service = QtWidgets.QLabel(f"{self.robot.nbServicesActifs}/{TOTAL_SERVICE} services"); self.l_status_service.setStyleSheet("color: red")
         self.icon_service = QtWidgets.QLabel("X")
 
         self.l_status_actionneurs = QtWidgets.QLabel(f"0/{self.robot.total_actionneur} actionneurs"); self.l_status_actionneurs.setStyleSheet("color: red")
@@ -274,7 +277,7 @@ class ServiceWidget(QWidget):
         self.b_stop_service.clicked.connect(self.stop)
         self.b_start_service = QPushButton("Start"); self.b_start_service.setMaximumSize(80, 35)
         self.b_start_service.clicked.connect(self.start)
-        self.l_ok_service = QLabel("👍")
+        self.l_ok_service = QLabel("V")
 
         self.hl.addWidget(self.l_service)
         self.hl.addWidget(self.b_stop_service)
@@ -292,28 +295,32 @@ class ServiceWidget(QWidget):
         if status == 0:
             # Le service marche
             self.l_service.setStyleSheet("color: green")
-            self.b_stop_service.hide()
+            self.b_stop_service.show()
             self.b_start_service.hide()
             self.l_ok_service.show()
+            return True
         else :
             self.l_service.setStyleSheet("color: red")
-            self.b_stop_service.show()
+            self.b_stop_service.hide()
             self.b_start_service.show()
             self.l_ok_service.hide()
+            return False
         
 
 
 class TabServices(QtWidgets.QWidget):
 
-    def __init__(self):
+    def __init__(self,robot):
         super().__init__()
+
+        self.robot = robot
 
         layout = QVBoxLayout(self)
 
         topLayout = QHBoxLayout(self)
         title = QtWidgets.QLabel("SERVICES")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        rafraichissement =  QtWidgets.QPushButton("🔄")
+        rafraichissement =  QtWidgets.QPushButton("refresh")
         rafraichissement.clicked.connect(self.rafraichir)
         topLayout.addWidget(title)
         topLayout.addWidget(rafraichissement)
@@ -330,10 +337,14 @@ class TabServices(QtWidgets.QWidget):
             vbox.addWidget(service_w)
 
         layout.addLayout(vbox)
+
+        self.rafraichir()
     
     def rafraichir(self):
+        self.robot.nbServicesActifs = 0
         for service in self.services_widgets:
-            service.rafraichir()
+            if service.rafraichir() == True:
+                self.robot.nbServicesActifs +=1
             
 
     
@@ -344,6 +355,7 @@ class TabServices(QtWidgets.QWidget):
 # ACTIONNEUR #
 #            #
 ##############
+
 class TabActionneurs(QtWidgets.QWidget):
 
     def __init__(self):
@@ -366,6 +378,8 @@ class TabActionneurs(QtWidgets.QWidget):
         layout.addLayout(top)
 
         grid = QtWidgets.QGridLayout()
+
+
 
         for i in range(4):
 
@@ -449,11 +463,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setTabPosition(QtWidgets.QTabWidget.TabPosition.West)
 
-        self.tabs.addTab(TabStatus(self.robot), "Status")
-        self.tabs.addTab(TabServices(), "Services")
-        self.tabs.addTab(TabActionneurs(), "Actionneurs")
-        self.tabs.addTab(TabRadar(), "Radar")
-        self.tabs.addTab(TabCameras(), "Cameras")
+        self.tabService = TabServices(self.robot)
+        self.tabActionneurs = TabActionneurs()
+        self.tabRadar = TabRadar()
+        self.tabCameras = TabCameras()
+        self.tabStatus = TabStatus(self.robot)
+
+        self.tabs.addTab(self.tabStatus, "Status")
+        self.tabs.addTab(self.tabService, "Services")
+        self.tabs.addTab(self.tabActionneurs, "Actionneurs")
+        self.tabs.addTab(self.tabRadar, "Radar")
+        self.tabs.addTab(self.tabCameras, "Cameras")
 
         layout.addWidget(self.tabs)
 
