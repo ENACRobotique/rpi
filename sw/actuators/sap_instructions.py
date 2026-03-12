@@ -4,7 +4,7 @@ import time
 import ecal.nanobind_core as ecal_core
 import struct
 from enum import Enum
-from generated.actionneurs_pb2 import SmartServo, SAPRecord
+from generated.actionneurs_pb2 import SAPRecord
 
 
 RESP_TIMEOUT = 500

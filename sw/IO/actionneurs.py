@@ -32,14 +32,14 @@ class Actionneur(Enum):
 class ValeurActionneur(Enum):
     STSLowSpeed = 3000
     
-    tentG1Haut = 0
-    tentG1Bas = 0
-    tentG2Haut = 23
-    tentG2Bas = 0
-    tentG3Haut = 20
-    tentG3Bas = 0
-    tentG4Haut = 21
-    tentG4Bas = 0
+    tentG1Haut = 936
+    tentG1Bas = 1921
+    tentG2Haut = 2113
+    tentG2Bas = 3064
+    tentG3Haut = 1981
+    tentG3Bas = 970
+    tentG4Haut = 2044
+    tentG4Bas = 1139
     
     tentD1Haut = 0
     tentD1Bas = 0
