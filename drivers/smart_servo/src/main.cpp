@@ -11,15 +11,12 @@
 #include <stdarg.h>
 #include "actionneurs.pb.h"
 #include "math.h"
-#include "STS3032.h"
 #include "serial.h"
-#include "Dynamixel.h"
 #include "smart_servo.h"
 
-using SS = enac::SmartServo;
 using SAPRecord = enac::SAPRecord;
-STS3032* p_sts;
-Dynamixel* p_dynamixel;
+
+SmartServo* p_sap;
 
 
 void log_msg(const char *fmt, ...) {
@@ -30,120 +27,6 @@ void log_msg(const char *fmt, ...) {
   va_end(args);
   eCAL::Logging::Log(eCAL::Logging::eLogLevel::log_level_info, print_buffer);
 }
-
-
-int move(const eCAL::SServiceMethodInformation& method_info_,
-         const std::string& request_,
-         std::string& response_
-         ) {
-
-  SS msg;
-  msg.ParseFromString(request_);
-
-  SmartServo* p_servo;
-
-  if (msg.type() == SS::ServoType::SmartServo_ServoType_STS) {
-    p_servo = p_sts;
-  }
-  else if (msg.type() == SS::ServoType::SmartServo_ServoType_AX12) {
-    p_servo = p_dynamixel;
-  }
-
-
-  switch (msg.command())
-  {
-      case SS::CommandType::SmartServo_CommandType_SET_ID:
-          p_servo->setID(msg.id(), msg.new_id());
-          response_ = request_;
-          break;
-      
-      case SS::CommandType::SmartServo_CommandType_PING:
-          p_servo->ping(msg.id());
-          // TODO pong ?
-          response_ = request_;
-          break;
-      case SS::CommandType::SmartServo_CommandType_READ_POS:
-        {
-          int pos = p_servo->readPosition(msg.id());
-          msg.set_position(pos);
-          msg.SerializeToString(&response_);
-        }
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_SET_BAUDRATE:
-          p_servo->setBaudrate(msg.id(), msg.speed());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_MOVE:
-          p_servo->move(msg.id(), msg.position());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_MOVE_SPEED:
-          p_servo->moveSpeed(msg.id(), msg.position(), msg.speed());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_SET_ENDLESS:
-          p_servo->setEndless(msg.id(), msg.endless_status());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_TURN:
-          p_servo->turn(msg.id(), (SmartServo::RotationDirection)msg.direction(), msg.speed());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_SET_TORQUE:
-          p_servo->setTorque(msg.id(), msg.torque());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_TORQUE_ENABLE:
-          p_servo->torqueEnable(msg.id(), msg.enable_torque());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_SET_LIMITS:
-          p_servo->setLimits(msg.id(), msg.min_angle(), msg.max_angle());
-          response_ = request_;
-          break;
-
-      case SS::CommandType::SmartServo_CommandType_SET_MULTITURN:
-        if(msg.unlock_eeprom()) {
-          p_servo->lock_eprom(msg.id(), false);
-        }
-        p_servo->setMultiturn(msg.id(), msg.multiturn_factor());
-        if(msg.unlock_eeprom()) {
-          p_servo->lock_eprom(msg.id(), true);
-        }
-        response_ = request_;
-        break;
-
-      case SS::CommandType::SmartServo_CommandType_IS_MOVING:
-        if (msg.type() == SS::ServoType::SmartServo_ServoType_STS) {
-          bool moving;
-          SmartServo::Status status = ((STS3032*)p_servo)->isMoving(msg.id(), moving);
-          if(status == SmartServo::Status::OK) {
-            msg.set_moving(moving);
-          } else {
-            msg.set_moving(false);
-          }
-          msg.set_status((uint32_t)status);
-          
-          msg.SerializeToString(&response_);
-        }
-        break;
-         
-      default:
-          std::cerr << " Unknown command : " << msg.command() << std::endl;
-          break;
-  }
-
-  return 0;
-}
-
 
 int read_reg(const eCAL::SServiceMethodInformation& method_info_,
          const std::string& request_,
@@ -156,7 +39,8 @@ int read_reg(const eCAL::SServiceMethodInformation& method_info_,
     .reg = (uint8_t) msg.reg(),
     .len = (uint8_t) msg.len(),
   };
-  SmartServo::Status status = p_sts->read(&record);
+  SmartServo::Status status = p_sap->read(&record);
+  msg.set_status(status);
   if(status == SmartServo::Status::OK) {
     msg.set_data(record.data, record.len);
   }
@@ -177,18 +61,34 @@ int write_reg(const eCAL::SServiceMethodInformation& method_info_,
     .len = (uint8_t) msg.data().size(),
   };
   memcpy(record.data, msg.data().data(), msg.data().size());
-  SmartServo::Status status = p_sts->write(&record);
+  SmartServo::Status status = p_sap->write(&record);
+  msg.set_status(status);
 
   msg.SerializeToString(&response_);
-  if(status == SmartServo::Status::OK) {
-    return 0;
-  }else{
-    return 1;
-  }
+
+  return 0;
 }
 
+int ping(const eCAL::SServiceMethodInformation& method_info_,
+         const std::string& request_,
+         std::string& response_) {
 
-void handleServo(const SS& msg, SmartServo* p_servo);
+  SAPRecord msg;
+  msg.ParseFromString(request_);
+  
+  SmartServo::Status status = p_sap->ping(msg.id());
+  msg.set_status(status);
+
+  if(status == SmartServo::Status::OK) {
+    msg.set_data("OK");
+  } else {
+    msg.set_data("BAD");
+  }
+
+  msg.SerializeToString(&response_);
+
+  return 0;
+}
 
 int main(int argc, char** argv){
 
@@ -212,26 +112,24 @@ int main(int argc, char** argv){
   }
   
   initDriver(0);
-
-  STS3032 sts(serial_port);
-  //sts.init();
-  sts.setSerialBaudrate(baudrate);
-  p_sts = &sts;
-
-  Dynamixel dyn(serial_port);
-  p_dynamixel = &dyn;
   
+  SmartServo sap_controller(serial_port);
+
+
+  sap_controller.setSerialBaudrate(baudrate);
+  p_sap = &sap_controller;
+
 
   eCAL::Initialize("smart_servo_driver");
 
 
   eCAL::CServiceServer server("actuators");
-
-  server.SetMethodCallback({"read_pos", "SS", "SS"}, move);
   
   server.SetMethodCallback({"read_reg", "SAPRecord", "SAPRecord"}, read_reg);
   
   server.SetMethodCallback({"write_reg", "SAPRecord", "SAPRecord"}, write_reg);
+
+  server.SetMethodCallback({"ping", "SAPRecord", "SAPRecord"}, ping);
 
 
   
