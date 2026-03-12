@@ -4,10 +4,15 @@ from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.proto.core import Publisher as ProtoPublisher
 from ecal.msg.common.core import ReceiveCallbackData
 import common_pb2 as cpb2
+import lidar_data_pb2 as lpb2
 import numpy as np
 from numpy.linalg import inv
 import time
 import socket
+from functools import partial
+from loca_lidar import BEACONS_BLUE, BEACONS_YELLOW
+from common import Pos
+from typing import Callable
 
 # Question, sachant que : 
 # - le retour d'info des encodeurs est très rapide (1kHz)
@@ -35,8 +40,14 @@ https://nbviewer.org/github/rlabbe/Kalman-and-Bayesian-Filters-in-Python/blob/ma
 
 
 """
+
+Hl = np.array([[1,0,0,0,0], [0,1,0,0,0], [0,0,1,0,0]])
+Hg = np.array([[0,0,0,0,1]])
+He = np.array([[0,0,0,1,0], [0,0,0,0,1]])
+
+
 class EkfDiff:
-    def __init__(self, X0, dt, lidar_var, gyro_var, enc_var, model_var) -> None:
+    def __init__(self, X0, dt, lidar_var, gyro_var, enc_var, beacons_var, model_var) -> None:
         pass
         if not ecal_core.is_initialized():
             ecal_core.initialize("RadarQt receiver")
@@ -46,12 +57,19 @@ class EkfDiff:
         self.gyro_sub.set_receive_callback(self.handle_gyro)
         self.encoders_sub = ProtoSubscriber(cpb2.Speed, "odom_speed")
         self.encoders_sub.set_receive_callback(self.handle_encoders)
+
+        self.encoders_sub = ProtoSubscriber(lpb2.Balises, "balises_near_odom")
+        self.encoders_sub.set_receive_callback(self.handle_beacons)
+
         #self.encoders_sub.set_receive_callback(self.handle_commands)
         # self.commands_sub = ProtoSubscriber(cpb2.Speed, "speed_cmd")
         # self.commands_sub.set_receive_callback(self.handle_encoders)
         # self.cmd_sub = ProtoSubscriber(cpb2.Speed, "speed_cons")
         # self.cmd_sub.set_receive_callback(self.handle_speed_cons)
         self.ekf_pub = ProtoPublisher(cpb2.Position, "ekf_pos")
+
+
+        self.BEACONS = BEACONS_BLUE
 
         # to plot data
         self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -61,9 +79,7 @@ class EkfDiff:
 
         self.P = np.eye(5)
 
-        self.Hl = np.array([[1,0,0,0,0], [0,1,0,0,0], [0,0,1,0,0]])
-        self.Hg = np.array([[0,0,0,0,1]])
-        self.He = np.array([[0,0,0,1,0], [0,0,0,0,1]])
+
 
         ## observation noises
         ## variance du bruit de mesure lidar
@@ -74,6 +90,9 @@ class EkfDiff:
 
         enc_var_v, enc_var_omega = enc_var
         self.Re = np.array([[enc_var_v, 0], [0, enc_var_omega]])
+
+        beacons_var_r, beacons_var_alpha = beacons_var
+        self.Rb = np.array([[beacons_var_r, 0], [0, beacons_var_alpha]])
 
 
         ## system noise
@@ -141,6 +160,10 @@ class EkfDiff:
         return np.array([x, y, theta])
     
     @staticmethod
+    def H_lidar(_X):
+        return Hl
+    
+    @staticmethod
     def lidar_residual(z1, z2):
         """Compute the difference between 2 lidar measurements (z1-z2)"""
         x1, y1, theta1 = z1
@@ -154,10 +177,42 @@ class EkfDiff:
         return np.array([omega])
     
     @staticmethod
+    def H_gyro(_X):
+        return Hg
+    
+    @staticmethod
     def h_enc(X):
         """Returns what the encoders should output at X."""
         _x, _y, _theta, v, omega = X
         return np.array([v, omega])
+    
+    @staticmethod
+    def H_enc(_X):
+        return He
+    
+    @staticmethod
+    def h_balise(X, pos_b: Pos):
+        """Returns what the encoders should output at X."""
+        x, y, theta, _v, _omega = X
+        r = np.sqrt((pos_b.x - x)**2 + (pos_b.y - y)**2)
+        alpha = np.atan2((pos_b.y - y), (pos_b.x - x)) - theta
+        return np.array([r, alpha])
+    
+    @staticmethod
+    def H_balise(X, pos_b: Pos):
+        x, y, theta, _v, _omega = X
+        r2 = (pos_b.x - x)**2 + (pos_b.y - y)**2
+        r = np.sqrt(r2)
+        drdx = (x - pos_b.x) / r
+        drdy = (y - pos_b.y) / r
+        dadx = (pos_b.y - y) / r2
+        dady = (x - pos_b.x) / r2
+        H = np.array([
+            [drdx, drdy,  0, 0, 0],
+            [dadx, dady, -1, 0, 0]
+        ])
+        return H
+    
     
     def predict(self, U):
         """
@@ -171,17 +226,19 @@ class EkfDiff:
         self.send_pos()
     
 
-    def update(self, z, h, H:np.ndarray, R, residual=np.subtract):
+    def update(self, z, h, Hx:Callable[[np.ndarray], np.ndarray], R, residual=np.subtract):
         """ Update with measures. Since we have multiple sensors, this funtion needs some arguments:
         z: measures from the sensor
         h(X): function returning what the sensor should measure at X.
             If everything is perfect, z = h(X)
-        H: jacobian of h(over X) in the point X. Could be a function but in our case it is constant (all of them!)
+        H(x): function returning the jacobian of h(over X) in the point X.
         R: sensor noise
         residual: function that compute the difference between two measurement vector.
             Defaults to substraction, but you may need to provide you own function (i.e. for computing angle difference)
         """
         # y = z - h(x), but in some cases, the minus operation need special handling (i.e. for angles)
+        H = Hx(self.X)
+
         y = residual(z, h(self.X))
         K = self.P @ H.T @ inv(H@self.P@H.T + R)
         self.X = self.X + K@y
@@ -193,18 +250,34 @@ class EkfDiff:
     def handle_lidar_data(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Position]):
         """ Lidar callback. Update the state with lidar measure."""
         z = np.array([msg.message.x, msg.message.y, msg.message.theta])
-        self.update(z, self.h_lidar, self.Hl, self.Rl, self.lidar_residual)
+        self.update(z, self.h_lidar, self.H_lidar, self.Rl, self.lidar_residual)
     
     def handle_gyro(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Ins]):
         """ Gyro callback. Update the state with gyro measure."""
         # TODO vtheta est à l'envers
         z = np.array([-msg.message.vtheta])
-        self.update(z, self.h_gyro, self.Hg, self.Rg)
+        self.update(z, self.h_gyro, self.H_gyro, self.Rg)
         
     def handle_encoders(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
         """ Encoders callback. Update the state with encoders pos."""
         z = np.array([msg.message.vx, msg.message.vtheta])
-        self.update(z, self.h_enc, self.He, self.Re)
+        self.update(z, self.h_enc, self.H_enc, self.Re)
+    
+    def handle_beacons(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[lpb2.Balises]):
+        # TODO directly in [r, alpha]
+        # and maybe send beacon by beacon asap, so its not repeated fields (list) anymore
+        m = msg.message
+        for i, x, y in zip(m.index, m.x, m.y):
+            # position at which the beacons has been seen, in the robot frame
+            r = np.sqrt(x**2 + y**2)
+            alpha = np.atan2(y, x)
+            z = np.array([r, alpha])
+
+            pos_beacon = self.BEACONS[i]    # theoritical beacon pos
+            h = partial(self.h_balise, pos_b=pos_beacon)    # get h(X) for this beacon
+            H = partial(self.H_balise, pos_b=pos_beacon)    # get H(X) for this beacon
+            self.update(z, h, H, self.Rb)
+
     
     def handle_commands(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
         U = np.array([msg.message.vx, msg.message.vtheta])
@@ -232,6 +305,7 @@ def main():
     lidar_var = 5**2, 5**2, 0.004**2
     gyro_var = 0.003**2
     enc_var = 2**2, np.radians(2)**2
+    beacons_var = 10**2, np.radians(0.5)**2
     var_speed, var_theta, var_accel = 5**2, 0.1**2, 100**2
     model_var = var_speed, var_speed, var_theta, var_accel, var_accel
     
@@ -239,7 +313,7 @@ def main():
 
     # prediction rate
     dt = 1/100
-    with EkfDiff(X0, dt, lidar_var, gyro_var, enc_var, model_var) as ekf:
+    with EkfDiff(X0, dt, lidar_var, gyro_var, enc_var, beacons_var, model_var) as ekf:
         while True:
             ekf.predict(np.zeros((2,1)))
             time.sleep(dt)
