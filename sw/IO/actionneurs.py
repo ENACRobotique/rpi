@@ -25,10 +25,10 @@ class Actionneur(Enum):
     tentD3 = 3 
     tentD4 = 5
     
-    pompG1 = 40
-    pompG2 = 41
-    pompG3 = 42
-    pompG4 = 43
+    pumpG1 = 40
+    pumpG2 = 41
+    pumpG3 = 42
+    pumpG4 = 43
 
 
 class ValeurActionneur(Enum):
@@ -43,14 +43,14 @@ class ValeurActionneur(Enum):
     tentG4Haut = 1139
     tentG4Bas = 2044
     
-    tentD1Haut = 0
-    tentD1Bas = 0
-    tentD2Haut = 23
-    tentD2Bas = 0
-    tentD3Haut = 20
-    tentD3Bas = 0
-    tentD4Haut = 21
-    tentD4Bas = 0
+    tentD1Haut = 1417
+    tentD1Bas = 2189
+    tentD2Haut = 962
+    tentD2Bas = 1892
+    tentD3Haut = 3246
+    tentD3Bas = 2278
+    tentD4Haut = 1169
+    tentD4Bas = 2110
 
 
 
@@ -73,23 +73,60 @@ class IO_Manager:
         
 
     def HeilG(self, position : PosTentacle):
+        print("Heil")
         if position == PosTentacle.BAS:
+            print("BAS")
             self.sap_master.sts3032.move_speed(Actionneur.tentG1.value, ValeurActionneur.tentG1Bas.value, TENTACLE_SPEED)
             self.sap_master.sts3032.move_speed(Actionneur.tentG2.value, ValeurActionneur.tentG2Bas.value, TENTACLE_SPEED)
             self.sap_master.sts3032.move_speed(Actionneur.tentG3.value, ValeurActionneur.tentG3Bas.value, TENTACLE_SPEED)
             self.sap_master.sts3032.move_speed(Actionneur.tentG4.value, ValeurActionneur.tentG4Bas.value, TENTACLE_SPEED)
         elif position == PosTentacle.HAUT:
-            self.sap_master.sts3032.move_speed(Actionneur.tentG1.value, ValeurActionneur.tentG1Haut.value, TENTACLE_SPEED)
+            print("HAUT")
+            self.sap_master.sts3032.move_speed(Actionneur.tentG1.value, ValeurActionneur.tentG1Haut.value, int(TENTACLE_SPEED*0.6))
             self.sap_master.sts3032.move_speed(Actionneur.tentG2.value, ValeurActionneur.tentG2Haut.value, TENTACLE_SPEED)
-            self.sap_master.sts3032.move_speed(Actionneur.tentG3.value, ValeurActionneur.tentG3Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentG3.value, ValeurActionneur.tentG3Haut.value, int(TENTACLE_SPEED*0.6))
             self.sap_master.sts3032.move_speed(Actionneur.tentG4.value, ValeurActionneur.tentG4Haut.value, TENTACLE_SPEED)
+        else:
+            print("Position inconnue")
             
+            
+    def HeilD(self, position : PosTentacle):
+        print("Heil")
+        if position == PosTentacle.BAS:
+            self.sap_master.sts3032.move_speed(Actionneur.tentD1.value, ValeurActionneur.tentD1Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentD2.value, ValeurActionneur.tentD2Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentD3.value, ValeurActionneur.tentD3Bas.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentD4.value, ValeurActionneur.tentD4Bas.value, TENTACLE_SPEED)
+        elif position == PosTentacle.HAUT:
+            print("HAUT")
+            self.sap_master.sts3032.move_speed(Actionneur.tentD1.value, ValeurActionneur.tentD1Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentD2.value, ValeurActionneur.tentD2Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentD3.value, ValeurActionneur.tentD3Haut.value, TENTACLE_SPEED)
+            self.sap_master.sts3032.move_speed(Actionneur.tentD4.value, ValeurActionneur.tentD4Haut.value, TENTACLE_SPEED)
+        else:
+            print("Position inconnue")
         
-    def HeilD(self):
-        self.sap_master.sts3032.move_speed(Actionneur.tentD1.value, 1000, TENTACLE_SPEED)
-        self.sap_master.sts3032.move_speed(Actionneur.tentD2.value, 1000, TENTACLE_SPEED)
-        self.sap_master.sts3032.move_speed(Actionneur.tentD3.value, 1000, TENTACLE_SPEED)
-        self.sap_master.sts3032.move_speed(Actionneur.tentD4.value, 1000, TENTACLE_SPEED)
+        
+    def GrabG(self,pos):
+        if pos == 0:
+            self.sap_master.pump.pump(Actionneur.pumpG1.value, 0)
+            self.sap_master.pump.pump(Actionneur.pumpG2.value, 0)
+            self.sap_master.pump.pump(Actionneur.pumpG3.value, 0)
+            self.sap_master.pump.pump(Actionneur.pumpG4.value, 0)
+        elif pos == 1:
+            self.sap_master.pump.pump(Actionneur.pumpG1.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpG2.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpG3.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpG4.value, 1)
+            
+    def Grab(self,pump,pos):
+        if pos == 0:
+            self.sap_master.pump.pump(pump.value, 0)
+        elif pos == 1:
+            self.sap_master.pump.pump(pump.value, 1)
+
+            
+            
         
     def Heil(self,id):
         
