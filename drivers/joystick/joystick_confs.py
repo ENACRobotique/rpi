@@ -26,14 +26,14 @@ BATTLETRON = {
     "THETA_sens" : -1,
     "THETA_offset" : 0.1, #à régler
     "THETA_dead_zone": 0.1, # à régler
-    "theta_supra_luminique":11, #bouton
-    "vitesse_supra_luminique": 12, #bouton
+    "theta_supra_luminique":11, #bouton sur joystick gauche
+    "vitesse_supra_luminique": 12, #bouton sur joystick droit
     "glisse" : 1, #hat (fleche haut et bas)
     "selectGlisse" : 0, #hat (fleche gauche et droite) 
-    "bras" : 6, #bouton gachette gauche
-    "verrou" : 7, #bouton gachette droite
-    "grabHaut" : 4, #bouton bumper gauche
-    "grabBas" : 5, #bouton bumper droit
+    "gachette_gauche" : 6, #bouton gachette gauche
+    "gachette_droite" : 7, #bouton gachette droite
+    "L1" : 4, #bouton bumper gauche
+    "R1" : 5, #bouton bumper droit
     "action_1" : 0, #bouton bumper gauche
     "action_2" : 2, #bouton bumper gauche
 

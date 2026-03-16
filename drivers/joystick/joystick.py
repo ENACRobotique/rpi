@@ -10,6 +10,7 @@ sys.path.append("../..")
 import generated.common_pb2 as common_pb
 # import generated.messages_pb2 as message_pb2
 from sw.IO.actionneurs import IO_Manager
+from sw.IO.actionneurs import PosTentacle
 from joystick_confs import *
 
 MAX_SPEED = 300
@@ -32,9 +33,17 @@ class JoystickEcal ():
         self.axis = []
         self.hats = []
         self.conf = BATTLETRON
+
+        # Actionneur 2025
         self.glisseMode = PLANCHE
         self.glisseState = IDLE
         self.count_zero = 0
+        ########
+
+        # Actionneur 2026
+        self.posG = PosTentacle.BAS
+        self.pumpG = False
+
         if not ecal_core.is_initialized():
             ecal_core.initialize("Joystick")
         time.sleep(1) # on laisse ecal se reveiller
@@ -93,45 +102,25 @@ class JoystickEcal ():
         if self.conf == BATTLETRON:
             vtheta = (V_THETA * self.axis[self.conf["THETA"]] * self.conf["THETA_sens"] - self.conf["THETA_offset"]) * (1 + self.buttons[self.conf["theta_supra_luminique"]])
             self.message.vtheta = vtheta if abs(self.axis[self.conf["THETA"]]) > self.conf["THETA_dead_zone"] else 0
-            
-            #Actionneur 2025
-            if self.hats[0][self.conf["selectGlisse"]] != 0:
-                self.glisseMode +=self.hats[0][self.conf["selectGlisse"]]
-                if self.glisseMode >2 :
-                    self.glisseMode = 2
-                if self.glisseMode <0 :
-                    self.glisseMode = 0
-                time.sleep(0.25)
-            
-            if self.buttons[self.conf["verrou"]] == 1:
-                self.verrouLock = not self.verrouLock
-                self.IO_manager.calibrateLift()
-                time.sleep(0.25)
 
-            if self.buttons[self.conf["bras"]] == 1:
-                # self.brasUP = not self.brasUP
-                self.IO_manager.deployMacon()
+            # Actionneur 2026
+            if self.buttons[self.conf["gachette_gauche"]] == 1:
+                self.posG = PosTentacle.BAS if self.posG == PosTentacle.HAUT else PosTentacle.HAUT
+                self.IO_manager.HeilG(self.posG)
                 time.sleep(0.25)
+            #print(self.buttons)
 
-            if self.buttons[self.conf["grabHaut"]] == 1:
-                self.grabHaut = not self.grabHaut
-                self.IO_manager.grabHighConserve(self.grabHaut)
-                time.sleep(0.25)
+            if self.buttons[self.conf["L1"]] == 1:
+                self.pumpG = not self.pumpG
+                self.IO_manager.GrabG(self.pumpG)
+                time.sleep(0.1)
 
-            if self.buttons[self.conf["grabBas"]] == 1:
-                self.grabBas = not self.grabBas
-                self.IO_manager.grabLowConserve(self.grabBas)
-                time.sleep(0.25)
-                
-            if self.buttons[self.conf["action_1"]] == 1:
-                self.glisseMode = PLANCHE
-                #self.IO_manager.ramasseGradin()
-            
-            if self.buttons[self.conf["action_2"]] == 1:
-                self.glisseMode = PLANCHE
-                #self.IO_manager.construitGradin()
-            
-            
+            if self.buttons[self.conf["gachette_droite"]] == 1:
+                self.posG = PosTentacle.BAS if self.posG == PosTentacle.HAUT else PosTentacle.HAUT
+                self.IO_manager.HeilD(self.posG)
+                time.sleep(0.1)
+
+
 
         if self.conf == ATTACK3_CONF:
             self.message.vtheta = V_THETA * (self.buttons[self.conf["angle_gauche"]] - self.buttons[self.conf["angle_droit"]]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
