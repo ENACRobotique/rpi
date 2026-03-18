@@ -25,7 +25,7 @@ from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.common.core import ReceiveCallbackData
 
 from lidar.radar_view import RadarView
-from drivers.smart_servo.ecalServoIO import servoIO
+from actuators.sap_master import SAPMaster
 
 ########################
 # 
