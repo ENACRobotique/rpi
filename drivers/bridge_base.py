@@ -167,10 +167,7 @@ class Duckoder(Protocol):
         hlm = data.message
         llmsg = llpb.Message()
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
-        llmsg.motor_pid.motor_no = hlm.motor_no
-        llmsg.motor_pid.kp = hlm.kp
-        llmsg.motor_pid.ki = hlm.ki
-        llmsg.motor_pid.kd = hlm.kd
+        llmsg.motor_pid = hlm
         self.send_message(llmsg)
 
     def set_speed(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Speed]):
