@@ -29,6 +29,7 @@ GLISSING = 1
 class JoystickEcal ():
     def __init__(self):
         self.joystick: Joystick = None
+        self.alpha = 0.3
         self.buttons = []
         self.axis = []
         self.hats = []
@@ -42,7 +43,9 @@ class JoystickEcal ():
 
         # Actionneur 2026
         self.posG = PosTentacle.BAS
+        self.posD = PosTentacle.BAS
         self.pumpG = False
+        self.pumpD = False
 
         if not ecal_core.is_initialized():
             ecal_core.initialize("Joystick")
@@ -95,7 +98,8 @@ class JoystickEcal ():
 
     def publish_command(self):
         vx = (MAX_SPEED * self.axis[self.conf["X"]] * self.conf["X_sens"] - self.conf["X_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
-        self.message.vx = vx if abs(self.axis[self.conf["X"]])> self.conf["X_dead_zone"] else 0
+
+        self.message.vx = vx * self.alpha + (1-self.alpha) * self.message.vx if abs(self.message.vx) < abs(vx) else vx  # vx if abs(self.axis[self.conf["X"]])> self.conf["X_dead_zone"] else 0
         vy = (MAX_SPEED * self.axis[self.conf["Y"]] * self.conf["Y_sens"] - self.conf["Y_offset"]) * (1 + self.buttons[self.conf["vitesse_supra_luminique"]])
         self.message.vy = vy if abs(self.axis[self.conf["Y"]]) > self.conf["Y_dead_zone"] else 0
         
@@ -115,9 +119,15 @@ class JoystickEcal ():
                 self.IO_manager.GrabG(self.pumpG)
                 time.sleep(0.1)
 
+            if self.buttons[self.conf["R1"]] == 1:
+                self.pumpD = not self.pumpD
+                self.IO_manager.GrabD(self.pumpD)
+                time.sleep(0.1)
+
+
             if self.buttons[self.conf["gachette_droite"]] == 1:
-                self.posG = PosTentacle.BAS if self.posG == PosTentacle.HAUT else PosTentacle.HAUT
-                self.IO_manager.HeilD(self.posG)
+                self.posD = PosTentacle.BAS if self.posD == PosTentacle.HAUT else PosTentacle.HAUT
+                self.IO_manager.HeilD(self.posD)
                 time.sleep(0.1)
 
 
