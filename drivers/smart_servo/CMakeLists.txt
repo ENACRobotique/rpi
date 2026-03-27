@@ -36,4 +36,5 @@ PROTOBUF_TARGET_CPP(${PROJECT_NAME} ${PROTO_DIR} ${protobuf_files})
 target_link_libraries(${PROJECT_NAME}
   eCAL::core
   protobuf::libprotobuf
+  gpiod
 )
