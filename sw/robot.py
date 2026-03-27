@@ -12,7 +12,7 @@ import generated.common_pb2 as common_pb
 import generated.robot_state_pb2 as robot_pb
 import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
-from IO.actionneurs import * 
+import IO.actionneurs as act
 from common import Pos, Speed, next_path, normalize_angle
 from camera.arucoState import ArucoState
 

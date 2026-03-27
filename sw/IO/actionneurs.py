@@ -14,16 +14,16 @@ class PosTentacle(Enum):
 
 class Actionneur(Enum):
     # Écran à l'arrière, triceps à l'arrière, biceps à l'avant
+
+    pumpD1 = 40
+    pumpD2 = 41
+    pumpD3 = 42
+    pumpD4 = 43
     
-    pumpG1 = 40
-    pumpG2 = 41
-    pumpG3 = 42
-    pumpG4 = 43
-    
-    pumpD1 = 44
-    pumpD2 = 46
-    pumpD3 = 45
-    pumpD4 = 47
+    pumpG1 = 44
+    pumpG2 = 46
+    pumpG3 = 45
+    pumpG4 = 47
 
     tricepsD = 5
     bicepsD = 7
@@ -34,7 +34,7 @@ POMPES_DROITES = [Actionneur.pumpD1, Actionneur.pumpD2, Actionneur.pumpD3, Actio
 POMPES_GAUCHES = [Actionneur.pumpG1, Actionneur.pumpG2, Actionneur.pumpG3, Actionneur.pumpG4]
 
 
-VALEURS_ACTIONNEURS = {PosTentacle.BAS: 512, PosTentacle.POUSSE: 600, PosTentacle.HAUT: 820}
+VALEURS_ACTIONNEURS = {PosTentacle.BAS.value: 512, PosTentacle.POUSSE.value: 600, PosTentacle.HAUT.value: 820}
 
 
 class IO_Manager:
@@ -53,12 +53,12 @@ class IO_Manager:
 
 
     def moveG(self, position : PosTentacle):
-        self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
-        self.sap_master.ax12.move_speed(Actionneur.bicepsG.value,  VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
+        self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
+        self.sap_master.ax12.move_speed(Actionneur.bicepsG.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
     
     def moveD(self, position : PosTentacle):
-        self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
-        self.sap_master.ax12.move_speed(Actionneur.bicepsD.value,  VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
+        self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
+        self.sap_master.ax12.move_speed(Actionneur.bicepsD.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         
     def GrabG(self, grab: bool):
         if grab:
