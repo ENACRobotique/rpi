@@ -8,8 +8,8 @@ import numpy as np
 from dataclasses import dataclass
 from generated.robot_state_pb2 import Aruco, Arucos
 import os 
+import time
 
-import time 
 
 @dataclass
 class ArucoInfo:
@@ -20,11 +20,11 @@ class ArucoInfo:
 
 
 class ArucoState:
-    def __init__(self):
+    def __init__(self, perish_time):
         if not ecal_core.is_initialized():
             ecal_core.initialize("arucoFinder")
 
-
+        self.perish_time = perish_time
         self.aruco_sub = ProtoSubscriber(Arucos, "Arucos")
         self.aruco_sub.set_receive_callback(self.aruco_cb)
 
@@ -32,10 +32,17 @@ class ArucoState:
        
 
         self.data = {}
+        self.last_update_time = {}
 
 
     def aruco_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[Arucos]):
         self.data[data.message.cameraName] = data.message.arucos
+        self.last_update_time[data.message.cameraName] = time.time()
+    
+    def clear_old_data(self):
+        for cam in self.data:
+            if time.time() - self.last_update_time[cam] > self.perish_time:
+                self.data[cam] = []
 
 
     @staticmethod
@@ -54,6 +61,7 @@ class ArucoState:
     
 
     def get_aruco_robot(self):
+        self.clear_old_data()
         arucos = []
 
         for cam, ars in self.data.items():
@@ -71,7 +79,7 @@ class ArucoState:
 
 
 if __name__ == '__main__':
-    test = ArucoState()
+    test = ArucoState(3)
     
     while True:
         testest = test.get_aruco_robot()
