@@ -111,7 +111,7 @@ int main(int argc, char** argv){
     std::cout << "Error configuring serial port!" << std::endl;
   }
   
-  initDriver(0);
+  initDriver(19);
   
   SmartServo sap_controller(serial_port);
 

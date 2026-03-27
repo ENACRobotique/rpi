@@ -9,7 +9,7 @@
 #include <linux/serial.h>
 #include <asm/termbits.h>
 
-// #define RPI
+#define RPI 1
 #define ECHO_BUFFER_SIZE 100
 #if RPI
 #include <gpiod.h>
@@ -74,14 +74,14 @@ void initDriver(int gpio){
     #if RPI
     struct gpiod_chip *chip = gpiod_chip_open_by_name(GPIO_CHIP);
     if (!chip) {
-        std::cout << "Open chip failed\n";
-        return -1;
+        printf("Open chip failed\n");
+        return ;
     }
 
     line = gpiod_chip_get_line(chip, gpio);
 
     if(gpiod_line_request_output(line, CONSUMER, 0)) {
-       std::cout << "Error requesting line " << gpio;
+       printf("Error requesting line %d", gpio);
        return;
     }
     gpiod_line_set_value(line, 1);
@@ -90,7 +90,7 @@ void initDriver(int gpio){
 
 void enableDriver(int fd, bool enable){
     #if RPI
-    gpiod_line_set_value(line, enable);
+    gpiod_line_set_value(line,not enable);
     #else
     int rts = TIOCM_RTS;
     if (enable){
