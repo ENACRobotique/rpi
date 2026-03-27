@@ -1,42 +1,36 @@
 #!/usr/bin/env python3
 
 import sys
+import numpy as np
 sys.path.append("../..")
-from robot import Robot, PosTentacle
+from robot import Robot, Caisse
 import ecal.nanobind_core as ecal_core
-#from sw.IO.actionneurs import PosTentacle
+from sw.IO.actionneurs import PosTentacle
 from time import sleep
+from common import Pos, Speed, next_path, normalize_angle
+
+POS_DEPART = Pos(400,1800,-np.pi/2)
 
 # === Boucle principale ===
 if __name__ == "__main__":
     with Robot() as r:
-        r.actionneurs.GrabG(False)
-        sleep(0.5)
-        # while ecal_core.ok():
-        #     pass
-        print("pipou")
-        r.actionneurs.HeilG(PosTentacle.HAUT)
-        sleep(1)
+        r.actionneurs.GrabD(False)
+        r.actionneurs.moveD(PosTentacle.HAUT)
+        r.resetPos(POS_DEPART)
         
-        r.move(400,0,1000, blocking=True)
-        sleep(0.5)
-        print("hey")
-        r.actionneurs.HeilG(PosTentacle.BAS)
-        print("hey2")
-        r.actionneurs.GrabG(True)
-        sleep(3)
-        
-        r.actionneurs.HeilG(PosTentacle.HAUT)
         sleep(1)
 
-        r.move(400,0,1000, blocking=True)
-        r.actionneurs.HeilG(PosTentacle.BAS)
+        r.setTargetPos(Pos(400,1200,-np.pi/2))
+        sleep(2)
+        r.align_with_pack(True)
+        sleep(2)
+        r.actionneurs.moveD(PosTentacle.BAS)
+        print("a")
+        r.actionneurs.GrabD(True)
         sleep(1)
-        r.actionneurs.GrabG(False)
-        sleep(3)
-        exit(0)
-
-        r.actionneurs.HeilG(PosTentacle.HAUT)
-        sleep(1)
-        r.move(100,0,1000, blocking=True)
+        r.actionneurs.moveD(PosTentacle.HAUT)
+        r.setTargetPos(Pos(300,800,-np.pi/2))
+        sleep(2)
+        r.actionneurs.moveD(PosTentacle.BAS)
+        r.release(True,Caisse.JAUNE)
         ecal_core.finalize()

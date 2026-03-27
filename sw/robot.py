@@ -59,6 +59,11 @@ class Strat(Enum):
     Audacieuse = 3
     ShowOff = 4
 
+class Caisse(Enum):
+    BLEU = 36
+    JAUNE = 47
+    RIEN = 0
+
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
     
@@ -88,9 +93,11 @@ class Robot:
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
-        self.actionneurs = IO_Manager()
+        self.actionneurs = act.IO_Manager()
+        self.coteD = [Caisse.RIEN,Caisse.RIEN,Caisse.RIEN,Caisse.RIEN]
+        self.coteG = [Caisse.RIEN,Caisse.RIEN,Caisse.RIEN,Caisse.RIEN]
 
-        self.aruco_state = ArucoState()
+        self.aruco_state = ArucoState(3)
 
         ### SUB ECAL ###
 
@@ -210,7 +217,6 @@ class Robot:
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
-    
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
          \nArgs float:theta en radian""" 
@@ -257,7 +263,6 @@ class Robot:
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
         self.speed = Speed.from_proto(data.message)
     
-
     def set_pid_gain(self, gain, value):
         self._pid_gains[gain] = value
         kp, ki, kd = self._pid_gains
@@ -379,23 +384,50 @@ class Robot:
                 return True
         return False
     
-    def align_with_pack(self):
+    def align_with_pack(self,coteDroit):
         arucosPosRobot = self.aruco_state.get_aruco_robot()
         # print(arucosPosRobot[2].pos,type(arucosPosRobot[2].pos))
         if len(arucosPosRobot)==4:
+
             x_centerPack,y_centerPack = 0,0
             for aruco in arucosPosRobot:
                 x_centerPack += aruco.pos[0]/4
                 y_centerPack += aruco.pos[1]/4
-            print("centre : ",x_centerPack,y_centerPack)
+            
+            # Hypothèse : on est globalement dans le bon sens à peut de choses près...
+
+            x_droite = (min([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]), max([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]))
+
+            angle_droite_robot = np.atan2(x_droite[1][1]-x_droite[0][1],x_droite[1][0]-x_droite[0][0])
+
+            ## Etre parralléle
+            print(angle_droite_robot)
+
+            x_repereCaisse = x_centerPack * np.cos(angle_droite_robot) + y_centerPack * np.sin(angle_droite_robot)
+            y_repereCaisse = y_centerPack * np.cos(angle_droite_robot) - x_centerPack * np.sin(angle_droite_robot)
 
             ## Alignement en y :
-            if y_centerPack > 225 :
+            if (abs(y_repereCaisse) > 250) or (abs(y_repereCaisse) < 130) :
                 print("ON SAIT PAS FAIRE")
 
+            self.rotate(angle_droite_robot)
+            time.sleep(2)
+
             ## Alignement en x: 
-            self.move(x_centerPack,0)
-            
+            print("centre : ",x_centerPack,y_centerPack)
+            self.move(x_repereCaisse,0)
+
+            if coteDroit :
+                self.coteD = [Caisse.BLEU if aruco.id == Caisse.BLEU else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+            else :
+                self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+    
+    def release(self,coteDroit,couleur:Caisse):
+        if coteDroit :
+            for (i,caisse) in enumerate(self.coteD) :
+                if caisse == couleur :
+                    self.actionneurs.Grab(act.POMPES_DROITES[i],False)
+        return
 
 if __name__ == "__main__":
     with Robot() as r:
