@@ -3,18 +3,17 @@ from sap_master import SAPMaster
 import time
 from sts3032 import STS3032
 
-TENTACLE_SPEED = 1741
+TENTACLE_SPEED = 300
 
 
 class PosTentacle(Enum):
     BAS = 0
     HAUT = 1
+    POUSSE = 2
 
 
 class Actionneur(Enum):
-    AimantBasDroit = 4
-    
-    ##écran en face de soit, biceps Gauches (tentG) ou droit (tentD), de même pour les pompes
+    # Écran à l'arrière, triceps à l'arrière, biceps à l'avant
     
     pumpG1 = 40
     pumpG2 = 41
@@ -22,73 +21,52 @@ class Actionneur(Enum):
     pumpG4 = 43
     
     pumpD1 = 44
-    pumpD2 = 45
-    pumpD3 = 46
+    pumpD2 = 46
+    pumpD3 = 45
     pumpD4 = 47
 
-    tricepsD = 11
-    bicepsD = 0
-    tricepsG = 0
-    bicepsG = 0
+    tricepsD = 5
+    bicepsD = 7
+    tricepsG = 11
+    bicepsG = 20
+
+POMPES_DROITES = [Actionneur.pumpD1, Actionneur.pumpD2, Actionneur.pumpD3, Actionneur.pumpD4]
+POMPES_GAUCHES = [Actionneur.pumpG1, Actionneur.pumpG2, Actionneur.pumpG3, Actionneur.pumpG4]
 
 
-class ValeurActionneur(Enum):
-    STSLowSpeed = 3000
-
-    valeurBas = 512
-    valeurHaut = 820
-
-
+VALEURS_ACTIONNEURS = {PosTentacle.BAS: 512, PosTentacle.POUSSE: 600, PosTentacle.HAUT: 820}
 
 
 class IO_Manager:
     def __init__(self):
         self.sap_master = SAPMaster()
         
-
     def __repr__(self) -> str:
         return "Robot Enac IOs managment class"
 
     def initActionneur(self):
         """Passage de tout les actionneurs à leur position de début de match \n"""
-        pass
+        self.moveG(PosTentacle.HAUT)
+        self.moveD(PosTentacle.HAUT)
+        self.GrabG(False)
+        self.GrabD(False)
 
 
-    def read(self, actionneur : Actionneur):
-        return self.sap_master.sts3032.readPos(actionneur.value)
+    def moveG(self, position : PosTentacle):
+        self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
+        self.sap_master.ax12.move_speed(Actionneur.bicepsG.value,  VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
+    
+    def moveD(self, position : PosTentacle):
+        self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
+        self.sap_master.ax12.move_speed(Actionneur.bicepsD.value,  VALEURS_ACTIONNEURS[position], TENTACLE_SPEED)
         
-
-    def HeilG(self, position : PosTentacle):
-        print("Heil")
-        if position == PosTentacle.BAS:
-            print("BAS")
-            #self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, ValeurActionneur.valeurBas.value, TENTACLE_SPEED)
-            #self.sap_master.ax12.move_speed(Actionneur.bicepsG.value, ValeurActionneur.valeurBas.value, TENTACLE_SPEED)
-        elif position == PosTentacle.HAUT:
-            print("HAUT")
-            #self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, ValeurActionneur.valeurHaut.value, TENTACLE_SPEED)
-            #self.sap_master.ax12.move_speed(Actionneur.bicepsG.value, ValeurActionneur.valeurHaut.value, TENTACLE_SPEED)
-
+    def GrabG(self, grab: bool):
+        if grab:
+            self.sap_master.pump.pump(Actionneur.pumpG1.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpG2.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpG3.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpG4.value, 1)
         else:
-            print("Position inconnue")
-            
-            
-    def HeilD(self, position : PosTentacle):
-        print("Heil")
-        if position == PosTentacle.BAS:
-            print("BAS")
-            self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, ValeurActionneur.valeurBas.value, TENTACLE_SPEED)
-            #self.sap_master.ax12.move_speed(Actionneur.bicepsD.value, ValeurActionneur.valeurBas.value, TENTACLE_SPEED)
-        elif position == PosTentacle.HAUT:
-            print("HAUT")
-            self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, ValeurActionneur.valeurHaut.value, TENTACLE_SPEED)
-            #self.sap_master.ax12.move_speed(Actionneur.bicepsD.value, ValeurActionneur.valeurHaut.value, TENTACLE_SPEED)
-        else:
-            print("Position inconnue")
-        
-        
-    def GrabG(self,pos):
-        if pos == 0:
             self.sap_master.pump.pump(Actionneur.pumpG1.value, 0)
             self.sap_master.pump.valve_use(Actionneur.pumpG1.value)
             self.sap_master.pump.pump(Actionneur.pumpG2.value, 0)
@@ -97,14 +75,14 @@ class IO_Manager:
             self.sap_master.pump.valve_use(Actionneur.pumpG3.value)
             self.sap_master.pump.pump(Actionneur.pumpG4.value, 0)
             self.sap_master.pump.valve_use(Actionneur.pumpG4.value)
-        elif pos == 1:
-            self.sap_master.pump.pump(Actionneur.pumpG1.value, 1)
-            self.sap_master.pump.pump(Actionneur.pumpG2.value, 1)
-            self.sap_master.pump.pump(Actionneur.pumpG3.value, 1)
-            self.sap_master.pump.pump(Actionneur.pumpG4.value, 1)
 
-    def GrabD(self,pos):
-        if pos == 0:
+    def GrabD(self, grab: bool):
+        if grab:
+            self.sap_master.pump.pump(Actionneur.pumpD1.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpD2.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpD3.value, 1)
+            self.sap_master.pump.pump(Actionneur.pumpD4.value, 1)
+        else:
             self.sap_master.pump.pump(Actionneur.pumpD1.value, 0)
             self.sap_master.pump.valve_use(Actionneur.pumpD1.value)
             self.sap_master.pump.pump(Actionneur.pumpD2.value, 0)
@@ -113,22 +91,6 @@ class IO_Manager:
             self.sap_master.pump.valve_use(Actionneur.pumpD3.value)
             self.sap_master.pump.pump(Actionneur.pumpD4.value, 0)
             self.sap_master.pump.valve_use(Actionneur.pumpD4.value)
-        elif pos == 1:
-            self.sap_master.pump.pump(Actionneur.pumpD1.value, 1)
-            self.sap_master.pump.pump(Actionneur.pumpD2.value, 1)
-            self.sap_master.pump.pump(Actionneur.pumpD3.value, 1)
-            self.sap_master.pump.pump(Actionneur.pumpD4.value, 1)
-            
-    def Grab(self,pump,pos):
-        if pos == 0:
-            self.sap_master.pump.pump(pump.value, 0)
-        elif pos == 1:
-            self.sap_master.pump.pump(pump.value, 1)
 
-            
-            
-        
-    def Heil(self,id):
-        
-        pass
-  
+    def Grab(self, pump: Actionneur, grab: bool):
+        self.sap_master.pump.pump(pump.value, grab)
