@@ -10,6 +10,11 @@ class Pump:
     def pump(self, id, pump):
         self.protocol.write(id, PumpMemoryMap.PUMP.value, struct.pack('>B', pump))
     
+    def valve_use(self,id):
+        self.protocol.write(id, PumpMemoryMap.VALVE_USE.value, struct.pack('>B', 1))
+    
+    def valve(self,id,valve):
+        self.protocol.write(id, PumpMemoryMap.VALVE.value, struct.pack('>B', valve))
 
 
 

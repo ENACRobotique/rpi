@@ -16,7 +16,7 @@ ATTACK3_CONF = {
 BATTLETRON = {
     "X": 4, #axe 1
     "X_sens" : -1, #facteur
-    "X_offset": 0.15,
+    "X_offset": 0, # 0.15,
     "X_dead_zone": 0.1,
     "Y": 3, #axe 0
     "Y_sens" : -1,
