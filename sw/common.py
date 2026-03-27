@@ -46,6 +46,9 @@ class Pos:
     def distance(self, other):
         return sqrt((other.x - self.x)**2 + (other.y - self.y)**2)
     
+    def gisement(self):
+        return np.atan2(self.y,self.x)
+    
     def norm(self):
         return sqrt(self.x**2 + self.y**2)
 

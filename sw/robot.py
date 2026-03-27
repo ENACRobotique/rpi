@@ -14,7 +14,7 @@ import generated.lidar_data_pb2 as lidar_pb
 import generated.messages_pb2 as base_pb
 from IO.actionneurs import * 
 from common import Pos, Speed, next_path, normalize_angle
-import locomotion
+from camera.arucoState import ArucoState
 
 from scipy.stats import linregress
 
@@ -50,7 +50,6 @@ class Tirette(Enum):
 
 class Frame(Enum):
     TABLE = 0
-    ROBOTCENTRIC = 1
     ROBOT = 2
 
 class Strat(Enum):
@@ -90,8 +89,8 @@ class Robot:
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
         self.actionneurs = IO_Manager()
-        self.locomotion = locomotion.Locomotion()
-        self.locomotion.start()
+
+        self.aruco_state = ArucoState()
 
         ### SUB ECAL ###
 
@@ -104,9 +103,6 @@ class Robot:
         self.amalgames_sub = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
         self.amalgames_sub.set_receive_callback(self.detection)
 
-        self.balises_sub = ProtoSubscriber(lidar_pb.Balises, "balises_near_odom")
-        self.balises_sub.set_receive_callback(self.on_detected_beacons)
-
         # When Using Robokontrol
         self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
         self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
@@ -114,14 +110,12 @@ class Robot:
         #self.proximitySub = ProtoSubscriber(lidar_pb.Proximity, "proximity_status")
         #self.proximitySub.set_receive_callback(self.onProximityStatus)
 
-
-        self.vl53_0_sub = ProtoSubscriber(lidar_pb.Lidar, "vl53_0")
-        self.vl53_0_sub.set_receive_callback(lambda pub_id, data: self.on_vl53(Actionneur.AimantBasGauche, pub_id, data))
-        self.vl53_1_sub = ProtoSubscriber(lidar_pb.Lidar, "vl53_1")
-        self.vl53_1_sub.set_receive_callback(lambda pub_id, data: self.on_vl53(Actionneur.AimantBasDroit, pub_id, data))
-
         ### PUB ECAL ###
         self.reset_pos_pub = ProtoPublisher(common_pb.Position, "reset")
+
+        self.speed_cons_pub = ProtoPublisher(common_pb.Speed, "speed_cons")
+
+        self.target_pos_pub = ProtoPublisher(common_pb.Position, "set_position")
 
         # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
@@ -148,10 +142,7 @@ class Robot:
         self.positionReportSub.remove_receive_callback()
         self.speedReportSub.remove_receive_callback()
         self.amalgames_sub.remove_receive_callback()
-        self.balises_sub.remove_receive_callback()
         self.setPositionSub.remove_receive_callback()
-        self.vl53_0_sub.remove_receive_callback()
-        self.vl53_1_sub.remove_receive_callback()
 
     def log(self, message:str):
         self.logger.info(message)
@@ -160,52 +151,46 @@ class Robot:
 #             IHM              #
 # ____________________________ #
 
-    def set_color(self, c):
-        self.color = c
-        msg = robot_pb.Side()
-        if self.color == Team.JAUNE:
-            msg.color = robot_pb.Side.Color.YELLOW
-        else:
-            msg.color = robot_pb.Side.Color.BLUE
-        self.logger.info(f"Equipe : {c}")
-        self.color_pub.send(msg)
+    # def set_color(self, c):
+    #     self.color = c
+    #     msg = robot_pb.Side()
+    #     if self.color == Team.JAUNE:
+    #         msg.color = robot_pb.Side.Color.YELLOW
+    #     else:
+    #         msg.color = robot_pb.Side.Color.BLUE
+    #     self.logger.info(f"Equipe : {c}")
+    #     self.color_pub.send(msg)
 
 
-    def updateScore(self,points):
+    # def updateScore(self,points):
 
-        self.score += points
-        self.score_page.set_text(f"Score",f"{self.score}")
+    #     self.score += points
 
     
  
-    def set_strat(self, strat):
-        self.strat = strat
+    # def set_strat(self, strat):
+    #     self.strat = strat
 
     
-    def ready_to_go(self):
-        """ Rassembler les conditions nécéssaires pour que le robot commence son match"""
-        a = self.color != Team.AUCUNE
-        b = self.tirette == Tirette.OUT
-        return a and b
+    # def ready_to_go(self):
+    #     """ Rassembler les conditions nécéssaires pour que le robot commence son match"""
+    #     a = self.color != Team.AUCUNE
+    #     b = self.tirette == Tirette.OUT
+    #     return a and b
 # ---------------------------- #
 #           CONTROL            #
 # ____________________________ #
     
     def hasReachedTarget(self):
-        return self.locomotion.hasReachedTarget()
-        # d=sqrt((self.pos.x-self.last_target.x)**2 + (self.pos.y-self.last_target.y)**2)
-        # hrt = (d <= XY_ACCURACY) and (abs(self.pos.theta - self.last_target.theta) <= THETA_ACCURACY)
-        # return hrt 
+        # TODO
+        return 
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
-
-        if frame == Frame.ROBOTCENTRIC:
-            pos += self.pos
-        elif frame == Frame.ROBOT:
+        if frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
         pos.theta = normalize_angle(pos.theta)
-        self.locomotion.go_to(pos)
+        self.target_pos_pub.send(pos.to_proto())
         self.last_target = pos
         
         if blocking :
@@ -216,14 +201,13 @@ class Robot:
                 time.sleep(0.1)
             return False
 
-    def move(self, distance, direction, speed, blocking=False, timeout = 10):
+    def move(self, distance, direction, blocking=False, timeout = 10):
         """
         BLOQUANT\n
         avance de distance dans la direction direction, repère robot 
         """
         frame_pince = Pos(0, 0, direction)
         target = Pos(distance, 0, -direction).from_frame(frame_pince)
-        self.locomotion.set_move_speed(speed)
         return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
     
     
@@ -237,34 +221,27 @@ class Robot:
          \nArgs, float:theta en radians """
         self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
 
-    def set_speed(self, speed: Speed, duration=1):
+    def set_speed(self, speed: Speed):
         """
         Set robot speed in robot reference frame.
         Useful e.g. to move until a sensor triggers
         """
-        self.locomotion.set_speed(speed, duration)
+        self.speed_cons_pub.send(speed.to_proto())
     
     def resetPos(self, position: Pos, timeout=2):
         self.log(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
-        self.locomotion.reset_pos(position)
+        start_time = time.time()
         last_time = time.time()
-        while True:
+        while time.time()-start_time < timeout:
             if self.pos.distance(position) < 1 and abs(self.pos.theta - position.theta) < radians(1):
                 self.log(f"Pos reseted to : {position.x},\t{position.y}, \t{position.theta} ")
-                #self.pos = position
                 break
             if time.time() - last_time > 1:
                 self.log("reset_again")
                 self.reset_pos_pub.send(position.to_proto())
                 last_time = time.time()
             time.sleep(0.1)
-
-    def resetPosNonBlocking(self,position:Pos):
-        self.log(f"Reseting position to: {position} ")
-        self.reset_pos_pub.send(position.to_proto())
-        self.locomotion.reset_pos(position)
-        
     
     def onSetTargetPostition (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -342,13 +319,6 @@ class Robot:
         if end:
             self.folowingPath = False
         return end 
-    
-    def on_detected_beacons(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Balises]):
-        msg = data.message
-        if self.lcd.current_page == self.beacons_page:
-            nb_beacons_detected = len(msg.index)
-            self.beacons_updates += 1
-            self.beacons_page.set_text(f"Balises", f"{nb_beacons_detected} beacons {self.beacons_updates}")
         
     def detection(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Amalgames]):
         msg = data.message
@@ -408,70 +378,24 @@ class Robot:
             if x_min < obj.x < x_max and  y_min < obj.y < y_max :
                 return True
         return False
+    
+    def align_with_pack(self):
+        arucosPosRobot = self.aruco_state.get_aruco_robot()
+        # print(arucosPosRobot[2].pos,type(arucosPosRobot[2].pos))
+        if len(arucosPosRobot)==4:
+            x_centerPack,y_centerPack = 0,0
+            for aruco in arucosPosRobot:
+                x_centerPack += aruco.pos[0]/4
+                y_centerPack += aruco.pos[1]/4
+            print("centre : ",x_centerPack,y_centerPack)
 
-# ---------------------------- #
-#              IO              #
-# ____________________________ #
+            ## Alignement en y :
+            if y_centerPack > 225 :
+                print("ON SAIT PAS FAIRE")
 
-
-
-
-
-    def vl53_planche(self, actionneur):
-        def curved_linspace_sin(base, amplitude, num):
-            """
-            Génère num points variant selon base + amplitude * (1 - cos(theta)) / 2
-            où theta va de 0 à 2π.
-            Résultat : de base -> base+amplitude -> base.
-            """
-            theta = np.linspace(0, 2*np.pi, num, endpoint=True)
-            # (1 - cosθ)/2 fait une bosse normalisée de 0 à 1 puis à 0
-            bump = (1 - np.cos(theta)) / 2
-            return base + amplitude * bump
-        
-        pixel_angles = np.array([(i-3.5)*radians(45)/8 for i in range(8)])
-        distortion = curved_linspace_sin(1, -0.05, 8)
-        distance_matrix = np.empty((8,8))
-        def idx(x, y):
-            return (8*x+(7-y))
-        
-        for y in range(8):
-            for x in range(8):
-                distance_matrix[y,x] = self.vl53_data[actionneur][idx(x,y)]
-
-        def reg_line(dists):
-            dists = dists * distortion
-            xs = dists * np.sin(pixel_angles)
-            ys = dists * np.cos(pixel_angles)
-            return linregress(xs, ys)
-        
-        lin1 = [(y, *reg_line(distance_matrix[y])) for y in range(8)]
-
-        y, slope_best, _, r_best, _, stderr = min(lin1, key=lambda l: abs(l[5]))
-
-        angle = np.arctan2(slope_best, 1)
-
-        dist = np.mean(distance_matrix[y])
-
-        #print(f"{y} -> {degrees(angle):+03.0f} : {slope_best:+05.2f} : {r_best:.2f}  sdterr:{stderr:.2f}")
-        return angle, dist, r_best, stderr
-
-    def vl53_planches2(self):
-        if self.vl53_data[Actionneur.AimantBasGauche] is None or self.vl53_data[Actionneur.AimantBasDroit] is None:
-            return None
-        angle1, dist1, _, stderr1 = self.vl53_planche(Actionneur.AimantBasGauche)
-        angle2, dist2, _, stderr2 = self.vl53_planche(Actionneur.AimantBasDroit)
-        w1 = 1 / stderr1**2
-        w2 = 1 / stderr2**2
-        angle = (w1 * angle1 + w2 * angle2) / (w1 + w2)
-        dist = (w1 * dist1 + w2 * dist2) / (w1 + w2)
-        stderr = (w1 * stderr1 + w2 * stderr2) / (w1 + w2)
-        #print(f"{degrees(angle):+03.0f} : {dist:+05.2f} : sdterr:{stderr:.2f}")
-        return angle, dist, stderr
-
-    def on_vl53(self, actionneur, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Lidar]):
-        self.vl53_data[actionneur] = list(data.message.distances)
-
+            ## Alignement en x: 
+            self.move(x_centerPack,0)
+            
 
 if __name__ == "__main__":
     with Robot() as r:

@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QImage, QPainter, QColor, QPen, QTransform
 from PyQt6.QtCore import Qt,pyqtSignal,QObject
-
+import generated.robot_state_pb2 as robot_pb
 
 import generated.common_pb2 as hgpb
 import generated.lidar_data_pb2 as lidarpb
@@ -22,6 +22,7 @@ import generated.lidar_data_pb2 as lidarpb
 
 import ecal.nanobind_core as ecal_core
 from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
 from ecal.msg.common.core import ReceiveCallbackData
 
 from lidar.radar_view import RadarView
@@ -45,6 +46,7 @@ class Robot:
         self.name = "Dave"
         self.diameter = 300 #mm
         self.couleur = "Jaune"
+        self.color_pub = ProtoPublisher(robot_pb.Side, "color")
         self.position_lidar = (0, 0, 0)
         self.position_odom = (0, 0, 0)
         self.nbBalises = 0
@@ -242,12 +244,16 @@ class TabStatus(QtWidgets.QWidget):
         
 
     def updateCouleur(self, jaune):
+        msg = robot_pb.Side()
         if jaune:
             self.robot.couleur = "Jaune"
             self.b_status_color.setStyleSheet("background-color: yellow")
+            msg.color = robot_pb.Side.Color.YELLOW
         else:
             self.robot.couleur = "Bleu"
             self.b_status_color.setStyleSheet("background-color: blue")
+            msg.color = robot_pb.Side.Color.BLUE
+        self.robot.color_pub.send(msg)
 
     def updateBalise(self,nb):
         self.robot.nbBalises = nb
@@ -360,41 +366,35 @@ class TabActionneurs(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
+        self.sap_master = SAPMaster()
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        top = QtWidgets.QHBoxLayout()
-
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
-        self.slider.setMaximumSize(120, 35)
-
         title = QtWidgets.QLabel("ACTIONNEURS")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        rafraichissement =  QtWidgets.QPushButton("refresh")
+        rafraichissement.clicked.connect(self.detecterActionneurs)
 
-        top.addWidget(self.slider)
-        top.addWidget(title)
-        top.addStretch()
-
-        layout.addLayout(top)
+        layout.addWidget(title)
+        layout.addWidget(rafraichissement)
 
         grid = QtWidgets.QGridLayout()
 
+        self.liste_actionneurs = self.detecterActionneurs()
 
+        for (i,id_actionneur) in enumerate(self.liste_actionneurs):
 
-        for i in range(4):
-
-            label = QtWidgets.QLabel("Actionneur")
-            combo = QtWidgets.QComboBox()
-            combo.addItems(["UP", "DOWN"])
-
-            button = QtWidgets.QPushButton("Envoyer")
-            button.setMaximumSize(80, 35)
-
+            label = QtWidgets.QLabel(id_actionneur)
             grid.addWidget(label, i, 0)
-            grid.addWidget(combo, i, 1)
-            grid.addWidget(button, i, 2)
 
         layout.addLayout(grid)
+
+    def detecterActionneurs(self):
+        liste_act = []
+        for id in range(0,100):
+            if self.sap_master.protocol.ping(id):
+                liste_act.append(id)
+        return liste_act
 
 
 #############

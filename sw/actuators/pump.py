@@ -16,7 +16,17 @@ class Pump:
     def valve(self,id,valve):
         self.protocol.write(id, PumpMemoryMap.VALVE.value, struct.pack('>B', valve))
 
+    def readPumpDuty(self, id):
+        data = self.protocol.read(id, PumpMemoryMap.PUMP_DUTY.value, 1)
+        if data is not None:
+            (pumpDuty,) = struct.unpack('<B', data)
+            return pumpDuty
+    
+    def setPumpDuty(self, id, data):
+        self.protocol.write(id, PumpMemoryMap.PUMP_DUTY.value, struct.pack('<B', data))
 
+    def set_id(self,id,new_id):
+        self.protocol.write(id,PumpMemoryMap.ID.value,struct.pack('<B', new_id))
 
 class PumpMemoryMap(Enum):
     """

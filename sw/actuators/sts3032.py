@@ -7,7 +7,7 @@ class STS3032:
     def __init__(self, s:SAPInstructions) -> None:
         self.protocol = s
     
-    def readPos(self, id):
+    def read_pos(self, id):
         data = self.protocol.read(id, STSMemoryMap.CURRENT_POSITION.value, 2)
         if data is not None:
             (pos,) = struct.unpack('<H', data)
@@ -21,6 +21,9 @@ class STS3032:
         
     def move_speed(self, id, pos, speed):
         self.protocol.write(id, STSMemoryMap.GOAL_POSITION.value, struct.pack('<HHH', pos,1000, speed))
+    
+    def set_id(self,id,new_id):
+        self.protocol.write(id,STSMemoryMap.ID.value,struct.pack('<B', new_id))
     
 
 class STSMemoryMap(Enum):

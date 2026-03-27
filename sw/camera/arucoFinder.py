@@ -16,11 +16,18 @@ from scipy.spatial.transform import Rotation
 import time
 from threading import Event
 
+GST_PIPELINE = (
+    'udpsrc port=5000 caps="application/x-rtp,media=video,encoding-name=H265,payload=96,clock-rate=90000" ! '
+    'rtph265depay ! avdec_h265 ! videoconvert ! '
+    'video/x-raw,format=BGR ! '
+    'appsink drop=1 sync=false max-buffers=1'
+)
 
 class Source(Enum):
     CAM = 0
     VIDEO = 1
     ECAL = 2
+    GSTREAMER = 3
 
 
 class ArucoFinder:
@@ -84,6 +91,13 @@ class ArucoFinder:
         elif src_type == Source.ECAL:
             self.sub = ProtoSubscriber(cipb.CompressedImage, src)
             self.sub.set_receive_callback(self.on_img)
+        elif src_type == Source.GSTREAMER:
+            print(f"Open GST pipeline: {src}")
+            self.cap = cv2.VideoCapture(src, cv2.CAP_GSTREAMER)
+            if self.cap.isOpened():
+                print("Gstreamer pipeline opened.")
+            else:
+                print("GStreamer failed to open.")
 
     def getCalibration(self, w, h):
         """Provide Calibration Matrix and distance coefs as .npy file"""
@@ -141,7 +155,7 @@ class ArucoFinder:
     
     def run(self):
         while True:
-            if self.src_type == Source.CAM or self.src_type == Source.VIDEO:
+            if self.src_type == Source.CAM or self.src_type == Source.VIDEO or self.src_type == Source.GSTREAMER:
                 ret, frame = self.cap.read()
             else:
                 self.event.wait()
@@ -161,6 +175,7 @@ if __name__ == "__main__":
     parser.add_argument('name', help='camera name')
     parser.add_argument('-c', '--cam', type=int, help='Camera ID', default=None)
     parser.add_argument('-v', '--video', help='Video file', default=None)
+    parser.add_argument('-g', '--gstreamer', action='store_true', help='Video file', default=None)
     parser.add_argument('-t', '--topic', help='eCAL topic', default=None)
     parser.add_argument('-d', '--display', action='store_true', default=False, help='send annotated images over ecal')
     parser.add_argument('-W', '--width', type=int, help='image width', default=None)
@@ -178,6 +193,9 @@ if __name__ == "__main__":
     elif args.topic is not None:
         src_type = Source.ECAL
         src = args.topic
+    elif args.gstreamer is not None:
+        src_type = Source.GSTREAMER
+        src = GST_PIPELINE
     else:
         print("Please specify the source: cam, video or ecal topic.")
     

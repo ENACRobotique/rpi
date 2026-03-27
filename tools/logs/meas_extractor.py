@@ -8,9 +8,14 @@ from os import walk
 from os import path
 sys.path.append('../../generated')
 
+
 from google.protobuf.json_format import MessageToDict
-import robot_state_pb2 as pbr
-import lidar_data_pb2 as pbl
+from robot_state_pb2 import *
+from lidar_data_pb2 import *
+from common_pb2 import *
+from messages_pb2 import *
+from actionneurs_pb2 import *
+from CompressedImage_pb2 import *
 #import pdb
 #from google.protobuf import descriptor as _descriptor
 #from google.protobuf import reflection as _reflection
@@ -47,10 +52,7 @@ def print_channels(m: h.Meas):
 
 def get_data_csv(m: h.Meas, channel_name, fileout):
     channel_type = m.get_channel_type(channel_name).split('.')[-1]
-    try:
-        msg_class = pbr.__getattribute__(channel_type)
-    except:
-        msg_class = pbl.__getattribute__(channel_type)
+    msg_class = globals()[channel_type]
     fields_names = msg_class.DESCRIPTOR.fields_by_name.keys()
     print(fields_names)
     t0 = m.get_min_timestamp(channel_name)
@@ -69,10 +71,7 @@ def get_data_csv(m: h.Meas, channel_name, fileout):
 def get_data_json(m: h.Meas, channel_name, fileout):
     json_data = []
     channel_type = m.get_channel_type(channel_name).split('.')[-1]
-    try:
-        msg_class = pbr.__getattribute__(channel_type)
-    except:
-        msg_class = pbl.__getattribute__(channel_type)
+    msg_class = globals()[channel_type]
     fields_names = msg_class.DESCRIPTOR.fields_by_name.keys()
     print(fields_names)
     t0 = m.get_min_timestamp(channel_name)
