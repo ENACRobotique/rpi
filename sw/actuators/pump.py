@@ -4,6 +4,9 @@ from enum import Enum
 
 
 class Pump:
+
+    BAUDRATES = {1000000: 1, 500000:3, 400000: 4, 250000: 7, 200000:9, 115200: 16, 57600: 34, 19200: 103, 9600:207}
+
     def __init__(self, s:SAPInstructions) -> None:
         self.protocol = s
     
@@ -27,6 +30,12 @@ class Pump:
 
     def set_id(self,id,new_id):
         self.protocol.write(id,PumpMemoryMap.ID.value,struct.pack('<B', new_id))
+
+    def change_baudrate(self, id, baudrate):
+        if baudrate in Pump.BAUDRATES:
+            self.protocol.write(id,PumpMemoryMap.BAUDRATE.value,struct.pack('<B', Pump.BAUDRATES[baudrate]))
+        else:
+            print(f"Baudrate not in list: {Pump.BAUDRATES.keys()}")
 
 class PumpMemoryMap(Enum):
     """

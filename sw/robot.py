@@ -407,8 +407,8 @@ class Robot:
             y_repereCaisse = y_centerPack * np.cos(angle_droite_robot) - x_centerPack * np.sin(angle_droite_robot)
 
             ## Alignement en y :
-            if (abs(y_repereCaisse) > 250) or (abs(y_repereCaisse) < 130) :
-                print("ON SAIT PAS FAIRE")
+            if (abs(y_repereCaisse) > 300) or (abs(y_repereCaisse) < 130) :
+                print("Mauvais dy")
 
             self.rotate(angle_droite_robot)
             time.sleep(2)
