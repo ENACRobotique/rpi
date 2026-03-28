@@ -59,24 +59,24 @@ class IO_Manager:
             return False
 
 
-    def moveG(self, position : PosTentacle,timeout=2):
+    def moveG(self, position : PosTentacle,timeout=0):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         self.sap_master.ax12.move_speed(Actionneur.bicepsG.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
-        while(not(self.ready(Actionneur.bicepsG.value,VALEURS_ACTIONNEURS[position.value],50) and
-               self.ready(Actionneur.tricepsG.value,VALEURS_ACTIONNEURS[position.value],50))
-               or (time.time()-debut < timeout) ):
-            pass
+        while((time.time()-debut < timeout) 
+              and not(self.ready(Actionneur.bicepsG.value,VALEURS_ACTIONNEURS[position.value],50) 
+                  and self.ready(Actionneur.tricepsG.value,VALEURS_ACTIONNEURS[position.value],50))):
+            time.sleep(0.1)
 
         
-    def moveD(self, position : PosTentacle,timeout=2):
+    def moveD(self, position : PosTentacle,timeout=0):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         self.sap_master.ax12.move_speed(Actionneur.bicepsD.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
-        while(not(self.ready(Actionneur.bicepsD.value,VALEURS_ACTIONNEURS[position.value],50) and
-               self.ready(Actionneur.tricepsD.value,VALEURS_ACTIONNEURS[position.value],50))
-               or (time.time()-debut < timeout) ):
-            pass
+        while((time.time()-debut < timeout) 
+              and not(self.ready(Actionneur.bicepsD.value,VALEURS_ACTIONNEURS[position.value],50) 
+                  and self.ready(Actionneur.tricepsD.value,VALEURS_ACTIONNEURS[position.value],50))):
+            time.sleep(0.1)
 
 
     def GrabG(self, grab: bool):
