@@ -30,7 +30,6 @@ class ArucoState:
 
         self.cam_pose =  self.get_camera_pose()
        
-
         self.data = {}
         self.last_update_time = {}
 
@@ -48,7 +47,9 @@ class ArucoState:
     @staticmethod
     def get_camera_pose():
         poses = {}
-        for file in os.listdir("../../data/camera_calibrations"):
+        path_to_dir = os.path.dirname(os.path.abspath(__file__))
+        path_to_calib = os.path.join(path_to_dir,"../../data/camera_calibrations")
+        for file in os.listdir(path_to_calib):
             if file.endswith("_rvec.npy"):
                 camera_name = file.removesuffix('_rvec.npy') 
                 tvec_file = f'{camera_name}_tvec.npy'

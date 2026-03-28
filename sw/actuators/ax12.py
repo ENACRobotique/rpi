@@ -14,8 +14,6 @@ class AX12:
         if data is not None:
             (pos,) = struct.unpack('<H', data)
             return pos
-        else :
-            
 
     def move(self, id, pos):
         self.protocol.write(id, AX12MemoryMap.GOAL_POSITION.value, struct.pack('<H', pos))
