@@ -11,6 +11,8 @@ import generated.common_pb2 as common_pb
 # import generated.messages_pb2 as message_pb2
 from sw.IO.actionneurs import IO_Manager
 from sw.IO.actionneurs import PosTentacle
+from sw.IO.actionneurs import POMPES_DROITES
+from sw.IO.actionneurs import POMPES_GAUCHES
 from joystick_confs import *
 
 MAX_SPEED = 300
@@ -45,7 +47,9 @@ class JoystickEcal ():
         self.posG = PosTentacle.BAS
         self.posD = PosTentacle.BAS
         self.pumpG = False
+        self.pumpGList = [False for k in range(4)]
         self.pumpD = False
+        self.pumpDList = [False for k in range(4)]
 
         if not ecal_core.is_initialized():
             ecal_core.initialize("Joystick")
@@ -116,11 +120,13 @@ class JoystickEcal ():
 
             if self.buttons[self.conf["L1"]] == 1:
                 self.pumpG = not self.pumpG
+                self.pumpGList = [self.pumpG for pump in self.pumpGList]
                 self.IO_manager.GrabG(self.pumpG)
                 time.sleep(0.1)
 
             if self.buttons[self.conf["R1"]] == 1:
                 self.pumpD = not self.pumpD
+                self.pumpDList = [self.pumpD for pump in self.pumpDList]
                 self.IO_manager.GrabD(self.pumpD)
                 time.sleep(0.1)
 
@@ -130,6 +136,47 @@ class JoystickEcal ():
                 self.IO_manager.moveD(self.posD)
                 time.sleep(0.1)
 
+            if self.buttons[self.conf["triangle"]] == 1:
+                self.pumpDList[0] = not self.pumpDList[0]
+                self.IO_manager.Grab(POMPES_DROITES[0],self.pumpDList[0])
+                time.sleep(0.1)
+
+            if self.buttons[self.conf["rond"]] == 1:
+                self.pumpDList[1] = not self.pumpDList[1]
+                self.IO_manager.Grab(POMPES_DROITES[1],self.pumpDList[1])
+                time.sleep(0.1)
+
+            if self.buttons[self.conf["croix"]] == 1:
+                self.pumpDList[2] = not self.pumpDList[2]
+                self.IO_manager.Grab(POMPES_DROITES[2],self.pumpDList[2])
+                time.sleep(0.1)
+
+            if self.buttons[self.conf["carre"]] == 1:
+                self.pumpDList[3] = not self.pumpDList[3]
+                self.IO_manager.Grab(POMPES_DROITES[3],self.pumpDList[3])
+                time.sleep(0.1)
+
+            if self.hats[0] == (0,1):
+                self.pumpGList[0] = not self.pumpGList[0]
+                self.IO_manager.Grab(POMPES_GAUCHES[0],self.pumpGList[0])
+                time.sleep(0.1)
+
+            if self.hats[0] == (1,0):
+                self.pumpGList[1] = not self.pumpGList[1]
+                self.IO_manager.Grab(POMPES_GAUCHES[1],self.pumpGList[1])
+                time.sleep(0.1)
+
+            if self.hats[0] == (0,-1):
+                self.pumpGList[2] = not self.pumpGList[2]
+                self.IO_manager.Grab(POMPES_GAUCHES[2],self.pumpGList[2])
+                time.sleep(0.1)
+
+            if self.hats[0] == (-1,0):
+                self.pumpGList[3] = not self.pumpGList[3]
+                self.IO_manager.Grab(POMPES_GAUCHES[3],self.pumpGList[3])
+                time.sleep(0.1)
+                
+                
 
 
         if self.conf == ATTACK3_CONF:

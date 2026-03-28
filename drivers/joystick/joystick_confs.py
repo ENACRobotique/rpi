@@ -36,5 +36,11 @@ BATTLETRON = {
     "R1" : 5, #bouton bumper droit
     "action_1" : 0, #bouton bumper gauche
     "action_2" : 2, #bouton bumper gauche
+    "croix": 0,
+    "rond": 1,
+    "triangle" : 2,
+    "carre" : 3,
+
+
 
 }

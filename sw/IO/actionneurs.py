@@ -113,3 +113,5 @@ class IO_Manager:
 
     def Grab(self, pump: Actionneur, grab: bool):
         self.sap_master.pump.pump(pump.value, grab)
+        if not grab :
+            self.sap_master.pump.valve_use(pump.value)
