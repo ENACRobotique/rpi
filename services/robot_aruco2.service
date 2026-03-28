@@ -1,13 +1,14 @@
 [Unit]
-Description=eCal IO Bridge
+Description=eCal Aruco comm
 After=network.target network-online.target
 
 [Service]
 Type=simple
  
+WorkingDirectory=/home/robot/rpi/drivers/camera/
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/camera/arucoFinder.py dipper -c 1 -d
 
-WorkingDirectory=/home/robot/rpi/drivers
-ExecStart=/home/robot/rpi/drivers/smart_servo/build/smartServoDriver /dev/robot_io 250000
+
  
 Restart=on-failure
 RestartSec=2 

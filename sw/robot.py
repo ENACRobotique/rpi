@@ -418,15 +418,20 @@ class Robot:
             self.move(x_repereCaisse,0)
 
             if coteDroit :
-                self.coteD = [Caisse.BLEU if aruco.id == Caisse.BLEU else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+                self.coteD = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
             else :
-                self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+                self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
     
     def release(self,coteDroit,couleur:Caisse):
+        print("RELEASE : cote droit =", self.coteD,"cote gauche =",self.coteG)
         if coteDroit :
             for (i,caisse) in enumerate(self.coteD) :
                 if caisse == couleur :
                     self.actionneurs.Grab(act.POMPES_DROITES[i],False)
+        else :
+            for (i,caisse) in enumerate(self.coteG):
+                if caisse == couleur :
+                    self.actionneurs.Grab(act.POMPES_GAUCHES[i],False)
         return
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ robot_vl53 \
 robot_IO \
 robot_joystick \
 robot_ui \
+robot_aruco2 \
 robot_aruco ; do 
     ln -s ~/rpi/services/$f.service ~/.config/systemd/user/$f.service
 done
