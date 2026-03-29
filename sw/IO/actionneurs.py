@@ -10,6 +10,7 @@ class PosTentacle(Enum):
     BAS = 0
     HAUT = 1
     POUSSE = 2
+    DROP = 3
 
 
 class Actionneur(Enum):
@@ -34,7 +35,7 @@ POMPES_DROITES = [Actionneur.pumpD1, Actionneur.pumpD2, Actionneur.pumpD3, Actio
 POMPES_GAUCHES = [Actionneur.pumpG1, Actionneur.pumpG2, Actionneur.pumpG3, Actionneur.pumpG4]
 
 
-VALEURS_ACTIONNEURS = {PosTentacle.BAS.value: 512, PosTentacle.POUSSE.value: 600, PosTentacle.HAUT.value: 820}
+VALEURS_ACTIONNEURS = {PosTentacle.BAS.value: 512, PosTentacle.DROP.value: 550, PosTentacle.POUSSE.value: 600, PosTentacle.HAUT.value: 820}
 
 
 class IO_Manager:

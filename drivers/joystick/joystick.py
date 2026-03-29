@@ -113,10 +113,15 @@ class JoystickEcal ():
 
             # Actionneur 2026
             if self.buttons[self.conf["gachette_gauche"]] == 1:
-                self.posG = PosTentacle.BAS if self.posG == PosTentacle.HAUT else PosTentacle.HAUT
+                if self.posG == PosTentacle.HAUT:
+                    if self.pumpG == True:
+                        self.posG =  PosTentacle.DROP
+                    else:
+                        self.posG = PosTentacle.BAS
+                else :
+                    self.posG = PosTentacle.HAUT
                 self.IO_manager.moveG(self.posG)
                 time.sleep(0.25)
-            #print(self.buttons)
 
             if self.buttons[self.conf["L1"]] == 1:
                 self.pumpG = not self.pumpG
@@ -132,7 +137,13 @@ class JoystickEcal ():
 
 
             if self.buttons[self.conf["gachette_droite"]] == 1:
-                self.posD = PosTentacle.BAS if self.posD == PosTentacle.HAUT else PosTentacle.HAUT
+                if self.posD == PosTentacle.HAUT:
+                    if self.pumpD == True:
+                        self.posD =  PosTentacle.DROP
+                    else:
+                        self.posD = PosTentacle.BAS
+                else :
+                    self.posD = PosTentacle.HAUT
                 self.IO_manager.moveD(self.posD)
                 time.sleep(0.1)
 
