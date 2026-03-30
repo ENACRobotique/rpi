@@ -60,7 +60,7 @@ class IO_Manager:
             return False
 
 
-    def moveG(self, position : PosTentacle,timeout=0):
+    def moveG(self, position : PosTentacle,timeout=1):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         self.sap_master.ax12.move_speed(Actionneur.bicepsG.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
@@ -70,7 +70,7 @@ class IO_Manager:
             time.sleep(0.1)
 
         
-    def moveD(self, position : PosTentacle,timeout=0):
+    def moveD(self, position : PosTentacle,timeout=1):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         self.sap_master.ax12.move_speed(Actionneur.bicepsD.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
