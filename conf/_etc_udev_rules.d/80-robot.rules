@@ -21,8 +21,8 @@ SUBSYSTEM=="tty", KERNEL=="ttyAMA3", SYMLINK:="robot_lcd"
 SUBSYSTEM=="tty", KERNEL=="ttyAMA4", SYMLINK:="robot_lidar"
 
 # Camera identification by the USB port they are plug to.
-SUBSYSTEM=="video4linux", ENV{ID_PATH}=="platform-xhci-hcd.0-usb-0:1:1.0", SYMLINK+="cam_mabel"
-SUBSYSTEM=="video4linux", ENV{ID_PATH}=="platform-xhci-hcd.1-usb-0:2:1.0", SYMLINK+="cam_dipper"
+SUBSYSTEM=="video4linux", ENV{ID_PATH}=="platform-xhci-hcd.0-usb-0:1:1.0", ATTR{index}=="0", SYMLINK+="cam_mabel"
+SUBSYSTEM=="video4linux", ENV{ID_PATH}=="platform-xhci-hcd.1-usb-0:2:1.0", ATTR{index}=="0", SYMLINK+="cam_dipper"
 
 # custom rules
 #SUBSYSTEM=="tty", ATTRS{manufacturer}=="STMicroelectronics", ATTRS{serial}=="066EFF3732584B3043195530" SYMLINK+="robot_io", GROUP="dialout" 
