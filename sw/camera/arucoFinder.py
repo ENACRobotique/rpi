@@ -173,7 +173,7 @@ class ArucoFinder:
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument('name', help='camera name')
-    parser.add_argument('-c', '--cam', type=int, help='Camera ID', default=None)
+    parser.add_argument('-c', '--cam', type=str, help='Camera path (/dev/video)', default='/dev/video0')
     parser.add_argument('-v', '--video', help='Video file', default=None)
     parser.add_argument('-g', '--gstreamer', action='store_true', help='Video file', default=None)
     parser.add_argument('-t', '--topic', help='eCAL topic', default=None)
