@@ -15,7 +15,6 @@ ArucoFinder::ArucoFinder(const std::string &name,
     }
 
     dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-
 }
 
 double ArucoFinder::open_video(std::string src){
@@ -30,8 +29,21 @@ double ArucoFinder::open_video(std::string src){
     auto w = cap.get(cv::CAP_PROP_FRAME_WIDTH);
     auto h = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
     std::cout << "opening video " << src << " at " << w << "x" << h << ", " << fps << " fps" << std::endl;
+    open_calibration(w, h);
     return fps;
 }
+
+void ArucoFinder::open_calibration(int w, int h){
+        std::string filename = "../../../../data/camera_calibrations/" + name + "_" +
+                       std::to_string(w) + "x" +
+                       std::to_string(h) + ".yml";
+
+    cv::FileStorage fs(filename,cv::FileStorage::READ);
+    fs["camera_matrix"] >> camera_matrix;
+    fs["dist_coeffs"] >> dist_coeffs;
+    fs.release();
+}
+
 
 void ArucoFinder::open_cam(std::string cam, int width, int height, double fps,  std::string fourcc){
     cap.open(cam, cv::CAP_V4L2);
@@ -71,8 +83,8 @@ void ArucoFinder::open_cam(std::string cam, int width, int height, double fps,  
         (char)((read_fourcc >> 24) & 0xFF),
         '\0'
     };
-
     std::cout << "opening cam " << cam << " at " << width << "x" << height << ", " << fps << " fps, fourcc : "  << fourcc_str << std::endl;
+    open_calibration(width, height);
 }
 
 void ArucoFinder::open_ecal(std::string topic)

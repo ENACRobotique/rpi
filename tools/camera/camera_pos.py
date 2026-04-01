@@ -53,6 +53,8 @@ class Calibrator2000:
             if self.cap is None:
                 print(f"Failed to open {self.name} with id {src}")
                 exit(-1)
+            if args.fourcc is not None:
+                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc(*args.fourcc))
             if args.width is not None and args.height is not None:
                 self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
                 self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
@@ -73,10 +75,11 @@ class Calibrator2000:
     def getCalibration(self, w, h):
         """Provide Calibration Matrix and distance coefs as .npy file"""
         # Charger la calibration
-        f_mat = f'{self.dir}/{self.name}_matrix_{w}x{h}.npy'
-        f_coef = f'{self.dir}/{self.name}_coeffs_{w}x{h}.npy'
-        self.camera_matrix = np.load(f_mat)
-        self.dist_coeffs = np.load(f_coef)
+        f_calib = f'{self.dir}/{self.name}_{w}x{h}.yml'
+        fs = cv2.FileStorage(f_calib, cv2.FILE_STORAGE_READ)
+        self.camera_matrix = fs.getNode("camera_matrix").mat()
+        self.dist_coeffs = fs.getNode("dist_coeffs").mat()
+        fs.release()
     
 
     
@@ -281,6 +284,7 @@ if __name__ == "__main__":
     parser.add_argument('-H', '--height', type=int, help='image height', default=None)
     parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
     parser.add_argument('-d', '--dir', default='../../data/camera_calibrations/', help='Directory for calibration files')
+    parser.add_argument('--fourcc', type=str, help='fourcc type (MJPG, H264, ...)', default=None)
 
     parser.add_argument('-x', type=float, help='X_damier/robot', default=0)
     parser.add_argument('-y', type=float, help='Y_damier/robot', default=0)

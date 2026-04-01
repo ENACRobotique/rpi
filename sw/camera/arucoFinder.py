@@ -102,10 +102,12 @@ class ArucoFinder:
     def getCalibration(self, w, h):
         """Provide Calibration Matrix and distance coefs as .npy file"""
         # Charger la calibration
-        f_mat = f'../../data/camera_calibrations/{self.name}_matrix_{w}x{h}.npy'
-        f_coef = f'../../data/camera_calibrations/{self.name}_coeffs_{w}x{h}.npy'
-        self.camera_matrix = np.load(f_mat)
-        self.dist_coeffs = np.load(f_coef)
+        f_calib = f'../../data/camera_calibrations/{self.name}_{w}x{h}.yml'
+        fs = cv2.FileStorage(f_calib, cv2.FILE_STORAGE_READ)
+        self.camera_matrix = fs.getNode("camera_matrix").mat()
+        self.dist_coeffs = fs.getNode("dist_coeffs").mat()
+        fs.release()
+
     
     def on_img(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[cipb.CompressedImage]):
         nparr = np.frombuffer(data.message.data, np.uint8)

@@ -140,14 +140,14 @@ class Calibrator:
             print("📐 Calibration en cours...")
             ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(self.objpoints, self.imgpoints, self.imageSize, None, None)
             w, h = self.imageSize
-            filename_matrix = f'{self.dir}/{self.name}_matrix_{w}x{h}.npy'
-            filename_coeffs = f'{self.dir}/{self.name}_coeffs_{w}x{h}.npy'
-            np.save(filename_matrix, mtx)
-            np.save(filename_coeffs, dist)
+            filename_calib = f'{self.dir}/{self.name}_{w}x{h}.yml'
+            fs = cv2.FileStorage(filename_calib, cv2.FILE_STORAGE_WRITE)
+            fs.write("camera_matrix", mtx)
+            fs.write("dist_coeffs", dist)
+            fs.release()
 
-            print("✅ Calibration réussie ! Fichiers enregistrés :")
-            print(f"- {filename_matrix}")
-            print(f"- {filename_coeffs}")
+            print("✅ Calibration réussie ! Fichier enregistré :")
+            print(f"- {filename_calib}")
         else:
             print("⚠️ Pas assez d'images pour calibrer (au moins 10 bonnes prises nécessaires)")
 

@@ -42,6 +42,7 @@ public:
     void process(cv::Mat &frame);
 
     void readFrame(cv::Mat& frame);
+    void open_calibration (int w, int h);
 
 
 private:
