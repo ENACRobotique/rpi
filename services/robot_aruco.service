@@ -6,7 +6,7 @@ After=network.target network-online.target
 Type=simple
  
 WorkingDirectory=/home/robot/rpi/drivers/camera/
-ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/camera/arucoFinder.py mabel -c /dev/cam_mabel -d
+ExecStart=/home/robot/rpi/sw/camera/ArucoFinderCpp/build/arucoFinderCpp mabel -c /dev/cam_mabel -d -W 640 -H 480 --fourcc YUYV -f 15
 
 
  
