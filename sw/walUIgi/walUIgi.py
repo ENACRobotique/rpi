@@ -152,7 +152,6 @@ class TabStatus(QtWidgets.QWidget):
         # Ligne base roulante
         self.l_baseRoulante = QtWidgets.QLabel("Base roulante"); self.l_baseRoulante.setStyleSheet("color: red")
         self.icon_baseRoulante = QtWidgets.QLabel("X")
-        self.signal_emitter.baseRoulante_signal.connect(self.updateBaseRoulante)
         self.baseRoulante_timer = QTimer()
         self.baseRoulante_timer.setInterval(BASEROULANTE_TIMEOUT)
         self.baseRoulante_timer.timeout.connect(self.updateBaseRoulante)
