@@ -3,7 +3,7 @@ import sys
 import os
 import argparse
 import math as math
-import time
+import numpy as np
 
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import (
@@ -13,12 +13,16 @@ from PyQt6.QtWidgets import (
     QFrame,QGraphicsItemGroup,
     QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsLineItem
 )
-from PyQt6.QtGui import QImage, QPainter, QColor, QPen, QTransform
+
+import cv2
+
+from PyQt6.QtGui import QImage, QPainter, QColor, QPen, QPixmap
 from PyQt6.QtCore import Qt,pyqtSignal,QObject,QTimer
 import generated.robot_state_pb2 as robot_pb
 
 import generated.common_pb2 as hgpb
 import generated.lidar_data_pb2 as lidarpb
+from generated import CompressedImage_pb2 as cipb
 
 
 import ecal.nanobind_core as ecal_core
@@ -36,7 +40,7 @@ from actuators.sap_master import SAPMaster
 #
 #########################
 
-LISTE_SERVICE = ["robot_aruco","robot_aruco2","robot_bridge","robot_IO","robot_joystick","robot_lidar_driver","robot_lidar_amalgameur","robot_lidar_loca","robot_start","robot_strat"]
+LISTE_SERVICE = [("Camera Mabel","robot_aruco"),("Camera Dipper","robot_aruco2"),("Bridge","robot_bridge"),("Actionneurs","robot_IO"),("Manette","robot_joystick"),("Driver Lidar","robot_lidar_driver"),("Lidar Amalgameur","robot_lidar_amalgameur"),("Lidar Localisation","robot_lidar_loca"),("START","robot_start"),("Strategie","robot_strat")]
 TOTAL_SERVICE = len(LISTE_SERVICE)
 
 LISTE_ID_ACTIONNEURS = [5,7,11,20,40,41,42,43,44,45,46,47]
@@ -52,7 +56,8 @@ class Robot:
         self.color_pub = ProtoPublisher(robot_pb.Side, "color")
         self.position_lidar = (0, 0, 0)
         self.position_odom = (0, 0, 0)
-        self.last_baseRoulante = False
+        self.state_baseRoulante = False
+        self.lastState_baseRoulante  = False
         self.nbBalises = 0
         self.score = 0
 
@@ -124,44 +129,42 @@ class TabStatus(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
 
+        ## Baterie + titre
         topLayout = QtWidgets.QHBoxLayout()
-
         self.bar_batterie = QtWidgets.QProgressBar()
         self.bar_batterie.setMaximumSize(80, 33)
         self.bar_batterie.setValue(24)
-
         self.title_status = QtWidgets.QLabel("STATUS")
         self.title_status.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-
         topLayout.addWidget(self.bar_batterie)
         topLayout.addWidget(self.title_status)
         topLayout.addStretch()
-
         layout.addLayout(topLayout)
 
+        ## Bouton pour changer la couleur
         self.b_status_color = QtWidgets.QPushButton(self.robot.name)
         self.b_status_color.setMinimumSize(300, 100); self.b_status_color.setStyleSheet("background-color: yellow")
         self.b_status_color.clicked.connect(lambda:self.updateCouleur(False if self.robot.couleur=="Jaune" else True))
-
         layout.addWidget(self.b_status_color, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter)
 
+        ## Status du robot
         grid = QtWidgets.QGridLayout()
-
+        # Ligne base roulante
         self.l_baseRoulante = QtWidgets.QLabel("Base roulante"); self.l_baseRoulante.setStyleSheet("color: red")
         self.icon_baseRoulante = QtWidgets.QLabel("X")
         self.signal_emitter.baseRoulante_signal.connect(self.updateBaseRoulante)
         self.baseRoulante_timer = QTimer()
         self.baseRoulante_timer.setInterval(BASEROULANTE_TIMEOUT)
         self.baseRoulante_timer.timeout.connect(self.updateBaseRoulante)
-
+        # Ligne Service
         self.l_status_service = QtWidgets.QLabel(f"{self.robot.nbServicesActifs}/{TOTAL_SERVICE} services"); self.l_status_service.setStyleSheet("color: red")
         self.icon_service = QtWidgets.QLabel("X")
         self.signal_emitter.service_signal.connect(self.updateServices)
-
+        # Ligne Actionneur
         self.l_status_actionneurs = QtWidgets.QLabel(f"{self.robot.nbActionneursActifs}/{TOTAL_ACTIONNEURS} actionneurs"); self.l_status_actionneurs.setStyleSheet("color: red")
         self.icon_actionneur = QtWidgets.QLabel("X")
         self.signal_emitter.actionneur_signal.connect(self.updateActionneurs)
-
+        # Ligne Balise
         self.l_nbBalises = QLabel("Nombre balises : No ecal message (yet)"); self.l_nbBalises.setStyleSheet("color: red")
         self.icon_nbBalises = QLabel("X")
         self.balise_sub = ProtoSubscriber(lidarpb.Balises,"balises_odom")
@@ -169,22 +172,14 @@ class TabStatus(QtWidgets.QWidget):
             self.signal_emitter.balise_signal.emit(len(data.message.index))
         self.balise_sub.set_receive_callback(sendBaliseSignal)
         self.signal_emitter.balise_signal.connect(self.updateBalise)
-        
-
-        grid.addWidget(self.l_baseRoulante, 0, 0)
-        grid.addWidget(self.icon_baseRoulante, 0, 1)
-
-        grid.addWidget(self.l_status_service, 1, 0)
-        grid.addWidget(self.icon_service, 1, 1)
-
-        grid.addWidget(self.l_status_actionneurs, 2, 0)
-        grid.addWidget(self.icon_actionneur, 2, 1)
-
-        grid.addWidget(self.l_nbBalises, 3, 0)
-        grid.addWidget(self.icon_nbBalises, 3, 1)
-
+        # Ajout des Widgets
+        grid.addWidget(self.l_baseRoulante, 0, 0) ; grid.addWidget(self.icon_baseRoulante, 0, 1)
+        grid.addWidget(self.l_status_service, 1, 0) ; grid.addWidget(self.icon_service, 1, 1)
+        grid.addWidget(self.l_status_actionneurs, 2, 0) ; grid.addWidget(self.icon_actionneur, 2, 1)
+        grid.addWidget(self.l_nbBalises, 3, 0) ; grid.addWidget(self.icon_nbBalises, 3, 1)
         layout.addLayout(grid)
 
+        ## Map avec le robot
         class Map_view(QGraphicsView):
             def resizeEvent(self, event):
                 if self.scene():
@@ -235,7 +230,7 @@ class TabStatus(QtWidgets.QWidget):
         self.point_odom = RobotGraphic("odom",self.robot,"red")
         self.pos_odom_sub = ProtoSubscriber(hgpb.Position,"odom_pos")
         def sendPosOdomSignal( pub_id : ecal_core.TopicId, data : ReceiveCallbackData[hgpb.Position]):
-            self.robot.last_baseRoulante = True
+            self.robot.state_baseRoulante = True
             self.signal_emitter.pos_odom_signal.emit(data.message.x, data.message.y, data.message.theta)
         self.pos_odom_sub.set_receive_callback(sendPosOdomSignal)
         self.signal_emitter.pos_odom_signal.connect(self.point_odom.updatePosition)
@@ -259,8 +254,8 @@ class TabStatus(QtWidgets.QWidget):
 
         self.baseRoulante_timer.start()
         
-
     def updateCouleur(self, jaune):
+        # Envoie un message de changement de couleur, change la couleur du bouton
         msg = robot_pb.Side()
         if jaune:
             self.robot.couleur = "Jaune"
@@ -273,16 +268,18 @@ class TabStatus(QtWidgets.QWidget):
         self.robot.color_pub.send(msg)
 
     def updateBalise(self,nb):
+        # Lit les messages ecal balises_odom et regarde combien il en détecte
         self.robot.nbBalises = nb
         self.l_nbBalises.setText("Nombre balises : " + str(nb))
         if nb >= 3 :
-            self.l_nbBalises.setStyleSheet("color: red")
+            self.l_nbBalises.setStyleSheet("color: green")
             self.icon_nbBalises.setText("V")
         else :
-            self.l_nbBalises.setStyleSheet("color: green")
+            self.l_nbBalises.setStyleSheet("color: red")
             self.icon_nbBalises.setText("X")
 
     def updateServices(self):
+        # Rafraichit l'affichage des services actifs
         if self.robot.nbServicesActifs == TOTAL_SERVICE:
             self.l_status_service.setText(f"{self.robot.nbServicesActifs}/{TOTAL_SERVICE} services"); self.l_status_service.setStyleSheet("color: green")
             self.icon_service.setText("V")
@@ -291,6 +288,7 @@ class TabStatus(QtWidgets.QWidget):
             self.icon_service.setText("X")
 
     def updateActionneurs(self,serviceIO):
+        # Rafraichit l'affichage des actionneurs actifs
         if serviceIO :
             if self.robot.nbActionneursActifs == TOTAL_ACTIONNEURS:
                 self.l_status_actionneurs.setText(f"{self.robot.nbActionneursActifs}/{TOTAL_ACTIONNEURS} actionneurs"); self.l_status_actionneurs.setStyleSheet("color: green")
@@ -303,13 +301,19 @@ class TabStatus(QtWidgets.QWidget):
             self.icon_actionneur.setText("(No service robot_IO)")
 
     def updateBaseRoulante(self):
-        if self.robot.last_baseRoulante :
+        # Rafraichit l'affichage de la base roulante
+        if self.robot.state_baseRoulante :
             self.l_baseRoulante.setStyleSheet("color: green")
             self.icon_baseRoulante.setText("V")
+            if not self.robot.lastState_baseRoulante :
+                self.signal_emitter.baseRoulante_signal.emit(True)
         else:
             self.l_baseRoulante.setStyleSheet("color: red")
             self.icon_baseRoulante.setText("X")
-        self.robot.last_baseRoulante = False
+            if self.robot.lastState_baseRoulante :
+                self.signal_emitter.baseRoulante_signal.emit(False)
+        self.robot.lastState_baseRoulante = self.robot.state_baseRoulante
+        self.robot.state_baseRoulante = False
 
 
 
@@ -323,11 +327,11 @@ class TabStatus(QtWidgets.QWidget):
 
 class ServiceWidget(QWidget):
 
-    def __init__(self, service, parent: QWidget = None) -> None:
+    def __init__(self, nickname, service, parent: QWidget = None) -> None:
         super().__init__(parent)
         self.service = service
         self.hl = QHBoxLayout(self)
-        self.l_service = QtWidgets.QLabel(f"{service}")
+        self.l_service = QtWidgets.QLabel(f"{nickname}")
         self.b_stop_service = QPushButton("Stop"); self.b_stop_service.setMaximumSize(80, 35)
         self.b_stop_service.clicked.connect(self.stop)
         self.b_start_service = QPushButton("Start"); self.b_start_service.setMaximumSize(80, 35)
@@ -339,16 +343,15 @@ class ServiceWidget(QWidget):
         self.hl.addWidget(self.b_start_service)
         self.hl.addWidget(self.l_ok_service)
     
-    def stop(self,service):
+    def stop(self):
         os.system(f'systemctl --user kill --quiet {self.service}.service')
 
-    def start(self,service):
+    def start(self):
         os.system(f'systemctl --user start --quiet {self.service}.service')
     
     def rafraichir(self):
         status = os.system(f'systemctl --user is-active --quiet {self.service}.service')
-        if status == 0:
-            # Le service marche
+        if status == 0: # Le service marche
             self.l_service.setStyleSheet("color: green")
             self.b_stop_service.show()
             self.b_start_service.hide()
@@ -387,8 +390,8 @@ class TabServices(QtWidgets.QWidget):
 
         self.services_widgets: list[ServiceWidget] = []
 
-        for service in LISTE_SERVICE:
-            service_w = ServiceWidget(service)
+        for (nickname,service) in LISTE_SERVICE:
+            service_w = ServiceWidget(nickname,service)
             self.services_widgets.append(service_w)
             vbox.addWidget(service_w)
 
@@ -424,19 +427,16 @@ class ActionneurWidget(QWidget):
         self.hl = QHBoxLayout(self)
         self.l_act = QtWidgets.QLabel(f"{id}")
         self.b_ping_act = QPushButton("Ping"); self.b_ping_act.setMaximumSize(80, 35)
-        self.b_ping_act.clicked.connect(self.ping)
+        self.b_ping_act.clicked.connect(self.rafraichir)
         self.l_status_act = QLabel("V")
 
         self.hl.addWidget(self.l_act)
         self.hl.addWidget(self.b_ping_act)
         self.hl.addWidget(self.l_status_act)
-
-    def ping(self):
-        self.sap_master.protocol.ping(self.id)
     
     def rafraichir(self):
         status = self.sap_master.protocol.ping(self.id)
-        if status:
+        if status :
             # L'actionneur répond
             self.l_act.setStyleSheet("color: green")
             self.l_status_act.setText("V")
@@ -445,6 +445,10 @@ class ActionneurWidget(QWidget):
             self.l_act.setStyleSheet("color: red")
             self.l_status_act.setText("X")
             return False
+        
+    def desactivatedBaseRoulante(self):
+        self.l_act.setStyleSheet("color: grey")
+        self.l_status_act.setText("X")
 
 class TabActionneurs(QtWidgets.QWidget):
 
@@ -454,7 +458,7 @@ class TabActionneurs(QtWidgets.QWidget):
         self.robot = robot
         self.signal_emitter = signal_emitter
 
-        self.already_created = False # Ceci est un patch pour ajouter les widgets quand le service est actif (ie empecher les "Waiting for SAP service ...")
+        self.already_created = False # Ceci est un patch pour ajouter les widgets uniquement quand le service est actif (ie empecher les "Waiting for SAP service ...")
 
         layout = QtWidgets.QVBoxLayout(self)
 
@@ -464,6 +468,7 @@ class TabActionneurs(QtWidgets.QWidget):
         rafraichissement.clicked.connect(self.rafraichir)
         layout.addWidget(title)
         layout.addWidget(rafraichissement)
+        self.signal_emitter.baseRoulante_signal.connect(self.updateOnBaseRoulante)
 
         self.actionneurs_widgets: list[ActionneurWidget] = []
         
@@ -497,6 +502,16 @@ class TabActionneurs(QtWidgets.QWidget):
         else : 
             self.error_msg.show()
             self.signal_emitter.actionneur_signal.emit(False)
+    
+    def updateOnBaseRoulante(self,activation):
+        if activation:
+            self.rafraichir()
+        else :
+            for act_w in self.actionneurs_widgets:
+                act_w.desactivatedBaseRoulante()
+
+
+    
 
 #############
 #           #
@@ -537,12 +552,43 @@ class TabCameras(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
 
+        class VisuCam(QLabel):
+            def __init__(self,topic):
+                super().__init__()
+                self.topic = topic
+                self.image_sub = ProtoSubscriber(cipb.CompressedImage,topic)
+                self.scale = 0.5
+
+                def convert_cv_to_qt(cv_img):
+                    rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
+                    h, w, ch = rgb_image.shape
+                    bytes_per_line = ch * w
+                    qt_image = QImage(rgb_image.data, w, h, bytes_per_line,QImage.Format.Format_RGB888)
+                    return QPixmap.fromImage(qt_image)
+
+                def refreshImage( pub_id : ecal_core.TopicId, data : ReceiveCallbackData[cipb.CompressedImage]):
+                    nparr = np.frombuffer(data.message.data, np.uint8)
+                    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    img = cv2.resize(img, None, fx=self.scale, fy=self.scale)
+                    pixmap = convert_cv_to_qt(img)
+                    self.setPixmap(pixmap)
+                
+                self.image_sub.set_receive_callback(refreshImage)
+
         layout = QtWidgets.QVBoxLayout(self)
+
+        image_mabel = VisuCam("images_mabel")
+        image_dipper = VisuCam("images_dipper")
 
         title = QtWidgets.QLabel("CAMERAS")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-
         layout.addWidget(title)
+        layout.addWidget(QLabel("Mabel :"))
+        image_mabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(image_mabel)
+        layout.addWidget(QLabel("Dipper :"))
+        image_dipper.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(image_dipper)
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -562,7 +608,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         layout.addWidget(self.l_score)
 
-
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setTabPosition(QtWidgets.QTabWidget.TabPosition.West)
 
@@ -577,7 +622,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(self.tabActionneurs, "Actionneurs")
         self.tabs.addTab(self.tabRadar, "Radar")
         self.tabs.addTab(self.tabCameras, "Cameras")
-
 
         layout.addWidget(self.tabs)
 
