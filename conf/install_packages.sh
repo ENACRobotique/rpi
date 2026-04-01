@@ -20,3 +20,6 @@ sudo apt-get install -y gpiod libgpiod-dev
 #Build tools
 sudo apt-get install -y build-essential
 sudo apt-get install -y cmake
+
+# ArucoFinder cpp
+sudo apt install -y libcli11-dev
