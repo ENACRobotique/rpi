@@ -5,8 +5,8 @@ After=network.target network-online.target
 [Service]
 Type=simple
  
-WorkingDirectory=/home/robot/rpi/drivers/camera/
-ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/camera/arucoFinder.py dipper -c /dev/cam_dipper -d
+WorkingDirectory=/home/robot/rpi/sw/camera/ArucoFinderCpp/build
+ExecStart=/home/robot/rpi/sw/camera/ArucoFinderCpp/build/arucoFinderCpp dipper -c /dev/cam_dipper -d -W 640 -H 480 --fourcc YUYV -f 15
 
 
  

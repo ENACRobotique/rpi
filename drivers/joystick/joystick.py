@@ -70,6 +70,7 @@ class JoystickEcal ():
 
     def open(self):
         while (self.joystick == None):
+            time.sleep(0.1)
             for event in pygame.event.get():
                 if event.type == pygame.JOYDEVICEADDED:
                     self.joystick = pygame.joystick.Joystick(event.device_index)
