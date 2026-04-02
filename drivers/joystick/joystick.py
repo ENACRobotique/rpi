@@ -28,6 +28,7 @@ RENTREUR = 1
 ASSCENSEUR = 2
 IDLE = 0
 GLISSING = 1
+
 class JoystickEcal ():
     def __init__(self):
         self.joystick: Joystick = None
