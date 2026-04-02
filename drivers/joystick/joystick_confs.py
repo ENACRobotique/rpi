@@ -40,6 +40,8 @@ BATTLETRON = {
     "rond": 1,
     "triangle" : 2,
     "carre" : 3,
+    "share":8,
+    "option":9
 
 
 
