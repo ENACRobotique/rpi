@@ -31,6 +31,12 @@ class Pump:
     def set_id(self,id,new_id):
         self.protocol.write(id,PumpMemoryMap.ID.value,struct.pack('<B', new_id))
 
+    def set_valve_release_time(self, id, duration):
+        '''
+        duration: 100ms steps. e.g. 5 => 500ms
+        '''
+        self.protocol.write(id,PumpMemoryMap.VALVE_RELEASE_TIME.value,struct.pack('<B', duration))
+
     def change_baudrate(self, id, baudrate):
         if baudrate in Pump.BAUDRATES:
             self.protocol.write(id,PumpMemoryMap.BAUDRATE.value,struct.pack('<B', Pump.BAUDRATES[baudrate]))
@@ -68,7 +74,7 @@ class PumpMemoryMap(Enum):
     # Unit: percent. Range: [0-100]
     VALVE_DUTY = 0x08
     
-    # Unit: milliseconds
+    # Unit: 100 milliseconds
     VALVE_RELEASE_TIME = 0x09
     
     # 0: turn off, 1: turn on
