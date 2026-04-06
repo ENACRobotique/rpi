@@ -124,9 +124,9 @@ If you want eCAL to run in network mode, edit the `/etc/ecal/ecal.yaml` file, an
 sudo bluetoothctl
 > scan on
 # Appuyer 3s sur le bouton share (en haut à droite de la croix gauche) et le bouton home (entre les joysticks). La manette doit flasher en blanc.
-> trust 98:B6:E9:84:66:07
-> pair 98:B6:E9:84:66:07
-> connect 98:B6:E9:84:66:07
+> pair 0B:1D:36:05:06:07
+> connect 0B:1D:36:05:06:07
+> trust 0B:1D:36:05:06:07
 ```
 
 
