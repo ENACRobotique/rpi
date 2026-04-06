@@ -49,7 +49,8 @@ class Duckoder(Protocol):
         self.topic_pubs = {
             llpb.Topic.POS_ROBOT_W:     self.odom_pos_pub,
             llpb.Topic.POS_CARROT_W:    self.carrot_pos_pub,
-            llpb.Topic.MOVE_ROBOT_R:    self.odom_move_pub
+            llpb.Topic.MOVE_ROBOT_R:    self.odom_move_pub,
+            llpb.Topic.POS_LIDAR:       self.odom_pos_pub
         }
 
         self.motors_pubs = {
@@ -60,11 +61,13 @@ class Duckoder(Protocol):
         }
 
         self.target_pos_sub = ProtoSubscriber(hgpb.Position, "set_position")
+        self.lidar_pos_sub = ProtoSubscriber(hgpb.Position, "lidar_pos")
         self.reset_pos_sub = ProtoSubscriber(hgpb.Position, "reset")
         self.pid_sub = ProtoSubscriber(llpb.MotorPid, "pid_gains")
         self.speed_cons_sub = ProtoSubscriber(hgpb.Speed, "speed_cons")
 
         self.target_pos_sub.set_receive_callback(self.set_target)
+        self.lidar_pos_sub.set_receive_callback(self.set_lidar_pos)
         self.reset_pos_sub.set_receive_callback(self.reset_position)
         self.pid_sub.set_receive_callback(self.set_pid)
         self.speed_cons_sub.set_receive_callback(self.set_speed)
@@ -155,6 +158,14 @@ class Duckoder(Protocol):
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
         llmsg.topic = llpb.Topic.POS_ROBOT_W
         self.send_message(llmsg)
+
+    def set_lidar_pos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
+        hlm = data.message
+        llmsg = llpb.Message(pos=hlm)
+        llmsg.msg_type = llpb.Message.MsgType.COMMAND
+        llmsg.topic = llpb.Topic.POS_LIDAR
+        self.send_message(llmsg)
+
 
     def reset_position(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
         hlm = data.message
