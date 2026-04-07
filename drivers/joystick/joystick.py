@@ -28,6 +28,7 @@ RENTREUR = 1
 ASSCENSEUR = 2
 IDLE = 0
 GLISSING = 1
+
 class JoystickEcal ():
     def __init__(self):
         self.joystick: Joystick = None
@@ -195,7 +196,13 @@ class JoystickEcal ():
                 self.pumpGList[3] = not self.pumpGList[3]
                 self.IO_manager.Grab(POMPES_GAUCHES[3],self.pumpGList[3])
                 time.sleep(0.1)
-                
+            
+            if self.buttons[self.conf["share"]]==1:
+                self.IO_manager.moveG(PosTentacle.RETOUR)
+            
+
+            if self.buttons[self.conf["option"]]==1:
+                self.IO_manager.moveD(PosTentacle.RETOUR)
                 
 
 

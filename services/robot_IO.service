@@ -7,7 +7,8 @@ Type=simple
  
 
 WorkingDirectory=/home/robot/rpi/drivers
-ExecStart=/home/robot/rpi/drivers/smart_servo/build/smartServoDriver /dev/robot_io 250000
+# On a grille le dev robot_io donc on utilise le lcd :(
+ExecStart=/home/robot/rpi/drivers/smart_servo/build/smartServoDriver /dev/robot_lcd 250000
  
 Restart=on-failure
 RestartSec=2 
