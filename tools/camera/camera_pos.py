@@ -3,8 +3,13 @@ import cv2
 import numpy as np
 import sys, os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.common.core import ReceiveCallbackData
+from generated import CompressedImage_pb2 as cipb
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
+from threading import Event
 import argparse
 from enum import Enum
 from scipy.spatial.transform import Rotation
@@ -43,6 +48,10 @@ class Calibrator2000:
 
         self.camera_pose_in_W = None
         self.camera_rot_in_W = None
+
+        self.event = Event()
+        self.imageSize = (0, 0)
+        self.img: np.ndarray = None
         
         self.open_capture()
 
@@ -70,6 +79,20 @@ class Calibrator2000:
                 return
             w, h = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
             print(f"Opened video with resolution {w}x{h}!\n")
+
+        elif src_type == Source.ECAL:
+            if not ecal_core.is_initialized():
+                ecal_core.initialize("arucoFinder")
+            self.sub = ProtoSubscriber(cipb.CompressedImage, src)
+            self.sub.set_receive_callback(self.on_img)
+
+    
+    def on_img(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[cipb.CompressedImage]):
+        nparr = np.frombuffer(data.message.data, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        self.img = frame
+        self.event.set()
+        
 
 
     def getCalibration(self, w, h):
@@ -241,7 +264,13 @@ class Calibrator2000:
 
         while True:
 
-            ret, frame = self.cap.read()
+            if src_type == Source.CAM or src_type == Source.VIDEO:
+                ret, frame = self.cap.read()
+                if not ret:
+                    break
+            elif src_type == Source.ECAL:
+                self.event.wait()
+                frame = self.img.copy()
 
             
             if self.camera_matrix is None:
@@ -280,6 +309,7 @@ if __name__ == "__main__":
     parser.add_argument('name', help='camera name')
     parser.add_argument('-c', '--cam', type=int, help='Camera ID', default=None)
     parser.add_argument('-v', '--video', help='Video file', default=None)
+    parser.add_argument('-t', '--topic', help='ecal', default=None)
     parser.add_argument('-W', '--width', type=int, help='image width', default=None)
     parser.add_argument('-H', '--height', type=int, help='image height', default=None)
     parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
@@ -297,6 +327,9 @@ if __name__ == "__main__":
     elif args.video is not None:
         src_type = Source.VIDEO
         src = args.video
+    elif args.topic is not None:
+        src_type = Source.ECAL
+        src = args.topic
 
     else:
         print("Please specify the source: cam, video ")
