@@ -148,6 +148,14 @@ class JoystickEcal ():
                 self.IO_manager.moveD(self.posD)
                 time.sleep(0.1)
 
+            if self.buttons[self.conf["option"]] == 1:
+                self.IO_manager.moveD(PosTentacle.RETOURNE)
+                time.sleep(0.1)
+            
+            if self.buttons[self.conf["share"]] == 1:
+                self.IO_manager.moveG(PosTentacle.RETOURNE)
+                time.sleep(0.1)
+
             if self.buttons[self.conf["triangle"]] == 1:
                 self.pumpDList[0] = not self.pumpDList[0]
                 self.IO_manager.Grab(POMPES_DROITES[0],self.pumpDList[0])
