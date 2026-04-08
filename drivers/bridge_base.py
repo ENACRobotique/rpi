@@ -37,6 +37,7 @@ class Duckoder(Protocol):
         if not ecal_core.is_initialized():
             ecal_core.initialize("Bridge low level")
         self.odom_pos_pub = ProtoPublisher(hgpb.Position, "odom_pos")
+        self.ekf_pos_pub = ProtoPublisher(hgpb.Position, "ekf_pos")
         self.odom_move_pub = ProtoPublisher(hgpb.Position, "odom_move")
         self.odom_speed_pub = ProtoPublisher(hgpb.Speed, "odom_speed")
         self.carrot_pos_pub = ProtoPublisher(hgpb.Position, "carrot_pos")
@@ -50,7 +51,7 @@ class Duckoder(Protocol):
             llpb.Topic.POS_ROBOT_W:     self.odom_pos_pub,
             llpb.Topic.POS_CARROT_W:    self.carrot_pos_pub,
             llpb.Topic.MOVE_ROBOT_R:    self.odom_move_pub,
-            llpb.Topic.POS_LIDAR:       self.odom_pos_pub
+            llpb.Topic.POS_ROBOT_EKF:   self.ekf_pos_pub
         }
 
         self.motors_pubs = {
@@ -162,7 +163,7 @@ class Duckoder(Protocol):
     def set_lidar_pos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
         hlm = data.message
         llmsg = llpb.Message(pos=hlm)
-        llmsg.msg_type = llpb.Message.MsgType.COMMAND
+        llmsg.msg_type = llpb.Message.MsgType.STATUS
         llmsg.topic = llpb.Topic.POS_LIDAR
         self.send_message(llmsg)
 
