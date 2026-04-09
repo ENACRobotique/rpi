@@ -58,8 +58,8 @@ class EkfDiff:
         self.encoders_sub = ProtoSubscriber(cpb2.Speed, "odom_speed")
         self.encoders_sub.set_receive_callback(self.handle_encoders)
 
-        self.encoders_sub = ProtoSubscriber(lpb2.Balises, "balises_near_odom")
-        self.encoders_sub.set_receive_callback(self.handle_beacons)
+        # self.encoders_sub = ProtoSubscriber(lpb2.Balises, "balises_near_odom")
+        # self.encoders_sub.set_receive_callback(self.handle_beacons)
 
         #self.encoders_sub.set_receive_callback(self.handle_commands)
         # self.commands_sub = ProtoSubscriber(cpb2.Speed, "speed_cmd")
@@ -255,7 +255,7 @@ class EkfDiff:
     def handle_gyro(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Ins]):
         """ Gyro callback. Update the state with gyro measure."""
         # TODO vtheta est à l'envers
-        z = np.array([-msg.message.vtheta])
+        z = np.array([msg.message.vtheta])
         self.update(z, self.h_gyro, self.H_gyro, self.Rg)
         
     def handle_encoders(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
@@ -263,25 +263,25 @@ class EkfDiff:
         z = np.array([msg.message.vx, msg.message.vtheta])
         self.update(z, self.h_enc, self.H_enc, self.Re)
     
-    def handle_beacons(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[lpb2.Balises]):
-        # TODO directly in [r, alpha]
-        # and maybe send beacon by beacon asap, so its not repeated fields (list) anymore
-        m = msg.message
-        for i, x, y in zip(m.index, m.x, m.y):
-            # position at which the beacons has been seen, in the robot frame
-            r = np.sqrt(x**2 + y**2)
-            alpha = np.atan2(y, x)
-            z = np.array([r, alpha])
+    # def handle_beacons(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[lpb2.Balises]):
+    #     # TODO directly in [r, alpha]
+    #     # and maybe send beacon by beacon asap, so its not repeated fields (list) anymore
+    #     m = msg.message
+    #     for i, x, y in zip(m.index, m.x, m.y):
+    #         # position at which the beacons has been seen, in the robot frame
+    #         r = np.sqrt(x**2 + y**2)
+    #         alpha = np.atan2(y, x)
+    #         z = np.array([r, alpha])
 
-            pos_beacon = self.BEACONS[i]    # theoritical beacon pos
-            h = partial(self.h_balise, pos_b=pos_beacon)    # get h(X) for this beacon
-            H = partial(self.H_balise, pos_b=pos_beacon)    # get H(X) for this beacon
-            self.update(z, h, H, self.Rb)
+    #         pos_beacon = self.BEACONS[i]    # theoritical beacon pos
+    #         h = partial(self.h_balise, pos_b=pos_beacon)    # get h(X) for this beacon
+    #         H = partial(self.H_balise, pos_b=pos_beacon)    # get H(X) for this beacon
+    #         self.update(z, h, H, self.Rb)
 
     
-    def handle_commands(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
-        U = np.array([msg.message.vx, msg.message.vtheta])
-        self.predict(U)
+    # def handle_commands(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
+    #     U = np.array([msg.message.vx, msg.message.vtheta])
+    #     self.predict(U)
     
     # def handle_speed_cons(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
     #     self.U = np.array([msg.message.vx, msg.message.vtheta])

@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from generated import robot_state_pb2 as robot_pb
 from generated import common_pb2 as common_pb
 from generated import lidar_data_pb2 as lidar_pb
-from common import Pos
+from common import Pos, normalize_angle
 import itertools
 
 
@@ -37,6 +37,8 @@ BEACONS_YELLOW = {
 
 MAX_COST = (150**2) * 6
 TOLERANCE = 500 #mm
+R_TOLERANCE = 150 #mm
+THETA_TOLERANCE = np.pi/3
 BEACON_MAX_SIZE = 150 # mm 
 BEACON_MIN_SIZE = 50 # mm 
 
@@ -56,7 +58,7 @@ class LidarLoca:
         self.sub_lidar = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
         self.sub_lidar.set_receive_callback(self.amalgames_cb)
 
-        self.sub_odom = ProtoSubscriber(common_pb.Position, "odom_pos")
+        self.sub_odom = ProtoSubscriber(common_pb.Position, "ekf_pos")
         self.sub_odom.set_receive_callback(self.odom_pos_cb)
 
         self.sub_reset_pos = ProtoSubscriber(common_pb.Position, "reset")
@@ -100,7 +102,6 @@ class LidarLoca:
         """
         new_odom_pos = Pos.from_proto(data.message)
         # get the odometry move since last odom_pos
-        dpos = new_odom_pos - self.odom_pos
         self.odom_pos = new_odom_pos
 
         # add the odometry move to the last estimated position
@@ -149,11 +150,36 @@ class LidarLoca:
     @staticmethod
     def closest_amalgames(beacon_pos_r: Pos, amalgames: list[Amalgame]) -> list[Amalgame]:
         """Returns amalgame and dist of the closest amalgame in the list"""
-        dists = [beacon_pos_r.distance(amalgame.pos) for amalgame in amalgames]
-        # filter out dists > TOLERANCE
-        dist_filtered = filter(lambda x: x[1] <= TOLERANCE, zip(amalgames, dists))
-        da_sorted = sorted(dist_filtered, key=lambda x: x[1])
-        return [amalgame for amalgame, _ in da_sorted]
+        amalgames[0].pos.x
+        r_beacon = np.sqrt((beacon_pos_r.x)**2 + (beacon_pos_r.y)**2)
+        theta_beacon = np.atan2(beacon_pos_r.y, beacon_pos_r.x)
+
+        amalgames_filtered = []
+
+
+
+        for amalgame in amalgames :
+            r = np.sqrt((amalgame.pos.x)**2 + (amalgame.pos.y)**2)
+            theta = np.atan2(amalgame.pos.y, amalgame.pos.x)
+
+            dr = r - r_beacon
+            dtheta =  normalize_angle(theta - theta_beacon)
+
+            if (abs(dr) <  R_TOLERANCE ) and (dtheta < THETA_TOLERANCE):
+                amalgames_filtered.append(amalgame)
+            
+        
+        return amalgames_filtered
+
+
+
+
+        # dists = [beacon_pos_r.distance(amalgame.pos) for amalgame in amalgames]
+        # # filter out dists > TOLERANCE
+        # dist_filtered = filter(lambda x: x[1] <= TOLERANCE, zip(amalgames, dists))
+        # da_sorted = sorted(dist_filtered, key=lambda x: x[1])
+        # return [amalgame for amalgame, _ in da_sorted]
+
 
     def estimate_beacons_pos(self, msg) -> list[dict[int, Amalgame]]:
         # On filtre les amalgames qui ne sont pas des balises
