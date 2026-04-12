@@ -1,6 +1,8 @@
 # LD06 cpp driver
 
-# Build driver
+Publie sur le topic `lidar_data` les données du lidar.
+
+# Compilation
 
 ```
 mkdir build && cd build
