@@ -1,6 +1,11 @@
+#!/usr/bin/env python3
 import gpiod
-from gpiod.line import Direction, Bias, Edge
+from gpiod.line import Direction, Bias, Edge, Value
 import datetime
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+import robot_state_pb2  as rpb
+
 
 LINE = 25
 TIMEOUT = 3
@@ -20,13 +25,18 @@ if __name__ == "__main__":
         },
     )
 
-    while True:
+    if not ecal_core.is_initialized():
+            ecal_core.initialize("Tirette")
+    tirette_pub = ProtoPublisher(rpb.Tirette, "tirette")
+    
+    while ecal_core.ok():
         if tirette_request.wait_edge_events(timeout=TIMEOUT):
             for event in tirette_request.read_edge_events():
-                print(event)
-                # if event.event_type == event.Type.RISING_EDGE:
-                #     print("rising edge")
-                # elif event.event_type == event.Type.FALLING_EDGE:
-                #     print("falling edge")
+                pass
+                #print(event)
         val = tirette_request.get_value(LINE)
-        print(val)
+        tirette_state = rpb.Tirette.IN if val == Value.INACTIVE else rpb.Tirette.OUT
+        msg = rpb.Tirette(tirette_state=tirette_state)
+        tirette_pub.send(msg)
+        print(val, tirette_state)
+

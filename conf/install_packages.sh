@@ -22,5 +22,5 @@ sudo apt-get install -y build-essential
 sudo apt-get install -y cmake
 
 # ArucoFinder cpp
-sudo apt install libopencv-dev libopencv-contrib-dev
+sudo apt install -y libopencv-dev libopencv-contrib-dev
 sudo apt install -y libcli11-dev

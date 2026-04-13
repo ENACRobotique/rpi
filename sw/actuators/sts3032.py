@@ -25,7 +25,12 @@ class STS3032:
     def set_id(self,id,new_id):
         self.protocol.write(id,STSMemoryMap.ID.value,struct.pack('<B', new_id))
     
-
+  # def setTotalPos(self, id, total_pos: bool):
+  #   if total_pos:
+  #     self.write(id, 0x12, b'\x7C')
+  #   else:
+  #     self.write(id, 0x12, b'\x6C')
+  
 class STSMemoryMap(Enum):
     """
     STS3032 Memory map.

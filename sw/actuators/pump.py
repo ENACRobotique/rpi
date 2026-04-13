@@ -25,6 +25,12 @@ class Pump:
             (pumpDuty,) = struct.unpack('<B', data)
             return pumpDuty
     
+    def readCurrent(self, id):
+        data = self.protocol.read(id, PumpMemoryMap.CURRENT.value, 2)
+        if data is not None:
+            (current,) = struct.unpack('<H', data)
+            return current
+    
     def setPumpDuty(self, id, data):
         self.protocol.write(id, PumpMemoryMap.PUMP_DUTY.value, struct.pack('<B', data))
 
