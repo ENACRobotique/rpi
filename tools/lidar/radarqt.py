@@ -22,15 +22,13 @@ if __name__ == "__main__":
     main_window.setCentralWidget(central_widget)
     layout = QtWidgets.QVBoxLayout(central_widget)
 
-    with RadarView(args.lidar,args.no_loca) as radarView:
+    radarView = RadarView(args.lidar, args.no_loca)
+    layout.addWidget(radarView)
 
-        layout.addWidget(radarView)
-        qapp.aboutToQuit.connect(radarView.stop)
-        
-        if args.pi:
-            main_window.showFullScreen()
-        else:
-            main_window.show()
-        #app.activateWindow()
-        #app.raise_()
-        qapp.exec()
+    if args.pi:
+        main_window.showFullScreen()
+    else:
+        main_window.show()
+    #app.activateWindow()
+    #app.raise_()
+    qapp.exec()

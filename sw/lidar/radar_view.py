@@ -31,7 +31,8 @@ class RadarView(QtWidgets.QWidget):
     def __init__(self, topic, no_loca, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         self.no_loca = no_loca
-        if not ecal_core.is_initialized():
+        self._owns_ecal = not ecal_core.is_initialized()
+        if self._owns_ecal:
             ecal_core.initialize("RadarQt receiver")
         self.lidar_sub = ProtoSubscriber(pbl.Lidar, topic)
         self.lidar_sub.set_receive_callback(self.handle_lidar_data)
@@ -64,29 +65,29 @@ class RadarView(QtWidgets.QWidget):
         self.show_odom_prediction = True
         self.show_found_beacons = True
         self.odom_prediction_style = ODOM_PREDICTION_STYLE
+        self._resources_released = False
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
             QtWidgets.QSizePolicy.Policy.MinimumExpanding
         )
         self._init_overlay_controls()
-    
-    def __enter__(self):
-        return self
-    
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.lidar_sub.remove_receive_callback()
+        app = QtWidgets.QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self.release_resources)
+
+    def release_resources(self) -> None:
+        if self._resources_released:
+            return
+
+        self._resources_released = True
         if self.no_loca:
             self.lidar_amalgames_sub.remove_receive_callback()
             self.lidar_balises_odom_sub.remove_receive_callback()
             self.lidar_balises_nearodom_sub.remove_receive_callback()
-        
-    def stop(self):
         self.lidar_sub.remove_receive_callback()
-        if self.no_loca:
-            self.lidar_amalgames_sub.remove_receive_callback()
-            self.lidar_balises_odom_sub.remove_receive_callback()
-            self.lidar_balises_nearodom_sub.remove_receive_callback()
-        ecal_core.finalize()
+
+        if self._owns_ecal and ecal_core.is_initialized():
+            ecal_core.finalize()
 
     def _init_overlay_controls(self) -> None:
         self.controls_widget = QtWidgets.QFrame(self)
@@ -260,6 +261,10 @@ class RadarView(QtWidgets.QWidget):
     def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
         self._position_overlay_controls()
         super().resizeEvent(e)
+
+    def closeEvent(self, e: QtGui.QCloseEvent) -> None:
+        self.release_resources()
+        super().closeEvent(e)
 
     def lidar_cb(self, data):
            self.data = data
