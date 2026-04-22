@@ -40,7 +40,7 @@ from actuators.sap_master import SAPMaster
 #
 #########################
 
-LISTE_SERVICE = [("Camera Mabel","robot_aruco"),("Camera Dipper","robot_aruco2"),("Bridge","robot_bridge"),("Actionneurs","robot_IO"),("Manette","robot_joystick"),("Driver Lidar","robot_lidar_driver"),("Lidar Amalgameur","robot_lidar_amalgameur"),("Lidar Localisation","robot_lidar_loca"),("START","robot_start"),("Strategie","robot_strat")]
+LISTE_SERVICE = [("Camera Mabel","robot_aruco"),("Camera Dipper","robot_aruco2"),("Bridge","robot_bridge"),("Actionneurs","robot_IO"),("Manette","robot_joystick"),("Driver Lidar","robot_lidar_driver"),("Lidar Amalgameur","robot_lidar_amalgameur"),("Lidar Localisation","robot_lidar_loca"),("Tirette","robot_tirette"),("Strategie","robot_strat")]
 TOTAL_SERVICE = len(LISTE_SERVICE)
 
 LISTE_ID_ACTIONNEURS = [5,7,11,20,40,41,42,43,44,45,46,47]
