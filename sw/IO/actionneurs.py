@@ -28,10 +28,10 @@ class Actionneur(Enum):
     pumpG3 = 45
     pumpG4 = 47
 
-    tricepsD = 5
-    bicepsD = 7
-    tricepsG = 11
-    bicepsG = 20
+    tricepsD = 20
+    bicepsD = 5
+    tricepsG = 7
+    bicepsG = 11
 
 POMPES_DROITES = [Actionneur.pumpD1, Actionneur.pumpD2, Actionneur.pumpD3, Actionneur.pumpD4]
 POMPES_GAUCHES = [Actionneur.pumpG1, Actionneur.pumpG2, Actionneur.pumpG3, Actionneur.pumpG4]
