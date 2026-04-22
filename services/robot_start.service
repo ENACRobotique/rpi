@@ -13,6 +13,7 @@ Wants=robot_aruco2.service
 #Wants=robot_strat.service
 Wants=robot_joystick.service
 Wants=robot_ui.service
+Wants=robot_tirette.service
 
 [Service]
 Type=simple
