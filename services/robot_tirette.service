@@ -6,7 +6,7 @@ After=network.target network-online.target
 Type=simple
  
 WorkingDirectory=/home/robot/rpi/drivers
-ExecStart=/home/robot/rpi/drivers/tirette.py
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/drivers/tirette.py
  
 Restart=on-failure
 RestartSec=2 
