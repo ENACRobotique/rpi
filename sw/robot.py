@@ -117,6 +117,9 @@ class Robot:
         self.positionReportSub = ProtoSubscriber(common_pb.Position, "odom_pos")
         self.positionReportSub.set_receive_callback(self.onReceivePosition)
 
+        self.tiretteSub = ProtoSubscriber(robot_pb.Tirette, "tirette")
+        self.tiretteSub.set_receive_callback(self.onReceiveTirette)
+
         self.speedReportSub = ProtoSubscriber(common_pb.Speed, "odom_speed")
         self.speedReportSub.set_receive_callback(self.onReceiveSpeed)
 
@@ -308,6 +311,13 @@ class Robot:
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
         self.speed = Speed.from_proto(data.message)
     
+    def onReceiveTirette(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Tirette]):
+        """Callback d'un subscriber ecal. Actualise la tirette du robot"""
+        if data.message.tirette_state == robot_pb.Tirette.IN :
+            self.tirette = Tirette.IN
+        else:
+            self.tirette = Tirette.OUT
+
     def set_pid_gain(self, gain, value):
         self._pid_gains[gain] = value
         kp, ki, kd = self._pid_gains
