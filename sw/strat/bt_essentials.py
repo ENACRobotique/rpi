@@ -171,118 +171,43 @@ class Move(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         # Moving
         return py_trees.common.Status.RUNNING
-    
+
+
 class MoveTo(py_trees.behaviour.Behaviour):
-    def __init__(self, position_target:Pos):
+    def __init__(self, position_target:Pos | Callable[[Robot], Pos]):
         super().__init__(name=f"MoveTo")
         self.bb, self.robot,_ = get_bb_robot(self)
         self.position_target = position_target
+        self.dernier_consigne_pos = None
+        self.avoiding = False
 
     def initialise(self):
-        self.robot.setTargetPos(self.position_target)
+        if isinstance(self.position_target, Pos):
+            self.dernier_consigne_pos = self.position_target
+        else :
+             self.dernier_consigne_pos = self.position_target(self.robot)
+        self.robot.setTargetPos(self.dernier_consigne_pos)
+
 
     def update(self):
-        print("[MoveTo] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
-        if self.robot.hasReachedTarget():
-            return py_trees.common.Status.SUCCESS
-        self.robot.setTargetPos(self.position_target)
-        # Moving
+        if self.robot.obstacle_in_way(self.dernier_consigne_pos):
+             if not self.avoiding:
+                self.robot.log("Obstacle detected, stopping.")
+                self.robot.set_speed(Speed(0, 0, 0))
+                #self.robot.setTargetPos(self.robot.pos) #ARRETER ROBOT
+                print(f"Robot stop ici: {self.robot.pos}")
+                self.avoiding = True
+        else:   # pas d'obstacle
+            if self.avoiding:
+                # resume movement after obstacle avoidance
+                self.robot.log("No obstacle, resuming movement")
+                self.robot.setTargetPos(self.dernier_consigne_pos)
+                self.avoiding = False
+            else:
+                if self.robot.hasReachedTarget():
+                    return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
 
-# class Deplace_toi (py_trees.behaviour.Behaviour):
-#     def __init__(self, distance, direction_deg, vitesse):
-#         super().__init__(name="Deplace toi un peu en reculant")
-#         self.bb, self.robot, self.world = get_bb_robot(self)
-#         self.distance = distance
-#         self.direction = direction_deg
-#         self.vitesse = vitesse
-#         self.done = False
-        
-#     def initialise(self):
-#         if self.done:
-#             return
-#         print("Deplace toi un peu en reculant")
-#         self.robot.move(self.distance, radians(self.direction), self.vitesse)
-
-#     def update(self):
-#         print("[Deplace_toi] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
-#         if self.done:
-#             return py_trees.common.Status.SUCCESS
-#         if self.robot.hasReachedTarget():
-#             print("Deplacement fini")
-#             self.done = True
-#             return py_trees.common.Status.SUCCESS
-#         return py_trees.common.Status.RUNNING
-
-# class Bouge (py_trees.behaviour.Behaviour):
-#     def __init__(self, vitesse: Speed, temps):
-#         super().__init__(name="Bouge")
-#         self.bb, self.robot, self.world = get_bb_robot(self)
-#         self.temps = temps
-#         self.vitesse = vitesse
-#         self.done = False
-#         self.start_time: float = 0
-#         self.pause_time = None
-
-#     def initialise(self):
-#         self.robot.set_speed(self.vitesse)
-
-#         self.start_time = time.time()
-    
-#     def update(self):
-#         # robot stopped and not in pause
-#         if self.robot.locomotion.is_idle() and self.pause_time is None:
-#             print("Deplacement fini")
-#             self.done = True
-#             return py_trees.common.Status.SUCCESS
-#         if self.robot.obstacle_in_speed(self.vitesse):
-#             if self.pause_time is None:
-#                 self.robot.log(f"Obstacle detected, stopping.   {self.vitesse}")
-#                 self.robot.locomotion.set_speed(Speed(0, 0, 0), 10)
-#                 self.pause_time = time.time()
-#         else:   # pas d'obstacle
-#             if self.pause_time is not None:
-#                 self.robot.log("No obstacle, resuming movement")
-#                 time_left = self.temps - (self.pause_time - self.start_time)
-#                 self.robot.locomotion.set_speed(self.vitesse, time_left)
-#                 self.pause_time = None
-#                 self.temps = time_left
-#                 self.start_time = time.time()
-#         return py_trees.common.Status.RUNNING
-
-# class Evitement(py_trees.behaviour.Behaviour):
-#     """TODO:
-#     - evitement basique : on s'arrete DONE  !
-#     - evitement intermédiare : on recule 
-#     - evitement avancé : on countourne"""
-#     def __init__(self):
-#         super().__init__(name=f"Evitement")
-#         self.bb, self.robot, self.world = get_bb_robot(self)
-#         self.bb.register_key(key="matchTime", access=py_trees.common.Access.WRITE)
-#         self.evitement = False
-
-#     def initialise(self):
-#         self.last_target = self.robot.last_target # on retient la dernière consigne à chaque appel. Tant que update renvoie FAILURE cette fonction sera apellée
-#         self.evitement = False
-
-#     def update(self):
-#         if self.bb.matchTime == 0 :
-#             return py_trees.common.Status.FAILURE
-#         if self.robot.obstacle_in_way(self.last_target):
-#             print("Avoiding")
-#             # self.robot.setTargetPos(self.robot.pos)
-#             self.robot.locomotion.set_speed(Speed(0, 0, 0))
-#             # reculer ? :
-#             # self.robot.locomotion.set_speed(Speed(-self.robot.speed.vx, -self.robot.speed.vy, 0), 0.5) 
-#             self.evitement = True
-#             return py_trees.common.Status.RUNNING # adversaire detecté, évitement en cours !
-#         return py_trees.common.Status.FAILURE # pas d'advresaire detecté 
-    
-#     def terminate(self, new_status: py_trees.common.Status):
-#         if new_status == py_trees.common.Status.FAILURE: ## si on a une state INVALID on préfère ne rien faire (pour l'instant)
-#             if self.evitement: # on verifie qu'on a evité quelque chose pour ne pas perturber le robot
-#                 # self.robot.setTargetPos(self.last_target) # le robot repart
-#                 print(f"Resuming: {self.last_target}\n")
 
 class WaitMatchStart(py_trees.behaviour.Behaviour):
     def __init__(self):
