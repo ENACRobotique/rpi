@@ -40,7 +40,7 @@ from actuators.sap_master import SAPMaster
 #
 #########################
 
-LISTE_SERVICE = [("Camera Mabel","robot_aruco"),("Camera Dipper","robot_aruco2"),("Bridge","robot_bridge"),("Actionneurs","robot_IO"),("Manette","robot_joystick"),("Driver Lidar","robot_lidar_driver"),("Lidar Amalgameur","robot_lidar_amalgameur"),("Lidar Localisation","robot_lidar_loca"),("START","robot_start"),("Strategie","robot_strat")]
+LISTE_SERVICE = [("Camera Mabel","robot_aruco"),("Camera Dipper","robot_aruco2"),("Bridge","robot_bridge"),("Actionneurs","robot_IO"),("Manette","robot_joystick"),("Driver Lidar","robot_lidar_driver"),("Lidar Amalgameur","robot_lidar_amalgameur"),("Lidar Localisation","robot_lidar_loca"),("Tirette","robot_tirette"),("Strategie","robot_strat")]
 TOTAL_SERVICE = len(LISTE_SERVICE)
 
 LISTE_ID_ACTIONNEURS = [5,7,11,20,40,41,42,43,44,45,46,47]
@@ -50,7 +50,7 @@ BASEROULANTE_TIMEOUT = 1000 # ms
 
 class Robot:
     def __init__(self):
-        self.name = "Dave"
+        self.name = "Poulpey"
         self.diameter = 300 #mm
         self.couleur = "Jaune"
         self.color_pub = ProtoPublisher(robot_pb.Side, "color")
@@ -131,19 +131,14 @@ class TabStatus(QtWidgets.QWidget):
 
         ## Baterie + titre
         topLayout = QtWidgets.QHBoxLayout()
-        self.bar_batterie = QtWidgets.QProgressBar()
-        self.bar_batterie.setMaximumSize(80, 33)
-        self.bar_batterie.setValue(24)
         self.title_status = QtWidgets.QLabel("STATUS")
         self.title_status.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        topLayout.addWidget(self.bar_batterie)
         topLayout.addWidget(self.title_status)
-        topLayout.addStretch()
         layout.addLayout(topLayout)
 
         ## Bouton pour changer la couleur
         self.b_status_color = QtWidgets.QPushButton(self.robot.name)
-        self.b_status_color.setMinimumSize(300, 100); self.b_status_color.setStyleSheet("background-color: yellow")
+        self.b_status_color.setMinimumSize(300, 100); self.b_status_color.setStyleSheet("background-color: gray")
         self.b_status_color.clicked.connect(lambda:self.updateCouleur(False if self.robot.couleur=="Jaune" else True))
         layout.addWidget(self.b_status_color, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter)
 
@@ -272,7 +267,7 @@ class TabStatus(QtWidgets.QWidget):
         self.l_nbBalises.setText("Nombre balises : " + str(nb))
         if nb >= 3 :
             self.l_nbBalises.setStyleSheet("color: green")
-            self.icon_nbBalises.setText("V")
+            self.icon_nbBalises.setText("✔")
         else :
             self.l_nbBalises.setStyleSheet("color: red")
             self.icon_nbBalises.setText("X")
@@ -281,7 +276,7 @@ class TabStatus(QtWidgets.QWidget):
         # Rafraichit l'affichage des services actifs
         if self.robot.nbServicesActifs == TOTAL_SERVICE:
             self.l_status_service.setText(f"{self.robot.nbServicesActifs}/{TOTAL_SERVICE} services"); self.l_status_service.setStyleSheet("color: green")
-            self.icon_service.setText("V")
+            self.icon_service.setText("✔")
         else:
             self.l_status_service.setText(f"{self.robot.nbServicesActifs}/{TOTAL_SERVICE} services"); self.l_status_service.setStyleSheet("color: red")
             self.icon_service.setText("X")
@@ -291,7 +286,7 @@ class TabStatus(QtWidgets.QWidget):
         if serviceIO :
             if self.robot.nbActionneursActifs == TOTAL_ACTIONNEURS:
                 self.l_status_actionneurs.setText(f"{self.robot.nbActionneursActifs}/{TOTAL_ACTIONNEURS} actionneurs"); self.l_status_actionneurs.setStyleSheet("color: green")
-                self.icon_actionneur.setText("V")
+                self.icon_actionneur.setText("✔")
             else:
                 self.l_status_actionneurs.setText(f"{self.robot.nbActionneursActifs}/{TOTAL_ACTIONNEURS} actionneurs"); self.l_status_actionneurs.setStyleSheet("color: red")
                 self.icon_actionneur.setText("X")
@@ -303,7 +298,7 @@ class TabStatus(QtWidgets.QWidget):
         # Rafraichit l'affichage de la base roulante
         if self.robot.state_baseRoulante :
             self.l_baseRoulante.setStyleSheet("color: green")
-            self.icon_baseRoulante.setText("V")
+            self.icon_baseRoulante.setText("✔")
             if not self.robot.lastState_baseRoulante :
                 self.signal_emitter.baseRoulante_signal.emit(True)
         else:
@@ -335,7 +330,7 @@ class ServiceWidget(QWidget):
         self.b_stop_service.clicked.connect(self.stop)
         self.b_start_service = QPushButton("Start"); self.b_start_service.setMaximumSize(80, 35)
         self.b_start_service.clicked.connect(self.start)
-        self.l_ok_service = QLabel("V")
+        self.l_ok_service = QLabel("✔")
 
         self.hl.addWidget(self.l_service)
         self.hl.addWidget(self.b_stop_service)
@@ -427,7 +422,7 @@ class ActionneurWidget(QWidget):
         self.l_act = QtWidgets.QLabel(f"{id}")
         self.b_ping_act = QPushButton("Ping"); self.b_ping_act.setMaximumSize(80, 35)
         self.b_ping_act.clicked.connect(self.rafraichir)
-        self.l_status_act = QLabel("V")
+        self.l_status_act = QLabel("✔")
 
         self.hl.addWidget(self.l_act)
         self.hl.addWidget(self.b_ping_act)
@@ -438,16 +433,16 @@ class ActionneurWidget(QWidget):
         if status :
             # L'actionneur répond
             self.l_act.setStyleSheet("color: green")
-            self.l_status_act.setText("V")
+            self.l_status_act.setText("✔")
             return True
         else :
             self.l_act.setStyleSheet("color: red")
-            self.l_status_act.setText("X")
+            self.l_status_act.setText("✔")
             return False
         
     def desactivatedBaseRoulante(self):
         self.l_act.setStyleSheet("color: grey")
-        self.l_status_act.setText("X")
+        self.l_status_act.setText("✔")
 
 class TabActionneurs(QtWidgets.QWidget):
 
@@ -642,12 +637,15 @@ if __name__ == "__main__":
     
     if args.pi:
         sys.argv.extend(["-platform", "linuxfb"])
-
+        
+    
     app = QtWidgets.QApplication(sys.argv)
+    with open("style.qss", "r") as f:
+        app.setStyleSheet(f.read())
     main_widget = MainWindow(robot,signal_emitter)
 
     if args.pi:
-        window = RotatedWindow(main_widget, angle=90)
+        window = RotatedWindow(main_widget, angle=270)
     else:
         window = main_widget
 
