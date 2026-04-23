@@ -26,7 +26,7 @@ import sw.nav.nav as nav
 HEIGHT = 2000
 WIDTH = 3000
 DELTA = 40
-XY_ACCURACY = 15  # mm
+XY_ACCURACY = 20  # mm
 THETA_ACCURACY = radians(10) # radians
 #AVOIDANCE_OBSTACLE_MARGIN = 500 #in mm.  Standard robot enemy radius is 22 cm
 
@@ -65,7 +65,17 @@ class Caisse(Enum):
     RIEN = 0
     TOUT = 999
 
+class Velocity(Enum):
+    FAST = Speed(600,0,4)
+    NORMAL = Speed(300,0,2)
+    SLOW = Speed(100,0,1)
 
+class Cote(Enum):
+    DROIT = True
+    GAUCHE = False
+
+COTE_DROIT = True
+COTE_GAUCHE = False
 
 class Robot:
     """Classe dont le but est de se subscribe à ecal pour avoir une représentation de l'état du robot
@@ -116,6 +126,9 @@ class Robot:
         self.lidarPosSub = ProtoSubscriber(common_pb.Position, "lidar_pos")
         self.lidarPosSub.set_receive_callback(self.onLidarPos)
 
+        self.colorSub = ProtoSubscriber(robot_pb.Side, "color")
+        self.colorSub.set_receive_callback(self.onColorChanged)
+
         # When Using Robokontrol
         self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
         self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
@@ -160,6 +173,8 @@ class Robot:
     def log(self, message:str):
         self.logger.info(message)
         self.logs_pub.send(message)
+
+        
 # ---------------------------- #
 #             IHM              #
 # ____________________________ #
@@ -175,9 +190,9 @@ class Robot:
     #     self.color_pub.send(msg)
 
 
-    # def updateScore(self,points):
-
-    #     self.score += points
+    def updateScore(self,points):
+        # TODO
+        self.score += points
 
     
  
@@ -185,18 +200,23 @@ class Robot:
     #     self.strat = strat
 
     
-    # def ready_to_go(self):
-    #     """ Rassembler les conditions nécéssaires pour que le robot commence son match"""
-    #     a = self.color != Team.AUCUNE
-    #     b = self.tirette == Tirette.OUT
-    #     return a and b
+    def ready_to_go(self):
+        """ Rassembler les conditions nécéssaires pour que le robot commence son match"""
+        a = self.color != Team.AUCUNE
+        b = self.tirette == Tirette.OUT
+        return a and b
 # ---------------------------- #
 #           CONTROL            #
 # ____________________________ #
-    
+
+    def stop(self):
+        self.set_speed(Speed(0,0,0))
+        self.actionneurs.stopActionneur()
+        
+
     def hasReachedTarget(self):
         # TODO
-        if self.pos.distance(self.last_target) < 10 and (abs(self.pos.theta - self.last_target.theta) < np.deg2rad(3)):
+        if self.pos.distance(self.last_target) < 15 and (abs(self.pos.theta - self.last_target.theta) < np.deg2rad(3)):
             return True
         else:
             return False
@@ -272,11 +292,17 @@ class Robot:
         self.pos = Pos.from_proto(msg)
         self.nb_pos_received += 1
 
+    def onColorChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Side]):
+        msg = data.message
+        if msg.color == robot_pb.Side.Color.YELLOW :
+            self.color = Team.JAUNE
+        else:
+            self.color = Team.BLEU
+
     def onLidarPos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """Callback d'un subscriber ecal. Récup la position du lidar"""
         msg = data.message
         self.lidar_pos = Pos.from_proto(msg)
-
 
     def onReceiveSpeed(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Speed]):
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
@@ -287,8 +313,6 @@ class Robot:
         kp, ki, kd = self._pid_gains
         msg = base_pb.MotorPid(motor_no=0, kp=kp, ki=ki, kd=kd)
         self.pid_pub.send(msg)
-
-  
 
 # ---------------------------- #
 #          NAVIGATION          #
@@ -308,6 +332,10 @@ class Robot:
         return self.setTargetPos(Pos(x,y,theta))
         #closest = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         #self.pathFinder(closest,waypoint)
+    
+    def distance_from(self,waypoint):
+        x,y = self.nav.getCoords(waypoint)
+        return self.pos.distance(Pos(x,y,0))
 
     def resetPosFromNav(self, waypoint, theta=None):
         self.log("Reseted nav at : {waypoint}")
@@ -333,7 +361,12 @@ class Robot:
         self.nav_pos = [Pos(p[0],p[1],p[2]) for p in nav_pos]
         #self.log("Pos's are : ",self.nav_pos)
         self.folowingPath = True
-    
+
+    def dest_to_pos(self,tuple_dest_ang):
+        x,y = self.nav.getCoords(tuple_dest_ang[0])
+        return Pos(x,y,tuple_dest_ang[1])
+
+
     def closeToNavPoint(self, nav_id):
         d=sqrt((self.pos.x-self.nav_pos[nav_id].x)**2 + (self.pos.y-self.nav_pos[nav_id].y)**2)
         return (d <= XY_ACCURACY)
@@ -436,12 +469,59 @@ class Robot:
             self.rotate(angle_droite_robot,blocking=True)
         
             ## Alignement en x: 
+            #print(-x_repereCaisse+200)
+            #self.move(200 - x_repereCaisse,0,blocking=True,timeout=2)
+            print(x_repereCaisse)
             self.move(x_repereCaisse,0,blocking=True,timeout=2)
-
             if coteDroit :
                 self.coteD = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
             else :
                 self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+
+    def cote_droit_vide(self):
+        for caisse in self.coteD:
+            if caisse != Caisse.RIEN:
+                return False
+        return True
+    
+    def cote_gauche_vide(self):
+        for caisse in self.coteG:
+            if caisse != Caisse.RIEN:
+                return False
+        return True
+
+    def cote_droit_ours(self):
+        ### True si le cote droit a des caisse de notre couleur
+        ### False sinon
+        for caisse in self.coteD:
+            if (caisse == Caisse.BLEU and self.color == Team.BLEU) or (caisse == Caisse.JAUNE and self.color == Team.JAUNE):
+                return False
+        return True
+
+    def cote_gauche_ours(self):
+        ### True si le cote gauche a des caisse de notre couleur
+        ### False sinon
+        for caisse in self.coteG:
+            if (caisse == Caisse.BLEU and self.color == Team.BLEU) or (caisse == Caisse.JAUNE and self.color == Team.JAUNE):
+                return True
+        return False
+    
+    def brasThermo(self):
+        self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
+
+    def thermoAct(self,thermo_pos):
+        self.setTargetPos(self.dest_to_pos(thermo_pos),blocking=True,timeout=8)
+        self.move(100,thermo_pos[1] + np.pi,blocking=True,timeout=2) # ie on bourre le mur
+        if self.color ==Team.JAUNE:
+            self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
+        else :
+            self.actionneurs.moveTricepsG(act.PosTentacle.THERMO)
+        self.move(500,0,blocking=True,timeout=8)
+        if self.color ==Team.JAUNE:
+            self.actionneurs.moveTricepsD(act.PosTentacle.HAUT)
+        else :
+            self.actionneurs.moveTricepsG(act.PosTentacle.HAUT)
+        return True
     
     def attraper(self,coteDroit):
         if coteDroit :

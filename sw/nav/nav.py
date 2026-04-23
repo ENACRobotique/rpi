@@ -6,6 +6,7 @@ import sw.nav.map as map
 import sw.nav.dijkstra as dijkstra
 # import matplotlib.pyplot as plt
 from math import sqrt,pi
+
 class Nav(object):  
     def __init__(self):
         """
@@ -15,12 +16,11 @@ class Nav(object):
         self.entree : str
         self.sortie : str
         self.graph : map.Graph
-        self.file = os.path.join(current_dir, "graph.txt")
+        self.file = os.path.join(current_dir, "graph2026.txt")
         self.path : list
         self.statut : bool # arrivé : True ; en chemin : False. # sert pour savoir si on peut envoyer la nouvelle consigne
         self.consigne : tuple # (x,y)
         self.current : tuple # point actuellement occupé
-
 
     def initialisation(self):
         """Initialise le graph et ses poids"""

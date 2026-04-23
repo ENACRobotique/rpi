@@ -11,7 +11,7 @@ from bt_essentials import*
 from planner import Planner, Action
 from actions import *
 import ecal.nanobind_core as ecal_core
-import musics
+#import musics
 
 
 # === Boucle principale ===
@@ -29,12 +29,11 @@ if __name__ == "__main__":
         planner = Planner(r, w)
         planner.add_action(MatchStartAction)
         planner.add_action(EndAction)
-        planner.add_action(BanderoleAction)
-        # planner.add_action(PoussePousse)
+        planner.add_action(ThermometreAction)
+        #planner.add_action(Recuperer)
         planner.add_action(GoHomeAction)
-        planner.add_action(Gradin)
         
-        r.play_music(musics.smoke_on_the_water)
+        # r.play_music(musics.smoke_on_the_water)
 
         while ecal_core.ok():
             action = planner.plan()
@@ -53,7 +52,8 @@ if __name__ == "__main__":
             action.end_cb(r, w, bt.root.status)
             r.log(f"action {action.name} finished with status {bt.root.status.name}")
             # print(f"action {action.name} finished with status {bt.root.status.name}")
+            
         
         ecal_core.finalize()
-        r.actionneurs.Servo_IO.client.destroy()
-        r.locomotion.stop()
+        r.actionneurs.sap_master.protocol.client.destroy()
+        r.stop()

@@ -1,6 +1,7 @@
 import py_trees
 import sys
 import time
+import numpy as np
 sys.path.append("../..")
 from robot import Robot, Pos, Speed, Tirette, Team, Strat
 from world import World
@@ -9,32 +10,35 @@ from collections.abc import Callable
 
 START_POS = {
     Team.JAUNE: {
-        Strat.Basique: Pos(1200, 250, radians(30)),
+        Strat.Basique: ('NidJ',-np.pi/2)
         # Strat.Audacieuse: ('secureJ', -pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: Pos(1800, 250, radians(30)),
+        Strat.Basique: ('NidB',-np.pi/2)
         # Strat.Audacieuse: ('secureB', -pi/2)
     }
 }
 END_POS = {
     Team.JAUNE: {
-        Strat.Basique: [Pos(200, 1400, radians(90)),('finJ',radians(90))],
+        Strat.Basique: ('NidJ',-np.pi/2)
         # Strat.Audacieuse: 'midJ'
     },
     Team.BLEU: {
-        Strat.Basique: [Pos(2800, 1400, radians(90)),('finB',radians(90))],
+        Strat.Basique: ('NidB',-np.pi/2)
         # Strat.Audacieuse: 'midB'
     }
 }
-INTEREST = {
-    Team.JAUNE:{
-        Strat.Basique: [('G9_DOWN', radians(90)),('G3', radians(-90))],
+
+THERMO_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('ThermoJ',0)
     },
-    Team.BLEU:{
-        Strat.Basique: [('G10_DOWN', radians(90)),('G4', radians(-90))],
+    Team.BLEU: {
+        Strat.Basique: ('ThermoB',np.pi)
     }
 }
+
+
 def get_bb_robot(behavior: py_trees.behaviour.Behaviour) -> tuple[py_trees.blackboard.Client, Robot, World]:
     bb = behavior.attach_blackboard_client(name="Foo Global")
     bb.register_key(key="robot", access=py_trees.common.Access.WRITE)
@@ -79,13 +83,12 @@ class EndStrat(py_trees.behaviour.Behaviour):
         self.bb, self.robot, self.world = get_bb_robot(self)
     
     def initialise(self):
-        self.robot.locomotion.set_speed(Speed(0, 0, 0))
+        self.robot.set_speed(Speed(0, 0, 0))
 
     def update(self):
         print("Strat terminée !")
         # play tune ?
         # TODO: do this in a non blocking manner
-        self.robot.shuffle_play()
         return py_trees.common.Status.RUNNING
 
 class MatchTimer(py_trees.behaviour.Behaviour):
@@ -101,9 +104,12 @@ class MatchTimer(py_trees.behaviour.Behaviour):
         if self.world.matchStartTime > 0:
             if abs(self.world.matchStartTime-time.time()) >= self.world.MATCH_DURATION:
                 print("Achievement Made! The End ?")
-                self.robot.locomotion.set_speed(Speed(0, 0, 0))
+                self.robot.set_speed(Speed(0, 0, 0))
                 return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.FAILURE
+    
+
+
     
 class Navigate(py_trees.behaviour.Behaviour):
     """TODO"""
@@ -126,7 +132,7 @@ class Navigate(py_trees.behaviour.Behaviour):
         if self.robot.obstacle_in_way(self.robot.nav_pos[self.nav_id]):
             if not self.avoiding:
                 self.robot.log("Obstacle detected, stopping.")
-                self.robot.locomotion.set_speed(Speed(0, 0, 0))
+                self.robot.set_speed(Speed(0, 0, 0))
                 self.avoiding = True
         else:   # pas d'obstacle
             if self.avoiding:
@@ -136,7 +142,6 @@ class Navigate(py_trees.behaviour.Behaviour):
                 self.avoiding = False
             else:
                 # normal case, no obstacle
-
                 if self.robot.isNavDestReached():
                     print("Navigation end !")
                     return py_trees.common.Status.SUCCESS
@@ -151,7 +156,7 @@ class Navigate(py_trees.behaviour.Behaviour):
 class Move(py_trees.behaviour.Behaviour):
     """TODO"""
     def __init__(self, robot: Robot, distance, direction, speed):
-        super().__init__(name=f"Navigating")
+        super().__init__(name=f"Move")
         self.robot = robot
         self.distance = distance
         self.direction = direction
@@ -170,7 +175,7 @@ class Move(py_trees.behaviour.Behaviour):
 class MoveTo(py_trees.behaviour.Behaviour):
     def __init__(self, position_target:Pos):
         super().__init__(name=f"MoveTo")
-        self.bb, self.robot = get_bb_robot(self)
+        self.bb, self.robot,_ = get_bb_robot(self)
         self.position_target = position_target
 
     def initialise(self):
@@ -184,64 +189,66 @@ class MoveTo(py_trees.behaviour.Behaviour):
         # Moving
         return py_trees.common.Status.RUNNING
 
-class Deplace_toi (py_trees.behaviour.Behaviour):
-    def __init__(self, distance, direction_deg, vitesse):
-        super().__init__(name="Deplace toi un peu en reculant")
-        self.bb, self.robot, self.world = get_bb_robot(self)
-        self.distance = distance
-        self.direction = direction_deg
-        self.vitesse = vitesse
-        self.done = False
-    def initialise(self):
-        if self.done:
-            return
-        print("Deplace toi un peu en reculant")
-        self.robot.move(self.distance, radians(self.direction), self.vitesse)
+# class Deplace_toi (py_trees.behaviour.Behaviour):
+#     def __init__(self, distance, direction_deg, vitesse):
+#         super().__init__(name="Deplace toi un peu en reculant")
+#         self.bb, self.robot, self.world = get_bb_robot(self)
+#         self.distance = distance
+#         self.direction = direction_deg
+#         self.vitesse = vitesse
+#         self.done = False
+        
+#     def initialise(self):
+#         if self.done:
+#             return
+#         print("Deplace toi un peu en reculant")
+#         self.robot.move(self.distance, radians(self.direction), self.vitesse)
 
-    def update(self):
-        print("[Deplace_toi] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
-        if self.done:
-            return py_trees.common.Status.SUCCESS
-        if self.robot.hasReachedTarget():
-            print("Deplacement fini")
-            self.done = True
-            return py_trees.common.Status.SUCCESS
-        return py_trees.common.Status.RUNNING
+#     def update(self):
+#         print("[Deplace_toi] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
+#         if self.done:
+#             return py_trees.common.Status.SUCCESS
+#         if self.robot.hasReachedTarget():
+#             print("Deplacement fini")
+#             self.done = True
+#             return py_trees.common.Status.SUCCESS
+#         return py_trees.common.Status.RUNNING
 
-class Bouge (py_trees.behaviour.Behaviour):
-    def __init__(self, vitesse: Speed, temps):
-        super().__init__(name="Bouge")
-        self.bb, self.robot, self.world = get_bb_robot(self)
-        self.temps = temps
-        self.vitesse = vitesse
-        self.done = False
-        self.start_time: float = 0
-        self.pause_time = None
+# class Bouge (py_trees.behaviour.Behaviour):
+#     def __init__(self, vitesse: Speed, temps):
+#         super().__init__(name="Bouge")
+#         self.bb, self.robot, self.world = get_bb_robot(self)
+#         self.temps = temps
+#         self.vitesse = vitesse
+#         self.done = False
+#         self.start_time: float = 0
+#         self.pause_time = None
 
-    def initialise(self):
-        self.robot.locomotion.set_speed(self.vitesse,self.temps)
-        self.start_time = time.time()
+#     def initialise(self):
+#         self.robot.set_speed(self.vitesse)
+
+#         self.start_time = time.time()
     
-    def update(self):
-        # robot stopped and not in pause
-        if self.robot.locomotion.is_idle() and self.pause_time is None:
-            print("Deplacement fini")
-            self.done = True
-            return py_trees.common.Status.SUCCESS
-        if self.robot.obstacle_in_speed(self.vitesse):
-            if self.pause_time is None:
-                self.robot.log(f"Obstacle detected, stopping.   {self.vitesse}")
-                self.robot.locomotion.set_speed(Speed(0, 0, 0), 10)
-                self.pause_time = time.time()
-        else:   # pas d'obstacle
-            if self.pause_time is not None:
-                self.robot.log("No obstacle, resuming movement")
-                time_left = self.temps - (self.pause_time - self.start_time)
-                self.robot.locomotion.set_speed(self.vitesse, time_left)
-                self.pause_time = None
-                self.temps = time_left
-                self.start_time = time.time()
-        return py_trees.common.Status.RUNNING
+#     def update(self):
+#         # robot stopped and not in pause
+#         if self.robot.locomotion.is_idle() and self.pause_time is None:
+#             print("Deplacement fini")
+#             self.done = True
+#             return py_trees.common.Status.SUCCESS
+#         if self.robot.obstacle_in_speed(self.vitesse):
+#             if self.pause_time is None:
+#                 self.robot.log(f"Obstacle detected, stopping.   {self.vitesse}")
+#                 self.robot.locomotion.set_speed(Speed(0, 0, 0), 10)
+#                 self.pause_time = time.time()
+#         else:   # pas d'obstacle
+#             if self.pause_time is not None:
+#                 self.robot.log("No obstacle, resuming movement")
+#                 time_left = self.temps - (self.pause_time - self.start_time)
+#                 self.robot.locomotion.set_speed(self.vitesse, time_left)
+#                 self.pause_time = None
+#                 self.temps = time_left
+#                 self.start_time = time.time()
+#         return py_trees.common.Status.RUNNING
 
 # class Evitement(py_trees.behaviour.Behaviour):
 #     """TODO:
@@ -289,35 +296,42 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
     def initialise(self):
         self.last_time = time.time()
 
-
     def update(self):
+        ###################
+        #A enlever
+        #################
+        if self.robot.color == Team.JAUNE:
+            print("Match Started")
+            self.color = self.robot.color
+            self.world.matchStartTime = time.time()
+            self.matchStarted = True
+
+            ##############
+
         if self.robot.color == Team.AUCUNE:
             if time.time() - self.last_time > 0.5:
                 # Waiting for robot color to be set
-                self.robot.buzz(ord('B')+7)
                 self.last_time = time.time()
         if self.matchStarted:
             # last check
-            desired_pos = START_POS[self.color][self.robot.strat]
+            desired_pos = self.robot.dest_to_pos(START_POS[self.color][self.robot.strat])
             if self.robot.pos.distance(desired_pos) > 200:
-                self.robot.resetPosNonBlocking(desired_pos)
+                self.robot.resetPos(desired_pos,0)
             return py_trees.common.Status.SUCCESS
         if self.robot.tirette == Tirette.IN:
             if not self.firstIN:
                 self.robot.log("Tirette in for first time")
-                self.robot.buzz(ord('B'))
             self.firstIN = True
         
         if self.firstIN :
             if not self.matchStarted:
-                if self.robot.ready_to_go():
+                if self.robot.ready_to_go(): 
                     self.robot.log("Match Started !")
                     self.world.matchStartTime = time.time()
-                    self.robot.buzz(ord('E')+7)
                     self.matchStarted = True
         if self.color != self.robot.color:
             self.color = self.robot.color
-            self.robot.resetPosNonBlocking(START_POS[self.color][self.robot.strat])
+            self.robot.resetPos(self.robot.dest_to_pos(START_POS[self.color][self.robot.strat]))
         return py_trees.common.Status.RUNNING
 
 
@@ -340,7 +354,7 @@ class Recalage(py_trees.behaviour.Behaviour):
             return
         self.position = self.pos_cb(self.robot)
         self.init_time = time.time()
-        self.robot.resetPosNonBlocking(self.position)
+        self.robot.resetPos(self.position,0)
         print("Recalage")
 
     def update(self):

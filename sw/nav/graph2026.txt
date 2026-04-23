@@ -8,7 +8,7 @@ ThermoJ 200 200 NoixJSW
 FrigoJS 700 400 NoixJSW,FrigoJES,NoixJSE
 FrigoJES 800 625 FrigoJW,NoixJSW,FrigoJS,NoixJSE,NoixJES
 NoixJES 1150 625 FrigoJES,FrigoMidNS,FrigoMidS,NoixJSE,FrigoJS
-NoixJSE 1150 400 FrigoJS,FrigoJES,NoixJES,FrigoMidS,FrigoMidS
+NoixJSE 1100 400 FrigoJS,FrigoJES,NoixJES,FrigoMidS,FrigoMidS
 FrigoJEN 800 1025 EntreeJ,FrigoJN,NoixJEN,FrigoJW,NoixJN
 NoixJEN 1150 1025 FrigoMidNN,FrigoJEN,FrigoJN,EntreeJ
 FrigoMidNN 1500 1025 NoixJEN,NoixBWN
