@@ -198,11 +198,11 @@ class JoystickEcal ():
                 time.sleep(0.1)
             
             if self.buttons[self.conf["share"]]==1:
-                self.IO_manager.moveG(PosTentacle.RETOUR)
+                self.IO_manager.moveG(PosTentacle.RETOURNE)
             
 
             if self.buttons[self.conf["option"]]==1:
-                self.IO_manager.moveD(PosTentacle.RETOUR)
+                self.IO_manager.moveD(PosTentacle.RETOURNE)
                 
 
 
