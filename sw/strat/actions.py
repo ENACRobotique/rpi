@@ -36,6 +36,7 @@ class ThermometreAction(Action):
             # GoTo zone banderole
             WaitSeconds(0.5),
             Navigate(thermo_point),
+            #MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
             ThermoAction(THERMO_POS[robot.color][robot.strat])
         ])
         return bougerThermo

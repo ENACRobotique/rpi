@@ -361,7 +361,7 @@ class Robot:
 
         self.nav.entree = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         self.nav.sortie = dest
-        nav_pos = self.nav.findPath(self.pos.theta,orientation)
+        nav_pos = self.nav.findReducedPath(self.pos.theta,orientation)
 
         self.n_points = len(self.nav.chemin)
         self.log(f"entree: {self.nav.entree}")
