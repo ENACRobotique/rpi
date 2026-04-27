@@ -67,14 +67,14 @@ class Duckoder(Protocol):
         }
 
         self.target_pos_sub = ProtoSubscriber(hgpb.Position, "set_position")
-        self.target_relativ_pos = ProtoSubscriber(hgpb.Position, "set_relativ_pos")
+        self.target_relativ_pos_sub = ProtoSubscriber(hgpb.Position, "set_relativ_pos")
         self.lidar_pos_sub = ProtoSubscriber(hgpb.Position, "lidar_pos")
         self.reset_pos_sub = ProtoSubscriber(hgpb.Position, "reset")
         self.pid_sub = ProtoSubscriber(llpb.MotorPid, "pid_gains")
         self.speed_cons_sub = ProtoSubscriber(hgpb.Speed, "speed_cons")
 
         self.target_pos_sub.set_receive_callback(self.set_target)
-        self.target_pos_sub.set_receive_callback(self.set_relativ_target)
+        self.target_relativ_pos_sub.set_receive_callback(self.set_relativ_target)
         self.lidar_pos_sub.set_receive_callback(self.set_lidar_pos)
         self.reset_pos_sub.set_receive_callback(self.reset_position)
         self.pid_sub.set_receive_callback(self.set_pid)
