@@ -327,6 +327,7 @@ class Robot:
 
     def onResponse(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[base_pb.Response]):
         self.response_status = data.message.status
+        self.response_event.set()
 
     def set_pid_gain(self, gain, value):
         self._pid_gains[gain] = value
