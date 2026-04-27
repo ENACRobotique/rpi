@@ -15,6 +15,7 @@ import generated.messages_pb2 as base_pb
 import IO.actionneurs as act
 from common import Pos, Speed, next_path, normalize_angle
 from camera.arucoState import ArucoState
+from queue import Queue
 
 from scipy.stats import linregress
 
@@ -136,6 +137,11 @@ class Robot:
         self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
         self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
 
+        self.response_queue = Queue()
+        self.response_sub = ProtoSubscriber(base_pb.Response, "response")
+        self.response_sub.set_receive_callback(self.onResponse)
+        
+
         #self.proximitySub = ProtoSubscriber(lidar_pb.Proximity, "proximity_status")
         #self.proximitySub.set_receive_callback(self.onProximityStatus)
 
@@ -234,12 +240,8 @@ class Robot:
         self.last_target = pos
         
         if blocking :
-            start_time = time.time()
-            while time.time() - start_time < timeout:
-                if self.hasReachedTarget():
-                    return True
-                time.sleep(0.1)
-            return False
+            success = self.response_queue.get(timeout=timeout)
+            return success == 0
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
@@ -248,6 +250,9 @@ class Robot:
         """
         target = Pos(distance, 0, normalize_angle(direction)) 
         self.target_relativ_pos_pub.send(target.to_proto())
+        if blocking :
+            success = self.response_queue.get(timeout=timeout)
+            return success == 0
 
 
 
@@ -322,6 +327,10 @@ class Robot:
             self.tirette = Tirette.IN
         else:
             self.tirette = Tirette.OUT
+
+    def onResponse(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[base_pb.Response]):
+        self.response_queue.put(data.message.status)
+        
 
     def set_pid_gain(self, gain, value):
         self._pid_gains[gain] = value
