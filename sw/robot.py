@@ -146,6 +146,8 @@ class Robot:
 
         self.target_pos_pub = ProtoPublisher(common_pb.Position, "set_position")
 
+        self.target_relativ_pos_pub = ProtoPublisher(common_pb.Position, "set_relativ_pos")
+
         # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
         self.color_pub = ProtoPublisher(robot_pb.Side, "color")
@@ -218,7 +220,6 @@ class Robot:
         
 
     def hasReachedTarget(self):
-        # TODO
         if self.pos.distance(self.last_target) < 15 and (abs(self.pos.theta - self.last_target.theta) < np.deg2rad(3)):
             return True
         else:
@@ -245,9 +246,13 @@ class Robot:
         BLOQUANT\n
         avance de distance dans la direction direction, repère robot 
         """
-        frame_pince = Pos(0, 0, direction)
-        target = Pos(distance, 0, -direction).from_frame(frame_pince)
-        return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
+        target = Pos(distance, 0, normalize_angle(direction)) 
+        self.target_relativ_pos_pub.send(target.to_proto())
+
+
+
+
+
     
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
