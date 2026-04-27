@@ -15,7 +15,7 @@ import generated.messages_pb2 as base_pb
 import IO.actionneurs as act
 from common import Pos, Speed, next_path, normalize_angle
 from camera.arucoState import ArucoState
-from queue import Queue, Empty
+from threading import Event
 
 from scipy.stats import linregress
 
@@ -137,7 +137,8 @@ class Robot:
         self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
         self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
 
-        self.response_queue = Queue()
+        self.response_event = Event()
+        self.response_status = 0
         self.response_sub = ProtoSubscriber(base_pb.Response, "response")
         self.response_sub.set_receive_callback(self.onResponse)
         
@@ -239,12 +240,9 @@ class Robot:
         self.target_pos_pub.send(pos.to_proto())
         self.last_target = pos
         
-        if blocking :
-            try:
-                success = self.response_queue.get(timeout=timeout)
-                return success == 0
-            except Empty:
-                return False
+        if blocking:
+            return self.response_event.wait(timeout) and self.response_status
+
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
@@ -254,11 +252,7 @@ class Robot:
         target = Pos(distance, 0, normalize_angle(direction)) 
         self.target_relativ_pos_pub.send(target.to_proto())
         if blocking :
-            success = self.response_queue.get(timeout=timeout)
-            return success == 0
-
-
-
+            return self.response_event.wait(timeout) and self.response_status
 
 
     
@@ -332,8 +326,7 @@ class Robot:
             self.tirette = Tirette.OUT
 
     def onResponse(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[base_pb.Response]):
-        self.response_queue.put(data.message.status)
-        
+        self.response_status = data.message.status
 
     def set_pid_gain(self, gain, value):
         self._pid_gains[gain] = value
