@@ -15,7 +15,7 @@ import generated.messages_pb2 as base_pb
 import IO.actionneurs as act
 from common import Pos, Speed, next_path, normalize_angle
 from camera.arucoState import ArucoState
-from queue import Queue
+from queue import Queue, Empty
 
 from scipy.stats import linregress
 
@@ -240,8 +240,11 @@ class Robot:
         self.last_target = pos
         
         if blocking :
-            success = self.response_queue.get(timeout=timeout)
-            return success == 0
+            try:
+                success = self.response_queue.get(timeout=timeout)
+                return success == 0
+            except Empty:
+                return False
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
