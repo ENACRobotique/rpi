@@ -157,7 +157,9 @@ class Robot:
 
         # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
-        self.color_pub = ProtoPublisher(robot_pb.Side, "color")
+        # self.color_pub = ProtoPublisher(robot_pb.Side, "color")
+
+        self.score_pub = ProtoPublisher(robot_pb.Score, "score")
 
         self.pid_pub = ProtoPublisher(base_pb.MotorPid, "pid_gains")
 
@@ -205,6 +207,10 @@ class Robot:
     def updateScore(self,points):
         # TODO
         self.score += points
+        msg = robot_pb.Score()
+        self.logger.info(f"Score : {self.score}")
+        msg.score = self.score
+        self.score_pub.send(msg)
 
     
  
