@@ -243,11 +243,11 @@ class Robot:
         if frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
         pos.theta = normalize_angle(pos.theta)
+        self.response_event.clear()
         self.target_pos_pub.send(pos.to_proto())
         self.last_target = pos
-        
         if blocking:
-            return self.response_event.wait(timeout) and self.response_status
+            return self.response_event.wait(timeout) and self.response_status == 0
 
 
     def move(self, distance, direction, blocking=False, timeout = 10):
@@ -255,10 +255,11 @@ class Robot:
         BLOQUANT\n
         avance de distance dans la direction direction, repère robot 
         """
-        target = Pos(distance, 0, normalize_angle(direction)) 
+        target = Pos(distance * np.cos(direction), distance * np.sin(direction), normalize_angle(direction)) 
+        self.response_event.clear()
         self.target_relativ_pos_pub.send(target.to_proto())
         if blocking :
-            return self.response_event.wait(timeout) and self.response_status
+            return self.response_event.wait(timeout) and self.response_status == 0
 
 
     
@@ -270,7 +271,7 @@ class Robot:
     def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
          \nArgs, float:theta en radians """
-        self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
+        self.move(0,angle,blocking=False, timeout = 10)
 
     def set_speed(self, speed: Speed):
         """
