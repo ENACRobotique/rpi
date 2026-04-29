@@ -30,7 +30,8 @@ if __name__ == "__main__":
         planner.add_action(MatchStartAction)
         planner.add_action(EndAction)
         planner.add_action(ThermometreAction)
-        #planner.add_action(Recuperer)
+        planner.add_action(Recuperer)
+        planner.add_action(Deposer)
         planner.add_action(GoHomeAction)
         
         # r.play_music(musics.smoke_on_the_water)

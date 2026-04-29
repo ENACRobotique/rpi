@@ -31,10 +31,19 @@ END_POS = {
 
 THERMO_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('ThermoJ',0)
+        Strat.Basique: ('ThermoJ',np.pi)
     },
     Team.BLEU: {
-        Strat.Basique: ('ThermoB',np.pi)
+        Strat.Basique: ('ThermoB',0)
+    }
+}
+
+CAISSETHERMO_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('NoixJSW',-np.pi/2)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('NoixBSE',-np.pi/2)
     }
 }
 
@@ -103,7 +112,7 @@ class MatchTimer(py_trees.behaviour.Behaviour):
     def update(self):
         if self.world.matchStartTime > 0:
             if abs(self.world.matchStartTime-time.time()) >= self.world.MATCH_DURATION:
-                print("Achievement Made! The End ?")
+                #print("Achievement Made! The End ?")
                 self.robot.set_speed(Speed(0, 0, 0))
                 return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.FAILURE
@@ -222,17 +231,6 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
         self.last_time = time.time()
 
     def update(self):
-        ###################
-        #A enlever
-        #################
-        if self.robot.color == Team.JAUNE:
-            print("Match Started")
-            self.color = self.robot.color
-            self.world.matchStartTime = time.time()
-            self.matchStarted = True
-
-            ##############
-
         if self.robot.color == Team.AUCUNE:
             if time.time() - self.last_time > 0.5:
                 # Waiting for robot color to be set
@@ -256,6 +254,7 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                     self.matchStarted = True
         if self.color != self.robot.color:
             self.color = self.robot.color
+            print("reset posssssssssss")
             self.robot.resetPos(self.robot.dest_to_pos(START_POS[self.color][self.robot.strat]))
         return py_trees.common.Status.RUNNING
 
