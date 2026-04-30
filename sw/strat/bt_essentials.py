@@ -10,11 +10,11 @@ from collections.abc import Callable
 
 START_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NidJ',-np.pi/2)
+        Strat.Basique: ('NidJ',np.pi/2)
         # Strat.Audacieuse: ('secureJ', -pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NidB',-np.pi/2)
+        Strat.Basique: ('NidB',np.pi/2)
         # Strat.Audacieuse: ('secureB', -pi/2)
     }
 }
@@ -31,19 +31,19 @@ END_POS = {
 
 THERMO_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('ThermoJ',np.pi)
+        Strat.Basique: ('ThermoJ',0)
     },
     Team.BLEU: {
-        Strat.Basique: ('ThermoB',0)
+        Strat.Basique: ('ThermoB',np.pi)
     }
 }
 
 CAISSETHERMO_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NoixJSW',-np.pi/2)
+        Strat.Basique: ('NoixJSW',np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NoixBSE',-np.pi/2)
+        Strat.Basique: ('NoixBSE',np.pi/2)
     }
 }
 
