@@ -57,6 +57,8 @@ class EkfDiff:
         self.gyro_sub.set_receive_callback(self.handle_gyro)
         self.encoders_sub = ProtoSubscriber(cpb2.Speed, "odom_speed")
         self.encoders_sub.set_receive_callback(self.handle_encoders)
+        self.reset_sub = ProtoSubscriber(cpb2.Position, "reset")
+        self.reset_sub.set_receive_callback(self.reset_pos)
 
         # self.encoders_sub = ProtoSubscriber(lpb2.Balises, "balises_near_odom")
         # self.encoders_sub.set_receive_callback(self.handle_beacons)
@@ -286,6 +288,8 @@ class EkfDiff:
     # def handle_speed_cons(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
     #     self.U = np.array([msg.message.vx, msg.message.vtheta])
 
+    def reset_pos(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Position]):
+        self.X = np.array([msg.message.x, msg.message.y, msg.message.theta, 0, 0])
     
     def send_pos(self):
         x, y, theta, _, _ = self.X

@@ -132,6 +132,7 @@ class Navigate(py_trees.behaviour.Behaviour):
 
     def initialise(self):
         self.dest, self.orientation = self.nav_cb(self.robot)
+        self.robot.resetPosOnEkf()
         print("Navigation go !")
         if not self.robot.folowingPath:
             self.robot.pathFinder(self.dest, self.orientation)
