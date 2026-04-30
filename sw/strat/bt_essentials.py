@@ -156,7 +156,7 @@ class Navigate(py_trees.behaviour.Behaviour):
                     print("Navigation end !")
                     return py_trees.common.Status.SUCCESS
                 else:
-                    if self.robot.closeToNavPoint(self.nav_id) and self.nav_id < len(self.robot.nav_pos)-1:
+                    if self.robot.closeToNavPoint(self.nav_id) and self.robot.hasReachedTarget() and self.nav_id < len(self.robot.nav_pos)-1:
                         self.nav_id+=1
                         self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
                         self.robot.log(f"Navigation :{self.robot.nav_pos[self.nav_id]} \n")
