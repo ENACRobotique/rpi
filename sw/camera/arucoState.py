@@ -43,11 +43,9 @@ class ArucoState:
         self.lock.release()
     
     def clear_old_data(self):
-        self.lock.acquire()
         for cam in self.data:
             if time.time() - self.last_update_time[cam] > self.perish_time:
                 self.data[cam] = []
-        self.lock.release()
 
 
     @staticmethod
@@ -68,6 +66,7 @@ class ArucoState:
     
 
     def get_aruco_robot(self):
+        self.lock.acquire()
         self.clear_old_data()
         arucos = []
 
@@ -79,7 +78,7 @@ class ArucoState:
                 P_tw = R_wc @ P_tc + P_cw
 
                 arucos.append(ArucoInfo(ar.ArucoId,P_tw,cam))
-        
+        self.lock.release()
         return arucos
 
 
