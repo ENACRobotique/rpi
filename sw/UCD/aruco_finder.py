@@ -590,7 +590,9 @@ class ArucoFinder:
 
     def run(self):
         win_name = f"ArucoFinder - {self.name}"
-        cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+        if self.display :
+            cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+            
         while True:
             if self.src_type == Source.CAM or self.src_type == Source.VIDEO:
                 ret, frame = self.cap.read()
