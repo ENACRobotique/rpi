@@ -76,7 +76,7 @@ class SignalEmitter(QObject):
     pos_lidar_signal = pyqtSignal(float, float, float)
     pos_odom_signal = pyqtSignal(float, float, float)
     balise_signal = pyqtSignal(int)
-
+    score_signal = pyqtSignal(int)
     service_signal = pyqtSignal()
     actionneur_signal = pyqtSignal(bool)
     baseRoulante_signal = pyqtSignal(bool)
@@ -597,7 +597,13 @@ class MainWindow(QtWidgets.QMainWindow):
         central = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(central)
 
-        self.l_score = QtWidgets.QLabel(f"SCORE : {self.robot.score}")
+        self.score_sub = ProtoSubscriber(robot_pb.Score,"score")
+        def sendScoreSignal( pub_id : ecal_core.TopicId, data : ReceiveCallbackData[robot_pb.Score]):
+            self.signal_emitter.score_signal.emit(data.message.score)
+        self.score_sub.set_receive_callback(sendScoreSignal)
+        self.signal_emitter.score_signal.connect(lambda new_score : self.l_score.setText(f"SCORE : {new_score}"))
+
+        self.l_score = QtWidgets.QLabel(f"SCORE : {0}")
         self.l_score.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(self.l_score)
@@ -640,7 +646,7 @@ if __name__ == "__main__":
         
     
     app = QtWidgets.QApplication(sys.argv)
-    with open("style.qss", "r") as f:
+    with open("./style.qss", "r") as f:
         app.setStyleSheet(f.read())
     main_widget = MainWindow(robot,signal_emitter)
 

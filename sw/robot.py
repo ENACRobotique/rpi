@@ -15,6 +15,7 @@ import generated.messages_pb2 as base_pb
 import IO.actionneurs as act
 from common import Pos, Speed, next_path, normalize_angle
 from camera.arucoState import ArucoState
+from threading import Event
 
 from scipy.stats import linregress
 
@@ -91,6 +92,7 @@ class Robot:
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
         self.pos = Pos(0, 0, 0)
+        self.ekf_pos = Pos(0, 0, 0)
         self.last_d = 20 # ne pas mettre trop grand
         self.nb_pos_received = 0
         self.speed = Speed(0, 0, 0)
@@ -110,12 +112,18 @@ class Robot:
         self.coteD = [Caisse.RIEN,Caisse.RIEN,Caisse.RIEN,Caisse.RIEN]
         self.coteG = [Caisse.RIEN,Caisse.RIEN,Caisse.RIEN,Caisse.RIEN]
 
-        self.aruco_state = ArucoState(3)
+        self.aruco_state = ArucoState(5)
 
         ### SUB ECAL ###
 
         self.positionReportSub = ProtoSubscriber(common_pb.Position, "odom_pos")
         self.positionReportSub.set_receive_callback(self.onReceivePosition)
+
+        self.ekfReportSub = ProtoSubscriber(common_pb.Position, "ekf_pos")
+        self.ekfReportSub.set_receive_callback(self.onReceiveEkf)
+
+        self.tiretteSub = ProtoSubscriber(robot_pb.Tirette, "tirette")
+        self.tiretteSub.set_receive_callback(self.onReceiveTirette)
 
         self.speedReportSub = ProtoSubscriber(common_pb.Speed, "odom_speed")
         self.speedReportSub.set_receive_callback(self.onReceiveSpeed)
@@ -133,6 +141,12 @@ class Robot:
         self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
         self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
 
+        self.response_event = Event()
+        self.response_status = 0
+        self.response_sub = ProtoSubscriber(base_pb.Response, "response")
+        self.response_sub.set_receive_callback(self.onResponse)
+        
+
         #self.proximitySub = ProtoSubscriber(lidar_pb.Proximity, "proximity_status")
         #self.proximitySub.set_receive_callback(self.onProximityStatus)
 
@@ -143,9 +157,13 @@ class Robot:
 
         self.target_pos_pub = ProtoPublisher(common_pb.Position, "set_position")
 
+        self.target_relativ_pos_pub = ProtoPublisher(common_pb.Position, "set_relativ_pos")
+
         # self.IO_pub = ProtoPublisher("Actionneur",robot_pb.IO)
 
-        self.color_pub = ProtoPublisher(robot_pb.Side, "color")
+        # self.color_pub = ProtoPublisher(robot_pb.Side, "color")
+
+        self.score_pub = ProtoPublisher(robot_pb.Score, "score")
 
         self.pid_pub = ProtoPublisher(base_pb.MotorPid, "pid_gains")
 
@@ -193,6 +211,10 @@ class Robot:
     def updateScore(self,points):
         # TODO
         self.score += points
+        msg = robot_pb.Score()
+        self.logger.info(f"Score : {self.score}")
+        msg.score = self.score
+        self.score_pub.send(msg)
 
     
  
@@ -215,7 +237,6 @@ class Robot:
         
 
     def hasReachedTarget(self):
-        # TODO
         if self.pos.distance(self.last_target) < 15 and (abs(self.pos.theta - self.last_target.theta) < np.deg2rad(3)):
             return True
         else:
@@ -226,25 +247,25 @@ class Robot:
         if frame == Frame.ROBOT:
             pos = pos.from_frame(self.pos)
         pos.theta = normalize_angle(pos.theta)
+        self.response_event.clear()
         self.target_pos_pub.send(pos.to_proto())
         self.last_target = pos
-        
-        if blocking :
-            start_time = time.time()
-            while time.time() - start_time < timeout:
-                if self.hasReachedTarget():
-                    return True
-                time.sleep(0.1)
-            return False
+        if blocking:
+            return self.response_event.wait(timeout) and self.response_status == 0
+
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
         BLOQUANT\n
         avance de distance dans la direction direction, repère robot 
         """
-        frame_pince = Pos(0, 0, direction)
-        target = Pos(distance, 0, -direction).from_frame(frame_pince)
-        return self.setTargetPos(target, Frame.ROBOT,blocking, timeout)
+        target = Pos(distance * np.cos(direction), distance * np.sin(direction), normalize_angle(direction)) 
+        self.response_event.clear()
+        self.target_relativ_pos_pub.send(target.to_proto())
+        if blocking :
+            return self.response_event.wait(timeout) and self.response_status == 0
+
+
     
     def heading(self,angle,blocking=False, timeout = 10):
         """ S'oriente vers la direction donnée
@@ -254,7 +275,7 @@ class Robot:
     def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
          \nArgs, float:theta en radians """
-        self.heading(self.pos.theta + angle,blocking=False, timeout = 10)
+        self.move(0,angle,blocking=False, timeout = 10)
 
     def set_speed(self, speed: Speed):
         """
@@ -281,6 +302,11 @@ class Robot:
     def resetPosOnLidar(self):
         """Recalage sur la pos du lidar"""
         self.resetPos(self.lidar_pos)
+
+    def resetPosOnEkf(self):
+        """Recalage sur la pos du lidar"""
+        pass
+        # self.resetPos(self.ekf_pos)
     
     def onSetTargetPostition (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -291,6 +317,12 @@ class Robot:
         msg = data.message
         self.pos = Pos.from_proto(msg)
         self.nb_pos_received += 1
+
+    def onReceiveEkf (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
+        """Callback d'un subscriber ecal. Actualise la position du robot"""
+        msg = data.message
+        ekf_pos = Pos.from_proto(msg)
+        self.ekf_pos = Pos(ekf_pos.x,ekf_pos.y,ekf_pos.theta%(2*np.pi))
 
     def onColorChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Side]):
         msg = data.message
@@ -308,6 +340,17 @@ class Robot:
         """Callback d'un subscriber ecal. Actualise la vitesse du robot"""
         self.speed = Speed.from_proto(data.message)
     
+    def onReceiveTirette(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Tirette]):
+        """Callback d'un subscriber ecal. Actualise la tirette du robot"""
+        if data.message.tirette_state == robot_pb.Tirette.IN :
+            self.tirette = Tirette.IN
+        else:
+            self.tirette = Tirette.OUT
+
+    def onResponse(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[base_pb.Response]):
+        self.response_status = data.message.status
+        self.response_event.set()
+
     def set_pid_gain(self, gain, value):
         self._pid_gains[gain] = value
         kp, ki, kd = self._pid_gains
@@ -348,10 +391,9 @@ class Robot:
         """Recherche le plus court chemin entre deux points.
         \nRetenu dans l'object self.nav.chemin
         \nUtiliser les noms des waypoints de graph.txt"""
-
         self.nav.entree = self.nav.closestWaypoint(self.pos.x,self.pos.y)
         self.nav.sortie = dest
-        nav_pos = self.nav.findPath(self.pos.theta,orientation)
+        nav_pos = self.nav.findReducedPath(self.pos.theta,orientation)
 
         self.n_points = len(self.nav.chemin)
         self.log(f"entree: {self.nav.entree}")
@@ -439,15 +481,17 @@ class Robot:
         return False
     
     def align_with_pack(self,coteDroit,timeout=0):
+        cam = "mabel" if coteDroit else "dipper"
         time_deb = time.time()
-        arucosPosRobot = self.aruco_state.get_aruco_robot()
+        print(self.aruco_state.get_aruco_robot())
+        arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
         while (len(arucosPosRobot)!=4 and (time.time()-time_deb)<timeout):
-            arucosPosRobot = self.aruco_state.get_aruco_robot()
+            arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
                
         # print(arucosPosRobot[2].pos,type(arucosPosRobot[2].pos))
         if len(arucosPosRobot)==4:
 
-            print("Bip bop alignement")
+            print("===Alignement===")
 
             x_centerPack,y_centerPack = 0,0
             for aruco in arucosPosRobot:
@@ -466,17 +510,27 @@ class Robot:
             if (abs(y_repereCaisse) > 300) or (abs(y_repereCaisse) < 130) :
                 print("Mauvais dy")
 
-            self.rotate(angle_droite_robot,blocking=True)
-        
+            self.rotate(angle_droite_robot,blocking=True,timeout=3)
+            print("tourne de ", angle_droite_robot)
+            time.sleep(1)
+
             ## Alignement en x: 
             #print(-x_repereCaisse+200)
             #self.move(200 - x_repereCaisse,0,blocking=True,timeout=2)
-            print(x_repereCaisse)
-            self.move(x_repereCaisse,0,blocking=True,timeout=2)
+            self.move(x_repereCaisse,0,blocking=True,timeout=3)
+            print("on bouge de ",x_repereCaisse)
+            time.sleep(1)
+
             if coteDroit :
                 self.coteD = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
             else :
                 self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+            print("Gauche = ", self.coteG," Droite = ",self.coteD)
+            return True
+
+        else : 
+            print("Alignement echoue avec ", len(arucosPosRobot))
+            return False
 
     def cote_droit_vide(self):
         for caisse in self.coteD:
@@ -510,34 +564,44 @@ class Robot:
         self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
 
     def thermoAct(self,thermo_pos):
+        print("===thermoAct===")
         self.setTargetPos(self.dest_to_pos(thermo_pos),blocking=True,timeout=8)
-        self.move(100,thermo_pos[1] + np.pi,blocking=True,timeout=2) # ie on bourre le mur
+        print("On va bourrer le mur")
+        self.move(-200,thermo_pos[1], blocking=True,timeout=4) # ie on bourre le mur
+        #time.sleep(2)
+        print("On descend le bras")
         if self.color ==Team.JAUNE:
-            self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
+            self.actionneurs.moveBicepsG(act.PosTentacle.THERMO)
         else :
-            self.actionneurs.moveTricepsG(act.PosTentacle.THERMO)
-        self.move(500,0,blocking=True,timeout=8)
+            self.actionneurs.moveBicepsD(act.PosTentacle.THERMO)
+        #self.heading(thermo_pos[1],blocking=True,timeout=3)
+        print("On pousse le thermo")
+        self.move(510,np.pi,blocking=True,timeout=8)
+        #time.sleep(3)
         if self.color ==Team.JAUNE:
-            self.actionneurs.moveTricepsD(act.PosTentacle.HAUT)
+            self.actionneurs.moveBicepsG(act.PosTentacle.HAUT)
         else :
-            self.actionneurs.moveTricepsG(act.PosTentacle.HAUT)
+            self.actionneurs.moveBicepsD(act.PosTentacle.HAUT)
         return True
     
     def attraper(self,coteDroit):
+        print("===Atrapper===")
         if coteDroit :
             self.actionneurs.moveD(act.PosTentacle.BAS)
             self.actionneurs.GrabD(True)
             time.sleep(1)
             self.actionneurs.moveD(act.PosTentacle.HAUT)
+            return True
         else :
             self.actionneurs.moveG(act.PosTentacle.BAS)
             self.actionneurs.GrabG(True)
             time.sleep(1)
             self.actionneurs.moveG(act.PosTentacle.HAUT)
+            return True
     
     def relacher(self,coteDroit,couleur:Caisse):
-        print("RELEASE : cote droit =", self.coteD,"cote gauche =",self.coteG)
         if coteDroit :
+            print("RELEASE : cote droit =", self.coteD)
             self.actionneurs.moveD(act.PosTentacle.DROP)
             for (i,caisse) in enumerate(self.coteD) :
                 if caisse == couleur or couleur == Caisse.TOUT :
@@ -546,6 +610,7 @@ class Robot:
             time.sleep(2)
             self.actionneurs.moveD(act.PosTentacle.HAUT)
         else :
+            print("RELEASE : cote gauche =", self.coteG)
             self.actionneurs.moveG(act.PosTentacle.DROP)
             for (i,caisse) in enumerate(self.coteG):
                 if caisse == couleur or couleur == Caisse.TOUT :
@@ -553,7 +618,7 @@ class Robot:
                     self.coteG[i] = Caisse.RIEN
             time.sleep(2)
             self.actionneurs.moveG(act.PosTentacle.HAUT)
-        return
+        return True
 
 if __name__ == "__main__":
     with Robot() as r:

@@ -70,7 +70,57 @@ class Nav(object):
         #print("distance", self.distance_totale)
         # print(graph.coords[chemin[1]][0]) #coordonnes x du point 
         #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
-    
+
+
+    def findReducedPath(self, theta_start, theta_dest):
+
+        chemin, self.distance_totale = dijkstra.dijkstra_classic(self.graph, self.entree, self.sortie)
+
+        if len(chemin) <= 2:
+            return self.findPath(theta_start, theta_dest)
+        else :
+            dtheta =theta_dest-theta_start
+            if dtheta < -pi :
+                theta_start -= 2*pi
+            elif dtheta > pi :
+                theta_start += 2*pi
+
+            #on ajoute le premier points
+            reduced_chemin = [chemin[0]]
+            x,y = self.getCoords(chemin[0])
+            reduced_pos = [(x,y,theta_start)]
+            dist = 0 
+
+            #on ajoute le points uniquement si ca forme une ligne droite
+            for i in range(1, len(chemin) - 1):
+                x0, y0 = self.getCoords(chemin[i - 1])
+                x1, y1 = self.getCoords(chemin[i])
+                x2, y2 = self.getCoords(chemin[i + 1])
+
+                dx1 = x1 - x0
+                dy1 = y1 - y0
+                dx2 = x2 - x1
+                dy2 = y2 - y1
+
+                dist += sqrt((x1-x0)**2+(y1-y0)**2)
+                theta = theta_start + (dtheta)*dist/self.distance_totale
+
+                if abs(dx1 * dy2 - dy1 * dx2):
+                    reduced_chemin.append(chemin[i])
+                    reduced_pos.append((x1,y1, theta))
+
+            #on ajoute le dernier points
+            x0, y0 = self.getCoords(chemin[-2])
+            x1, y1 = self.getCoords(chemin[-1])
+            dist += sqrt((x1-x0)**2+(y1-y0)**2)
+            theta = theta_start + (dtheta)*dist/self.distance_totale
+            reduced_chemin.append(chemin[-1])
+            reduced_pos.append((x1,y1, theta))
+
+            self.chemin = reduced_chemin
+            return reduced_pos
+
+
     def resetPath(self):
         self.chemin = []
     

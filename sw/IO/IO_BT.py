@@ -92,17 +92,34 @@ class Attraper(py_trees.behaviour.Behaviour):
         else :
             return py_trees.common.Status.FAILURE
 
+class Aligner(py_trees.behaviour.Behaviour):
+    def __init__(self, coteDroit:bool):
+        if coteDroit:
+            self.pos_info = "droit"
+        else:
+            self.pos_info = "gauche"
+        super().__init__(name=f"Alignement cote {self.pos_info}")
+        self.bb, self.robot, self.world = get_bb_robot(self)
+        self.cote = coteDroit
+
+    def initialise(self) -> None:
+        print(f"Alignement cote {self.pos_info}")
+        
+    def update(self):
+        if self.robot.align_with_pack(self.cote,timeout=2):
+            return py_trees.common.Status.SUCCESS
+        else :
+            return py_trees.common.Status.FAILURE
 
 class Relacher(py_trees.behaviour.Behaviour):
-    def __init__(self, coteDroit:bool,color_caisse):
-        if coteDroit:
+    def __init__(self, cote_color):
+        (self.cote,self.color_caisse) = cote_color
+        if self.cote:
             self.pos_info = "droit"
         else:
             self.pos_info = "gauche"
         super().__init__(name=f"Relacher avec le bras {self.pos_info}")
         self.bb, self.robot, self.world = get_bb_robot(self)
-        self.cote = coteDroit
-        self.color_caisse = color_caisse
 
     def initialise(self) -> None:
         print(f"Relacher avec le bras {self.pos_info}")

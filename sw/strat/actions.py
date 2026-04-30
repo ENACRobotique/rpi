@@ -9,7 +9,7 @@ from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
 from world import World,RAMASSAGE_POS,DEPOT_POS,DEPOT_ANG,RAMASSAGE_ANG
 from bt_essentials import MatchTimer, Navigate, WaitMatchStart, WaitUntil
-from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, START_POS
+from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, START_POS, CAISSETHERMO_POS
 from typing import Callable
 from dataclasses import dataclass
 import time
@@ -29,13 +29,22 @@ class ThermometreAction(Action):
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
         nav_pt = THERMO_POS[robot.color][robot.strat]
+        nav_pt2 = CAISSETHERMO_POS[robot.color][robot.strat]
+        cote = True if robot.color == Team.JAUNE else False # ie on recup cote Gauche avec le jaune pour avoir bras droit libre (et inversement cote bleu)
+
         def thermo_point(_):
             return nav_pt
-        bougerThermo = py_trees.composites.Sequence("Thermometre ", True)
+        def caissethermo_point(_):
+            return nav_pt2
+        
+        bougerThermo = py_trees.composites.Sequence("Thermometre", True)
         bougerThermo.add_children([
-            # GoTo zone banderole
             WaitSeconds(0.5),
+            Navigate(caissethermo_point),
+            Aligner(cote),
+            Attraper(cote),
             Navigate(thermo_point),
+            #MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
             ThermoAction(THERMO_POS[robot.color][robot.strat])
         ])
         return bougerThermo
@@ -50,6 +59,7 @@ class ThermometreAction(Action):
     
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        RAMASSAGE_POS[CAISSETHERMO_POS[robot.color][robot.strat][0]]=False # On dit qu'on a recup la caisse
         if status == py_trees.common.Status.SUCCESS:
             world.thermo_positioned = True
             robot.updateScore(10)
@@ -61,7 +71,7 @@ class Recuperer(Action):
 
     @staticmethod
     def recup_point(_,cote):
-        angle = RAMASSAGE_POS[Recuperer.nav_point] + np.pi if cote else RAMASSAGE_POS[Recuperer.nav_point]
+        angle = RAMASSAGE_ANG[Recuperer.nav_point]  if cote else RAMASSAGE_ANG[Recuperer.nav_point]+ np.pi
         return (Recuperer.nav_point,angle)
     
     @staticmethod
@@ -72,10 +82,10 @@ class Recuperer(Action):
         recup.add_children([
             WaitSeconds(0.5),
             Navigate(lambda x : Recuperer.recup_point(x,cote)), 
-            Attraper(cote) 
+            Aligner(cote),
+            Attraper(cote)
         ])
         return recup
-    
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
@@ -116,18 +126,16 @@ class Deposer(Action):
     name = "Deposer"
     nav_point = "NAN"
 
+
     @staticmethod
     def recup_point(_,cote):
-        angle = DEPOT_ANG[Deposer.nav_point] + np.pi if cote else DEPOT_ANG[Deposer.nav_point]
+        angle = DEPOT_ANG[Deposer.nav_point] if cote else DEPOT_ANG[Deposer.nav_point] + np.pi
         return (Deposer.nav_point,angle)
     
     @staticmethod
-    def create_bt(robot: Robot, world: World) -> Behaviour:
-        recup = py_trees.composites.Sequence("Deposer", True)
-        cote = True if robot.cote_droit_vide() else False
+    def calcul_cote_couleur(robot):
         color_ours = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
         color_notOurs = Caisse.BLEU if color_ours == Caisse.JAUNE else Caisse.BLEU # La color opposee
-        
         if robot.cote_droit_ours() :
             cote,couleur = True,color_ours
         elif robot.cote_gauche_ours():
@@ -136,14 +144,20 @@ class Deposer(Action):
             cote,couleur = True,color_notOurs
         else :
             cote,couleur = False,color_notOurs
+        return (cote,couleur)
+    
+    @staticmethod
+    def create_bt(robot: Robot, world: World) -> Behaviour:
+        recup = py_trees.composites.Sequence("Deposer", True)
+
+        print("===========Relache:",Deposer.calcul_cote_couleur(robot),"=============")
 
         recup.add_children([
             WaitSeconds(0.5),
-            Navigate(lambda x : Deposer.recup_point(x,cote)), 
-            Relacher(cote,couleur)
+            Navigate(lambda x : Deposer.recup_point(x,Deposer.calcul_cote_couleur(robot)[0])), 
+            Relacher(Deposer.calcul_cote_couleur(robot))
         ])
         return recup
-    
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
@@ -167,7 +181,7 @@ class Deposer(Action):
                 return max_reward
             else :
                 if world.nid < 6 :
-                    Deposer.nav_point, max_reward = START_POS[robot.color][robot.strat][0],6  - 3 * (robot.distance_from(START_POS[robot.color][robot.strat])/DISTANCE_MAX)
+                    Deposer.nav_point, max_reward = START_POS[robot.color][robot.strat][0],6  - 3 * (robot.distance_from(START_POS[robot.color][robot.strat][0])/DISTANCE_MAX)
                     return max_reward
                 else:
                     # On va tenter de retourner
@@ -180,8 +194,9 @@ class Deposer(Action):
         if status == py_trees.common.Status.SUCCESS:
             if Deposer.nav_point == START_POS[robot.color][robot.strat][0]:
                 world.nid+=2
+                robot.updateScore(4)
             else :
-                robot.updateScore(0)
+                robot.updateScore(6)
 
 
 #######################################################################################################################################################################################  2025

@@ -46,6 +46,11 @@ class Duckoder(Protocol):
         self.motors_speed_pub = ProtoPublisher(llpb.Motors, "motors_speed")
         self.motors_pos_pub = ProtoPublisher(llpb.Motors, "motors_pos")
         self.motors_pos_cons_pub = ProtoPublisher(llpb.Motors, "motors_pos_cons")
+        self.response_pub = ProtoPublisher(llpb.Response, "response")
+        
+        self.request_id = 0
+
+
 
         self.topic_pubs = {
             llpb.Topic.POS_ROBOT_W:     self.odom_pos_pub,
@@ -62,12 +67,14 @@ class Duckoder(Protocol):
         }
 
         self.target_pos_sub = ProtoSubscriber(hgpb.Position, "set_position")
+        self.target_relativ_pos_sub = ProtoSubscriber(hgpb.Position, "set_relativ_pos")
         self.lidar_pos_sub = ProtoSubscriber(hgpb.Position, "lidar_pos")
         self.reset_pos_sub = ProtoSubscriber(hgpb.Position, "reset")
         self.pid_sub = ProtoSubscriber(llpb.MotorPid, "pid_gains")
         self.speed_cons_sub = ProtoSubscriber(hgpb.Speed, "speed_cons")
 
         self.target_pos_sub.set_receive_callback(self.set_target)
+        self.target_relativ_pos_sub.set_receive_callback(self.set_relativ_target)
         self.lidar_pos_sub.set_receive_callback(self.set_lidar_pos)
         self.reset_pos_sub.set_receive_callback(self.reset_position)
         self.pid_sub.set_receive_callback(self.set_pid)
@@ -97,6 +104,8 @@ class Duckoder(Protocol):
                     if inner == "motors":
                         if m.motors.type in self.motors_pubs:
                             self.motors_pubs[m.motors.type].send(m.motors)
+                    if inner == "response":
+                        self.response_pub.send(m.response)
 
 
     def _decode(self, c):
@@ -157,15 +166,28 @@ class Duckoder(Protocol):
         hlm = data.message
         llmsg = llpb.Message(pos=hlm)
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
-        llmsg.topic = llpb.Topic.POS_ROBOT_W
+        llmsg.topic = llpb.Topic.POS_TARGET_W
+        llmsg.r_id = self.request_id
         self.send_message(llmsg)
+        self.request_id += 1
+
+    def set_relativ_target(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
+        hlm = data.message
+        llmsg = llpb.Message(pos=hlm)
+        llmsg.msg_type = llpb.Message.MsgType.COMMAND
+        llmsg.topic = llpb.Topic.POS_TARGET_R
+        llmsg.r_id = self.request_id
+        self.send_message(llmsg)
+        self.request_id += 1
 
     def set_lidar_pos(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
         hlm = data.message
         llmsg = llpb.Message(pos=hlm)
         llmsg.msg_type = llpb.Message.MsgType.STATUS
         llmsg.topic = llpb.Topic.POS_LIDAR
+        llmsg.r_id = self.request_id
         self.send_message(llmsg)
+        self.request_id += 1
 
 
     def reset_position(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Position]):
@@ -173,14 +195,18 @@ class Duckoder(Protocol):
         llmsg = llpb.Message(pos=hlm)
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
         llmsg.topic = llpb.Topic.RECALAGE
+        llmsg.r_id = self.request_id
         self.send_message(llmsg)
+        self.request_id += 1
 
     def set_pid(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[llpb.MotorPid]):
         hlm = data.message
         llmsg = llpb.Message()
         llmsg.msg_type = llpb.Message.MsgType.COMMAND
         llmsg.motor_pid = hlm
+        llmsg.r_id = self.request_id
         self.send_message(llmsg)
+        self.request_id += 1
 
     def set_speed(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[hgpb.Speed]):
         hlm = data.message
@@ -189,7 +215,9 @@ class Duckoder(Protocol):
         llmsg.speed.vx = hlm.vx
         llmsg.speed.vy = hlm.vy
         llmsg.speed.vtheta = hlm.vtheta
+        llmsg.r_id = self.request_id
         self.send_message(llmsg)
+        self.request_id += 1
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

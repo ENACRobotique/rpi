@@ -3,20 +3,20 @@ import numpy as np
 
 # Dictionnaire des positions de ramassage associé à True si pas encore ramasser par nous
 RAMASSAGE_POS =  {"NoixJN":True,"NoixJSW":True,"NoixJES":True,"NoixJSE":True,"NoixJEN":True,
-                 "NoixBN":True,"NoixBSE":True,"NoxBWS":True,"NoixBSW":True,"NoixBWN":True}
+                 "NoixBN":True,"NoixBSE":True,"NoixBWS":True,"NoixBSW":True,"NoixBWN":True}
 
-RAMASSAGE_ANG =  {"NoixJN":np.pi/2,"NoixJSW":np.pi/2,"NoixJES":0,"NoixJSE":0,"NoixJEN":0,
-                 "NoixBN":np.pi/2,"NoixBSE":np.pi/2,"NoxBWS":0,"NoixBSW":0,"NoixBWN":0}
+RAMASSAGE_ANG =  {"NoixJN":-np.pi/2,"NoixJSW":-np.pi/2,"NoixJES":np.pi,"NoixJSE":0,"NoixJEN":0,
+                 "NoixBN":-np.pi/2,"NoixBSE":-np.pi/2,"NoixBWS":np.pi,"NoixBSW":0,"NoixBWN":0}
 
 # Dictionnaire des positions de depot associé au nombre de caisse posee par nous
 DEPOT_POS = {"FrigoJN":0,"FrigoJW":0,"FrigoJS":0,"FrigoJES":0,"FrigoJEN":0,
              "FrigoMidNN":0,"FrigoMidNS":0,"FrigoMidS":0,
              "FrigoBN":0,"FrigoBE":0,"FrigoBS":0,"FrigoBWS":0,"FrigoBWN":0}
 
-DEPOT_ANG = {"FrigoJN":0,"FrigoJW":np.pi/2,"FrigoJS":0,"FrigoJES":0,"FrigoJEN":0,
-             "FrigoMidNN":0,"FrigoMidNS":0,"FrigoMidS":0,
-             "FrigoBN":0,"FrigoBE":np.pi/2,"FrigoBS":0,"FrigoBWS":0,"FrigoBWN":0,
-             "NidJ":np.pi/2,"NidB":np.pi/2}
+DEPOT_ANG = {"FrigoJN":0,"FrigoJW":-np.pi/2,"FrigoJS":0,"FrigoJES":np.pi,"FrigoJEN":0,
+             "FrigoMidNN":0,"FrigoMidNS":np.pi,"FrigoMidS":0,
+             "FrigoBN":0,"FrigoBE":-np.pi/2,"FrigoBS":0,"FrigoBWS":np.pi,"FrigoBWN":0,
+             "NidJ":-np.pi/2,"NidB":-np.pi/2}
 
 class World:
     def __init__(self) -> None:

@@ -23,8 +23,8 @@ class Actionneur(Enum):
     pumpD4 = 43
     
     pumpG1 = 44
-    pumpG2 = 46
-    pumpG3 = 45
+    pumpG2 = 45
+    pumpG3 = 46
     pumpG4 = 47
 
     tricepsD = 20
@@ -64,7 +64,7 @@ class IO_Manager:
             return False
 
 
-    def moveG(self, position : PosTentacle,timeout=1):
+    def moveG(self, position : PosTentacle,timeout=2):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         self.sap_master.ax12.move_speed(Actionneur.bicepsG.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
@@ -75,7 +75,7 @@ class IO_Manager:
         return False
 
         
-    def moveD(self, position : PosTentacle,timeout=1):
+    def moveD(self, position : PosTentacle,timeout=2):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         self.sap_master.ax12.move_speed(Actionneur.bicepsD.value,  VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
@@ -99,6 +99,24 @@ class IO_Manager:
         self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         while (time.time()-debut < timeout) :
             if self.ready(Actionneur.tricepsD.value,VALEURS_ACTIONNEURS[position.value],50) :
+                return True
+            time.sleep(0.1)
+        return False
+    
+    def moveBicepsD(self, position : PosTentacle,timeout=1):
+        debut = time.time()
+        self.sap_master.ax12.move_speed(Actionneur.bicepsD.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
+        while (time.time()-debut < timeout) :
+            if self.ready(Actionneur.bicepsD.value,VALEURS_ACTIONNEURS[position.value],50) :
+                return True
+            time.sleep(0.1)
+        return False
+    
+    def moveBicepsG(self, position : PosTentacle,timeout=1):
+        debut = time.time()
+        self.sap_master.ax12.move_speed(Actionneur.bicepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
+        while (time.time()-debut < timeout) :
+            if self.ready(Actionneur.bicepsD.value,VALEURS_ACTIONNEURS[position.value],50) :
                 return True
             time.sleep(0.1)
         return False

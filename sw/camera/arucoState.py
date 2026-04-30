@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from generated.robot_state_pb2 import Aruco, Arucos
 import os 
 import time
+from threading import Lock
 
 
 @dataclass
@@ -32,16 +33,21 @@ class ArucoState:
        
         self.data = {}
         self.last_update_time = {}
+        self.lock = Lock()
 
 
     def aruco_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[Arucos]):
+        self.lock.acquire()
         self.data[data.message.cameraName] = data.message.arucos
         self.last_update_time[data.message.cameraName] = time.time()
+        self.lock.release()
     
     def clear_old_data(self):
+        self.lock.acquire()
         for cam in self.data:
             if time.time() - self.last_update_time[cam] > self.perish_time:
                 self.data[cam] = []
+        self.lock.release()
 
 
     @staticmethod
