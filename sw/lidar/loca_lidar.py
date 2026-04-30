@@ -35,10 +35,10 @@ BEACONS_YELLOW = {
 }
 
 
-MAX_COST = (150**2) * 6
+MAX_COST = (150**2)
 TOLERANCE = 500 #mm
 R_TOLERANCE = 150 #mm
-THETA_TOLERANCE = np.pi/3
+THETA_TOLERANCE = np.pi/6
 BEACON_MAX_SIZE = 150 # mm 
 BEACON_MIN_SIZE = 50 # mm 
 
@@ -58,7 +58,7 @@ class LidarLoca:
         self.sub_lidar = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
         self.sub_lidar.set_receive_callback(self.amalgames_cb)
 
-        self.sub_odom = ProtoSubscriber(common_pb.Position, "ekf_pos")
+        self.sub_odom = ProtoSubscriber(common_pb.Position, "odom_pos")
         self.sub_odom.set_receive_callback(self.odom_pos_cb)
 
         self.sub_reset_pos = ProtoSubscriber(common_pb.Position, "reset")
@@ -70,7 +70,7 @@ class LidarLoca:
         self.pub_lidar = ProtoPublisher(common_pb.Position, "lidar_pos")
         self.pub_balises_odom = ProtoPublisher(lidar_pb.Balises, "balises_odom")
         self.pub_closest_to_odom_beacons = ProtoPublisher(lidar_pb.Balises, "balises_near_odom")
-        self.BEACONS = BEACONS_BLUE
+        self.BEACONS = BEACONS_YELLOW #BLUE
     
     def __enter__(self):
         return self
@@ -128,7 +128,7 @@ class LidarLoca:
         #print([cost for estimated_pos, cost, estimatedBeacons in sorted_estimated_poses])
         if len(sorted_estimated_poses) > 0:
             estimated_pos, cost, estimatedBeacons = sorted_estimated_poses[0]
-            if cost < MAX_COST:
+            if cost < MAX_COST * 2 * len(estimatedBeacons):
                 self.estimated_pos = estimated_pos
                 self.pub_lidar.send(self.estimated_pos.to_proto())
                 estimated_beacons_pos = {beacon_id: am.pos for beacon_id, am in estimatedBeacons.items()}
@@ -165,7 +165,7 @@ class LidarLoca:
             dr = r - r_beacon
             dtheta =  normalize_angle(theta - theta_beacon)
 
-            if (abs(dr) <  R_TOLERANCE ) and (dtheta < THETA_TOLERANCE):
+            if (abs(dr) <  R_TOLERANCE ) and (abs(dtheta) < THETA_TOLERANCE):
                 amalgames_filtered.append(amalgame)
             
         
