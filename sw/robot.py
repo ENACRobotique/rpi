@@ -481,10 +481,12 @@ class Robot:
         return False
     
     def align_with_pack(self,coteDroit,timeout=0):
+        cam = "mabel" if coteDroit else "dipper"
         time_deb = time.time()
-        arucosPosRobot = self.aruco_state.get_aruco_robot()
+        print(self.aruco_state.get_aruco_robot())
+        arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if aruco.cam == cam]
         while (len(arucosPosRobot)!=4 and (time.time()-time_deb)<timeout):
-            arucosPosRobot = self.aruco_state.get_aruco_robot()
+            arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if aruco.cam == cam]
                
         # print(arucosPosRobot[2].pos,type(arucosPosRobot[2].pos))
         if len(arucosPosRobot)==4:
