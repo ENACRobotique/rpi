@@ -165,19 +165,18 @@ class Navigate(py_trees.behaviour.Behaviour):
 
 class Move(py_trees.behaviour.Behaviour):
     """TODO"""
-    def __init__(self, robot: Robot, distance, direction, speed):
+    def __init__(self, distance, direction):
         super().__init__(name=f"Move")
-        self.robot = robot
+        self.bb, self.robot,_ = get_bb_robot(self)
         self.distance = distance
         self.direction = direction
-        self.speed = speed
 
     def initialise(self):
-        self.robot.move(self.distance, self.direction, self.speed)
+        self.robot.move(self.distance, self.direction)
 
     def update(self):
         print("[Move] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
-        if self.robot.hasReachedTarget():
+        if self.robot.moveEnded():
             return py_trees.common.Status.SUCCESS
         # Moving
         return py_trees.common.Status.RUNNING
