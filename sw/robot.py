@@ -567,21 +567,20 @@ class Robot:
         print("===thermoAct===")
         self.setTargetPos(self.dest_to_pos(thermo_pos),blocking=True,timeout=8)
         print("On va bourrer le mur")
-        self.move(-200,thermo_pos[1], blocking=True,timeout=4) # ie on bourre le mur
-        #time.sleep(2)
+        r = self.move(-200,0, blocking=True,timeout=5) # ie on bourre le mur
         print("On descend le bras")
         if self.color ==Team.JAUNE:
-            self.actionneurs.moveBicepsG(act.PosTentacle.THERMO)
+            self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
         else :
-            self.actionneurs.moveBicepsD(act.PosTentacle.THERMO)
+            self.actionneurs.moveTricepsG(act.PosTentacle.THERMO)
         #self.heading(thermo_pos[1],blocking=True,timeout=3)
         print("On pousse le thermo")
-        self.move(510,np.pi,blocking=True,timeout=8)
+        self.move(510,0,blocking=True,timeout=8)
         #time.sleep(3)
         if self.color ==Team.JAUNE:
-            self.actionneurs.moveBicepsG(act.PosTentacle.HAUT)
+            self.actionneurs.moveTricepsD(act.PosTentacle.HAUT)
         else :
-            self.actionneurs.moveBicepsD(act.PosTentacle.HAUT)
+            self.actionneurs.moveTricepsG(act.PosTentacle.HAUT)
         return True
     
     def attraper(self,coteDroit):

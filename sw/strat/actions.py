@@ -30,7 +30,7 @@ class ThermometreAction(Action):
     def create_bt(robot: Robot, world: World) -> Behaviour:
         nav_pt = THERMO_POS[robot.color][robot.strat]
         nav_pt2 = CAISSETHERMO_POS[robot.color][robot.strat]
-        cote = True if robot.color == Team.JAUNE else False # ie on recup cote Gauche avec le jaune pour avoir bras droit libre (et inversement cote bleu)
+        cote = False if robot.color == Team.JAUNE else True # ie on recup cote Gauche avec le jaune pour avoir bras droit libre (et inversement cote bleu)
 
         def thermo_point(_):
             return nav_pt
