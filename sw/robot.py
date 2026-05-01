@@ -548,8 +548,8 @@ class Robot:
         ### False sinon
         for caisse in self.coteD:
             if (caisse == Caisse.BLEU and self.color == Team.BLEU) or (caisse == Caisse.JAUNE and self.color == Team.JAUNE):
-                return False
-        return True
+                return True
+        return False
 
     def cote_gauche_ours(self):
         ### True si le cote gauche a des caisse de notre couleur
