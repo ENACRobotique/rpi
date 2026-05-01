@@ -4,17 +4,18 @@ import numpy as np
 import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
-# import ecal.nanobind_core as ecal_core
-# from ecal.msg.proto.core import Subscriber as ProtoSubscriber
-# from ecal.msg.proto.core import Publisher as ProtoPublisher
-# from ecal.msg.common.core import ReceiveCallbackData
+import ecal.nanobind_core as ecal_core
+from ecal.msg.proto.core import Subscriber as ProtoSubscriber
+from ecal.msg.proto.core import Publisher as ProtoPublisher
+from ecal.msg.common.core import ReceiveCallbackData
+from generated.robot_state_pb2 import Aruco, Arucos
 # from generated.robot_state_pb2 import Position_aruco
 # from generated import CompressedImage_pb2 as cipb
-# from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.timestamp_pb2 import Timestamp
 import argparse
 from enum import Enum
 from scipy.spatial.transform import Rotation
-import time
+#import time
 from threading import Event
 
 
@@ -40,8 +41,8 @@ class zone:
 
 class ArucoFinder:
     def __init__(self, name, src_type, src, arucos, display):
-        # if not ecal_core.is_initialized():
-        #     ecal_core.initialize("arucoFinder")
+        if not ecal_core.is_initialized():
+         ecal_core.initialize("aruco_finder")
         
         self.name = name
         self.src_type = src_type
@@ -68,6 +69,9 @@ class ArucoFinder:
 
         self.camera_pose_in_W = None
         self.camera_rot_in_W = None
+
+
+        self.aruco_pub = ProtoPublisher(Arucos, "Arucos_world")
         
         self.open_capture()
 
@@ -286,10 +290,10 @@ class ArucoFinder:
         # R_cam_world = R_cam_marker
         cam_rot_world = R_marker_cam.T
 
-        print("Camera position (world):")
-        print(cam_pos_world)
-        print("Camera rotation (world):")
-        print(cam_rot_world)
+        #print("Camera position (world):")
+        #print(cam_pos_world)
+        #print("Camera rotation (world):")
+        #print(cam_rot_world)
 
         self.camera_pose_in_W = cam_pos_world.flatten()    # (3,)
         self.camera_rot_in_W  = cam_rot_world  
@@ -519,6 +523,8 @@ class ArucoFinder:
     def process(self, frame):
         """Call it in a while true loop"""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+
         self.world_objects.clear()
         
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
@@ -533,12 +539,10 @@ class ArucoFinder:
         cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
 
         if detected_corners:
-            xs, ys, zs, aruIds= [],[],[],[]
-            qws, qxs, qys, qzs = [],[],[],[]
+            arucos = []
             for corners, id in zip(detected_corners, detected_ids):
                 id = id[0]
-                
-                #print(id)
+            
                 if id not in self.arucos:
                     continue
                 size = self.arucos[id]
@@ -552,39 +556,33 @@ class ArucoFinder:
                     #posW = self.objects_in_world(rv, tv)
          
                     cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
-                    xs.append(tv[0][0])
-                    ys.append(tv[0][1])
-                    zs.append(tv[0][2])
-                    aruIds.append(id)
-
+     
                     # Convert rvec to rotation matrix
-                    rotation_matrix, _ = cv2.Rodrigues(np.array(rv))
-                    r =  Rotation.from_matrix(rotation_matrix)
-                    (qx, qy, qz, qw) = r.as_quat()
-                    qxs.append(qx)
-                    qys.append(qy)
-                    qzs.append(qz)
-                    qws.append(qw)
+                    
 
                     P_tc = np.array(tv[0])
                     P_cw = np.array(self.camera_pose_in_W)
-                    
-                    
-                    #Q_wc = np.array([qx, qy, qz, qw])
 
-                    R_wc = R_wc = self.camera_rot_in_W   #Rotation.from_quat(Q_wc)
+
+                    R_wc = self.camera_rot_in_W   #Rotation.from_quat(Q_wc)
                     P_tw = R_wc @ P_tc + P_cw
 
+                    #rotation_matrix, _ = cv2.Rodrigues(np.array(R_wc))
+                    r =  Rotation.from_matrix(R_wc)   
+                    (qx, qy, qz, qw) = r.as_quat(False)
+
+                    ar = Aruco(x=P_tw[0], y=P_tw[1], z=P_tw[2],qx=qx, qy=qy, qz=qz, qw=qw, ArucoId=id )
+                    arucos.append(ar)
+
+                    # TODO : modify the world map to use the arucos message instead
                     self.world_objects.append( {
                         "pos": P_tw,
                         "size": size,
                         "id": id
                     })
-
-                    #print("P_tw :")
-                    #print(P_tw)
-            #self.arucoFound = Position_aruco(x=xs, y=ys, z=zs, qx=qxs, qy=qys, qz=qzs, qw=qws, ArucoId=aruIds, cameraName=self.name)
-            #self.aruco_pub.send(self.arucoFound)
+            
+            self.arucoFound = Arucos(arucos=arucos, cameraName=self.name)
+            self.aruco_pub.send(self.arucoFound)
         return frame
     
 
@@ -592,7 +590,7 @@ class ArucoFinder:
         win_name = f"ArucoFinder - {self.name}"
         if self.display :
             cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
-            
+
         while True:
             if self.src_type == Source.CAM or self.src_type == Source.VIDEO:
                 ret, frame = self.cap.read()
@@ -650,7 +648,7 @@ if __name__ == "__main__":
     else:
         print("Please specify the source: cam, video or ecal topic.")
     
-    arucos = {20:100, 21:100, 22:100, 23:100, 6:70, 47:30, 13:30, 36:30}
+    arucos = {20:100, 21:100, 22:100, 23:100, 6:70, 47:30, 13:30, 36:30, 7:70}
 
     known_markers = {
         20: np.array([600, 1400, 0]),   # x=600, y=1400, z=0
@@ -658,10 +656,6 @@ if __name__ == "__main__":
         22: np.array([600, 600, 0]),    # x=600, y=600, z=0
         23: np.array([2400, 600, 0])    # x=2400, y=600, z=0
     }
-
-
-    
-
 
     with ArucoFinder(args.name, src_type, src, arucos, args.display) as af:
         af.run()#k
