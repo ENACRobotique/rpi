@@ -12,6 +12,7 @@ from generated import robot_state_pb2 as robot_pb
 from generated import common_pb2 as common_pb
 from generated import lidar_data_pb2 as lidar_pb
 from common import Pos, normalize_angle
+import generated.common_pb2 as common_pb
 import itertools
 
 
@@ -35,7 +36,7 @@ BEACONS_YELLOW = {
 }
 
 
-MAX_COST = (150**2)
+MAX_COST = (30**2)
 TOLERANCE = 500 #mm
 R_TOLERANCE = 150 #mm
 THETA_TOLERANCE = np.pi/6
@@ -53,6 +54,7 @@ class LidarLoca:
         self.odom_pos = Pos(0, 0, 0)
         # estimated pos using lidar and odometry
         self.estimated_pos = Pos(0, 0, 0)
+        self.ekf_pos = Pos(0, 0, 0)
 
         # Subscribers
         self.sub_lidar = ProtoSubscriber(lidar_pb.Amalgames, "amalgames")
@@ -71,6 +73,9 @@ class LidarLoca:
         self.pub_balises_odom = ProtoPublisher(lidar_pb.Balises, "balises_odom")
         self.pub_closest_to_odom_beacons = ProtoPublisher(lidar_pb.Balises, "balises_near_odom")
         self.BEACONS = BEACONS_YELLOW #BLUE
+
+        self.ekfReportSub = ProtoSubscriber(common_pb.Position, "ekf_pos")
+        self.ekfReportSub.set_receive_callback(self.onReceiveEkf)
     
     def __enter__(self):
         return self
@@ -89,6 +94,12 @@ class LidarLoca:
         else:
             self.BEACONS = BEACONS_YELLOW
 
+    def onReceiveEkf (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
+        """Callback d'un subscriber ecal. Actualise la position du robot"""
+        msg = data.message
+        ekf_pos = Pos.from_proto(msg)
+        self.ekf_pos = Pos(ekf_pos.x,ekf_pos.y,ekf_pos.theta%(2*np.pi))
+
     def recalage(self, pos_recalage: Pos):
         self.odom_pos = pos_recalage
         self.estimated_pos = pos_recalage
@@ -104,17 +115,15 @@ class LidarLoca:
         # get the odometry move since last odom_pos
         self.odom_pos = new_odom_pos
 
-        # add the odometry move to the last estimated position
-        #self.estimated_pos += dpos
-        self.pub_lidar.send(self.estimated_pos.to_proto())
+
 
         # send the positions in robot frame where we expect the beacons to be
-        beacon_odom = {beacon_id: bpos.to_frame(self.estimated_pos) for beacon_id, bpos in self.BEACONS.items()}
+        beacon_odom = {beacon_id: bpos.to_frame(self.ekf_pos) for beacon_id, bpos in self.BEACONS.items()}
         self.send_beacons_pos(beacon_odom, self.pub_balises_odom)
     
     def amalgames_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Amalgames]):
         def estimate_pos(estimatedBeacons):
-            assert(len(estimatedBeacons) >=2)
+            assert(len(estimatedBeacons) >=3)
             result = self.estimate(estimatedBeacons)
             # TODO test result.success, and tune ftol (in least_squares args)?
             estimated_pos = Pos.from_np(result.x)
@@ -128,7 +137,7 @@ class LidarLoca:
         #print([cost for estimated_pos, cost, estimatedBeacons in sorted_estimated_poses])
         if len(sorted_estimated_poses) > 0:
             estimated_pos, cost, estimatedBeacons = sorted_estimated_poses[0]
-            if cost < MAX_COST * 2 * len(estimatedBeacons):
+            if cost < MAX_COST * len(estimatedBeacons):
                 self.estimated_pos = estimated_pos
                 self.pub_lidar.send(self.estimated_pos.to_proto())
                 estimated_beacons_pos = {beacon_id: am.pos for beacon_id, am in estimatedBeacons.items()}
@@ -190,7 +199,7 @@ class LidarLoca:
         
         for beacon_id, beacon_pos in self.BEACONS.items():
             # estimated position of the beacon in robot frame (using best estimated robot pos)
-            beacon_pos_r = beacon_pos.to_frame(self.estimated_pos)
+            beacon_pos_r = beacon_pos.to_frame(self.ekf_pos)
             # best candidate (Amalgame), and its distance to the theoretical position
             candidates = self.closest_amalgames(beacon_pos_r, amalgames)
 
