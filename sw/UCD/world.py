@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import cv2
-import numpy as np
 import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
@@ -9,12 +7,6 @@ from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.proto.core import Publisher as ProtoPublisher
 from ecal.msg.common.core import ReceiveCallbackData
 from generated.robot_state_pb2 import Aruco, Arucos
-# from generated.robot_state_pb2 import Position_aruco
-# from generated import CompressedImage_pb2 as cipb
-from google.protobuf.timestamp_pb2 import Timestamp
-import argparse
-from enum import Enum
-from scipy.spatial.transform import Rotation
 import time
 from threading import Event
 
@@ -121,7 +113,3 @@ if __name__ == "__main__":
     with World() as af:
         af.run()#k
         time.sleep(2)
-
-        
-
-        

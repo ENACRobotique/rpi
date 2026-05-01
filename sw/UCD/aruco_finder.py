@@ -49,7 +49,6 @@ class ArucoFinder:
         self.camera_pose_in_W = None
         self.camera_rot_in_W = None
 
-
         self.aruco_pub = ProtoPublisher(Arucos, "Arucos_world")
         
         self.open_capture()
