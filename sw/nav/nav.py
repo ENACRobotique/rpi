@@ -5,7 +5,7 @@ sys.path.append("../..")
 import sw.nav.map as map
 import sw.nav.dijkstra as dijkstra
 # import matplotlib.pyplot as plt
-from math import sqrt,pi, atan2
+from math import sqrt,pi, atan2,radians
 
 class Nav(object):  
     def __init__(self):
@@ -75,7 +75,8 @@ class Nav(object):
 
         dist += sqrt((x2-x1)**2+(y2-y1)**2)
         theta = theta_dest
-        pos.append((x12,y12,theta))
+        if abs(atan2(y2-y1,x2-x1) - theta) > pi - radians(5):
+            pos.append((x12,y12,theta))
         pos.append((x2,y2,theta))
     
         #print("Positions",pos)
@@ -132,8 +133,10 @@ class Nav(object):
             theta = theta_dest
             reduced_chemin.append(chemin[-1])
             
+            # Rotation moitié demi segment
             x12, y12 = (x0+x1)/2,(y0+y1)/2
-            reduced_pos.append((x12,y12,theta))
+            if abs(atan2(y1-y0,x1-x0) - theta) > pi - radians(5):
+                reduced_pos.append((x12,y12,theta))
 
             reduced_pos.append((x1,y1, theta))
 
