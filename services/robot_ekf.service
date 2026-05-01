@@ -1,0 +1,16 @@
+[Unit]
+Description= LCD driver 
+After=network.target network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+
+WorkingDirectory=/home/robot/rpi/sw/lidar
+ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/lidar/ekf.py
+#RestartSec=2 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+ 
+[Install]
+

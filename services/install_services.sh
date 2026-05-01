@@ -18,7 +18,8 @@ robot_joystick \
 robot_ui \
 robot_tirette \
 robot_aruco2 \
-robot_aruco ; do 
+robot_aruco \
+robot_ekf ; do 
     ln -s ~/rpi/services/$f.service ~/.config/systemd/user/$f.service
 done
 
