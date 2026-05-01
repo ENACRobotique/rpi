@@ -196,7 +196,74 @@ class Deposer(Action):
                 world.nid+=2
                 robot.updateScore(4)
             else :
+                DEPOT_POS[Deposer.nav_point] += 2
                 robot.updateScore(6)
+
+class Retourner(Action):
+    name = "Retourner"
+    nav_point = "NAN"
+
+    @staticmethod
+    def recup_point(_,cote):
+        angle = DEPOT_ANG[Retourner.nav_point] if cote else DEPOT_ANG[Retourner.nav_point] + np.pi
+        return (Retourner.nav_point,angle)
+    
+    @staticmethod
+    def calcul_cote_couleur(robot):
+        notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.BLEU # La color opposee
+        if robot.cote_droit_ours() :
+            cote,couleur = True,notre_couleur
+        elif robot.cote_gauche_ours():
+            cote,couleur = False,notre_couleur
+        elif not robot.cote_droit_vide():
+            cote,couleur = True,pas_notre_couleur
+        else :
+            cote,couleur = False,pas_notre_couleur
+        return (cote,couleur)
+    
+    @staticmethod
+    def create_bt(robot: Robot, world: World) -> Behaviour:
+        recup = py_trees.composites.Sequence("Retourner", True)
+
+        print("=========== Retourner:",Retourner.calcul_cote_couleur(robot)," =============")
+        recup.add_children([
+            WaitSeconds(0.5),
+            Navigate(lambda x : Retourner.recup_point(x,Retourner.calcul_cote_couleur(robot)[0])), 
+            Revolutionner(Retourner.calcul_cote_couleur(robot))
+        ])
+        return recup
+    
+    @staticmethod
+    def reward(robot: Robot, world: World) -> float:
+        def mostRewardingDepotPoint():
+            max_reward = -1
+            max_wpt = "NAN"
+            for wpt in DEPOT_POS.keys():
+                if DEPOT_POS[wpt]<2:
+                    # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
+                    val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                else :
+                    val = 0
+                if max_reward < val:
+                    max_reward = val
+                    max_wpt = wpt
+            return max_wpt,max_reward
+        
+        if (not robot.cote_droit_vide() and not robot.cote_droit_ours()) or (not robot.cote_gauche_vide() and not robot.cote_gauche_ours()):
+            if world.nid >= 6:
+                Retourner.nav_point, max_reward = mostRewardingDepotPoint()
+                return max_reward
+            else :
+                return 0
+        else:
+            return 0
+    
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        if status == py_trees.common.Status.SUCCESS:
+            DEPOT_POS[Deposer.nav_point] += 2
+            robot.updateScore(6)
 
 
 #######################################################################################################################################################################################  2025

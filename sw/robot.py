@@ -605,11 +605,30 @@ class Robot:
                 if caisse == couleur or couleur == Caisse.TOUT :
                     self.actionneurs.Grab(act.POMPES_DROITES[i],False)
                     self.coteD[i] = Caisse.RIEN
-            time.sleep(2)
+            time.sleep(1)
             self.actionneurs.moveD(act.PosTentacle.HAUT)
         else :
             print("RELEASE : cote gauche =", self.coteG)
             self.actionneurs.moveG(act.PosTentacle.DROP)
+            for (i,caisse) in enumerate(self.coteG):
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_GAUCHES[i],False)
+                    self.coteG[i] = Caisse.RIEN
+            time.sleep(1)
+            self.actionneurs.moveG(act.PosTentacle.HAUT)
+        return True
+    
+    def revolutionner(self,coteDroit,couleur:Caisse):
+        if coteDroit :
+            self.actionneurs.moveD(act.PosTentacle.RETOURNE)
+            for (i,caisse) in enumerate(self.coteD) :
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_DROITES[i],False)
+                    self.coteD[i] = Caisse.RIEN
+            time.sleep(2)
+            self.actionneurs.moveD(act.PosTentacle.HAUT)
+        else :
+            self.actionneurs.moveG(act.PosTentacle.RETOURNE)
             for (i,caisse) in enumerate(self.coteG):
                 if caisse == couleur or couleur == Caisse.TOUT :
                     self.actionneurs.Grab(act.POMPES_GAUCHES[i],False)
