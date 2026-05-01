@@ -305,8 +305,7 @@ class Robot:
 
     def resetPosOnEkf(self):
         """Recalage sur la pos du lidar"""
-        pass
-        # self.resetPos(self.ekf_pos)
+        self.resetPos(self.ekf_pos)
     
     def onSetTargetPostition (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
