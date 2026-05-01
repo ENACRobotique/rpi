@@ -24,6 +24,20 @@ class Source(Enum):
     ECAL = 2
 
 
+class zone:
+    def __init__(nhh, xmin, ymin, xmax, ymax ):
+        nhh.xmin = xmin 
+        nhh.xmax = xmax
+        nhh.ymin = ymin 
+        nhh.ymax = ymax
+
+    def isInArea(nhh, x, y):
+        if (x >= nhh.xmin) and (x<= nhh.xmax) and (y <= nhh.ymax) and (y >= nhh.ymin):
+            return True
+        
+    
+        
+
 class ArucoFinder:
     def __init__(self, name, src_type, src, arucos, display):
         # if not ecal_core.is_initialized():
@@ -47,7 +61,7 @@ class ArucoFinder:
         self.aruco_params = cv2.aruco.DetectorParameters()
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
 
-        self.world_objects = {}   # dict id → position world
+        self.world_objects = []   # dict id → position world
 
         self.camera_matrix = None
         self.dist_coeffs = None
@@ -418,13 +432,10 @@ class ArucoFinder:
 
         # draw aruco
 
-        for aruco_id, data in self.world_objects.items():
-            pos = data["pos"]    # centre (mm)
-
-            print("dessin pos")
-            print(pos)
-
-            size = data["size"]  # taille réelle (mm)
+        for obj in self.world_objects:
+            pos = obj["pos"]    # centre (mm)
+            size = obj["size"]  # taille réelle (mm)
+            aruco_id = obj["id"]
 
             xw, yw = pos[0], pos[1]
 
@@ -433,7 +444,7 @@ class ArucoFinder:
 
             half_px = int((size / 2) * px_per_mm)
 
-            # Le marker est garanti dans la table SI le monde est cohérent
+            # Dessin du carré
             cv2.rectangle(
                 map_img,
                 (xi - half_px, yi - half_px),
@@ -442,15 +453,13 @@ class ArucoFinder:
                 2
             )
 
-            # centre exact
-            cv2.circle(map_img, (xi, yi), 3, (0, 0, 0), -1)
-
+            # Texte ID
             cv2.putText(
                 map_img,
                 f"ID {aruco_id}",
                 (xi + half_px + 5, yi),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.45,
+                0.5,
                 (0, 0, 0),
                 1
             )
@@ -460,7 +469,7 @@ class ArucoFinder:
         # ============================
 
         if hasattr(self, "camera_pose_in_W") and self.camera_pose_in_W is not None:
-            print(self.camera_pose_in_W)
+            #print(self.camera_pose_in_W)
             cam_x = self.camera_pose_in_W[0]
             cam_y = self.camera_pose_in_W[1]
 
@@ -510,6 +519,10 @@ class ArucoFinder:
     def process(self, frame):
         """Call it in a while true loop"""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        self.world_objects.clear()
+        
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        gray = clahe.apply(gray)
 
         # Détection ArUco
         detected_corners, detected_ids, rejected = self.aruco_detector.detectMarkers(gray)
@@ -524,7 +537,8 @@ class ArucoFinder:
             qws, qxs, qys, qzs = [],[],[],[]
             for corners, id in zip(detected_corners, detected_ids):
                 id = id[0]
-                print(id)
+                
+                #print(id)
                 if id not in self.arucos:
                     continue
                 size = self.arucos[id]
@@ -536,9 +550,7 @@ class ArucoFinder:
                     rv, tv = rvecs[0], tvecs[0]
 
                     #posW = self.objects_in_world(rv, tv)
-
-
-                    
+         
                     cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
                     xs.append(tv[0][0])
                     ys.append(tv[0][1])
@@ -563,13 +575,14 @@ class ArucoFinder:
                     R_wc = R_wc = self.camera_rot_in_W   #Rotation.from_quat(Q_wc)
                     P_tw = R_wc @ P_tc + P_cw
 
-                    self.world_objects[id] = {
+                    self.world_objects.append( {
                         "pos": P_tw,
-                        "size": size
-                    }
+                        "size": size,
+                        "id": id
+                    })
 
-                    print("P_tw :")
-                    print(P_tw)
+                    #print("P_tw :")
+                    #print(P_tw)
             #self.arucoFound = Position_aruco(x=xs, y=ys, z=zs, qx=qxs, qy=qys, qz=qzs, qw=qws, ArucoId=aruIds, cameraName=self.name)
             #self.aruco_pub.send(self.arucoFound)
         return frame
@@ -577,7 +590,9 @@ class ArucoFinder:
 
     def run(self):
         win_name = f"ArucoFinder - {self.name}"
-        cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+        if self.display :
+            cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+            
         while True:
             if self.src_type == Source.CAM or self.src_type == Source.VIDEO:
                 ret, frame = self.cap.read()
@@ -592,13 +607,21 @@ class ArucoFinder:
             if self.camera_pose_in_W is None:
                 calibration_frame = self.get_camera_pose(frame)
 
-            processed = self.process(frame)
+            if self.camera_pose_in_W is not None:
+                processed = self.process(frame)
             # if self.display:
             #     self.send_processed_frame(processed)
 
-            self.draw_world_map()
-            
-            cv2.imshow(f"ArucoFinder - {self.name}", processed)
+                if self.display :
+
+                    self.draw_world_map()
+
+            if self. display:
+                if self.camera_pose_in_W is not None:
+                    cv2.imshow(f"ArucoFinder - {self.name}", processed)
+                else :
+                    cv2.imshow(f"ArucoFinder - {self.name}", frame)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
@@ -628,6 +651,7 @@ if __name__ == "__main__":
         print("Please specify the source: cam, video or ecal topic.")
     
     arucos = {20:100, 21:100, 22:100, 23:100, 6:70, 47:30, 13:30, 36:30}
+
     known_markers = {
         20: np.array([600, 1400, 0]),   # x=600, y=1400, z=0
         21: np.array([2400, 1400, 0]),  # x=2400, y=1400, z=0

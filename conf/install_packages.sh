@@ -13,7 +13,7 @@ sudo apt-get install -y python3-venv
 # GPIO
 sudo apt-get install -y python3-gpiozero
 # protobuf/eCAL
-sudo apt-get install -y protobuf-compiler
+sudo apt-get install -y protobuf-compiler libprotobuf-dev
 # eCAL
 sudo apt-get install -y ecal
 sudo apt-get install -y gpiod libgpiod-dev

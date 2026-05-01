@@ -483,9 +483,9 @@ class Robot:
         cam = "mabel" if coteDroit else "dipper"
         time_deb = time.time()
         print(self.aruco_state.get_aruco_robot())
-        arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if aruco.cam == cam]
+        arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
         while (len(arucosPosRobot)!=4 and (time.time()-time_deb)<timeout):
-            arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if aruco.cam == cam]
+            arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
                
         # print(arucosPosRobot[2].pos,type(arucosPosRobot[2].pos))
         if len(arucosPosRobot)==4:
