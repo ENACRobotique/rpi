@@ -241,6 +241,9 @@ class Robot:
             return True
         else:
             return False
+    
+    def moveEnded(self, timeout=0):
+        return self.response_event.wait(timeout)
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
