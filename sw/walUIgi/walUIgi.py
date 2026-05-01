@@ -40,7 +40,7 @@ from actuators.sap_master import SAPMaster
 #
 #########################
 
-LISTE_SERVICE = [("Camera Mabel","robot_aruco"),("Camera Dipper","robot_aruco2"),("Bridge","robot_bridge"),("Actionneurs","robot_IO"),("Manette","robot_joystick"),("Driver Lidar","robot_lidar_driver"),("Lidar Amalgameur","robot_lidar_amalgameur"),("Lidar Localisation","robot_lidar_loca"),("Tirette","robot_tirette"),("Strategie","robot_strat")]
+LISTE_SERVICE = [("Camera Mabel","robot_aruco"),("Camera Dipper","robot_aruco2"),("Bridge","robot_bridge"),("Actionneurs","robot_IO"),("Manette","robot_joystick"),("Driver Lidar","robot_lidar_driver"),("EKF","robot_ekf"),("Lidar Amalgameur","robot_lidar_amalgameur"),("Lidar Localisation","robot_lidar_loca"),("Tirette","robot_tirette"),("Strategie","robot_strat")]
 TOTAL_SERVICE = len(LISTE_SERVICE)
 
 LISTE_ID_ACTIONNEURS = [5,7,11,20,40,41,42,43,44,45,46,47]
@@ -75,6 +75,7 @@ class Robot:
 class SignalEmitter(QObject):
     pos_lidar_signal = pyqtSignal(float, float, float)
     pos_odom_signal = pyqtSignal(float, float, float)
+    pos_ekf_signal = pyqtSignal(float, float, float)
     balise_signal = pyqtSignal(int)
     score_signal = pyqtSignal(int)
     service_signal = pyqtSignal()
@@ -235,6 +236,14 @@ class TabStatus(QtWidgets.QWidget):
             self.signal_emitter.pos_lidar_signal.emit(data.message.x, data.message.y, data.message.theta)
         self.pos_lidar_sub.set_receive_callback(sendPosLidarSignal)
         self.signal_emitter.pos_lidar_signal.connect(self.point_lidar.updatePosition)
+
+        self.point_ekf = RobotGraphic("ekf",self.robot,"green")
+        self.pos_ekf_sub = ProtoSubscriber(hgpb.Position,"ekf_pos")
+        def sendPosEKFSignal( pub_id : ecal_core.TopicId, data : ReceiveCallbackData[hgpb.Position]):
+            self.robot.state_baseRoulante = True
+            self.signal_emitter.pos_ekf_signal.emit(data.message.x, data.message.y, data.message.theta)
+        self.pos_ekf_sub.set_receive_callback(sendPosEKFSignal)
+        self.signal_emitter.pos_ekf_signal.connect(self.point_ekf.updatePosition)
             
         map.addItem(self.point_odom)
         map.addItem(self.point_lidar)
@@ -326,9 +335,17 @@ class ServiceWidget(QWidget):
         self.service = service
         self.hl = QHBoxLayout(self)
         self.l_service = QtWidgets.QLabel(f"{nickname}")
-        self.b_stop_service = QPushButton("Stop"); self.b_stop_service.setMaximumSize(80, 35)
+        if (service == "robot_ekf"):
+            self.b_stop_service = QPushButton("Thomas")
+            self.b_start_service = QPushButton("Qui est le meilleur ?")
+            self.b_stop_service.setMaximumSize(80, 35)
+            self.b_start_service.setMaximumSize(150, 35)
+        else :
+            self.b_stop_service = QPushButton("Stop")
+            self.b_start_service = QPushButton("Start") 
+            self.b_stop_service.setMaximumSize(80, 35)
+            self.b_start_service.setMaximumSize(80, 35)
         self.b_stop_service.clicked.connect(self.stop)
-        self.b_start_service = QPushButton("Start"); self.b_start_service.setMaximumSize(80, 35)
         self.b_start_service.clicked.connect(self.start)
         self.l_ok_service = QLabel("✔")
 
