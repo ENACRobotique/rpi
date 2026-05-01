@@ -50,7 +50,7 @@ class EkfDiff:
     def __init__(self, X0, lidar_var, gyro_var, enc_var, beacons_var, model_var) -> None:
         pass
         if not ecal_core.is_initialized():
-            ecal_core.initialize("RadarQt receiver")
+            ecal_core.initialize("EKF")
         self.lidar_sub = ProtoSubscriber(cpb2.Position, "lidar_pos")
         self.lidar_sub.set_receive_callback(self.handle_lidar_data)
         self.gyro_sub = ProtoSubscriber(cpb2.Ins, "ins")

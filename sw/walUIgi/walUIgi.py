@@ -247,6 +247,7 @@ class TabStatus(QtWidgets.QWidget):
             
         map.addItem(self.point_odom)
         map.addItem(self.point_lidar)
+        map.addItem(self.point_ekf)
 
         view_map = Map_view(map)
 

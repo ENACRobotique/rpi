@@ -14,7 +14,7 @@ Wants=robot_aruco2.service
 Wants=robot_joystick.service
 Wants=robot_ui.service
 Wants=robot_tirette.service
-Wants=robot_ekf.serivce
+Wants=robot_ekf.service
 
 [Service]
 Type=simple
