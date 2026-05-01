@@ -5,13 +5,10 @@ import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
 import ecal.nanobind_core as ecal_core
-from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.proto.core import Publisher as ProtoPublisher
-from ecal.msg.common.core import ReceiveCallbackData
 from generated.robot_state_pb2 import Aruco, Arucos
 # from generated.robot_state_pb2 import Position_aruco
 # from generated import CompressedImage_pb2 as cipb
-from google.protobuf.timestamp_pb2 import Timestamp
 import argparse
 from enum import Enum
 from scipy.spatial.transform import Rotation
@@ -23,21 +20,7 @@ class Source(Enum):
     CAM = 0
     VIDEO = 1
     ECAL = 2
-
-
-class zone:
-    def __init__(nhh, xmin, ymin, xmax, ymax ):
-        nhh.xmin = xmin 
-        nhh.xmax = xmax
-        nhh.ymin = ymin 
-        nhh.ymax = ymax
-
-    def isInArea(nhh, x, y):
-        if (x >= nhh.xmin) and (x<= nhh.xmax) and (y <= nhh.ymax) and (y >= nhh.ymin):
-            return True
-        
     
-        
 
 class ArucoFinder:
     def __init__(self, name, src_type, src, arucos, display):
@@ -53,10 +36,6 @@ class ArucoFinder:
         self.event = Event()
         self.img = None     # img received from eCAL
 
-        # self.aruco_pub = ProtoPublisher(Position_aruco, "Arucos")
-        # if self.display:
-        #     self.cam_pub = ProtoPublisher(cipb.CompressedImage, "images_"+str(self.name))
-        
         # ArUco settings (API OpenCV 4.7+)
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.aruco_params = cv2.aruco.DetectorParameters()
@@ -223,38 +202,6 @@ class ArucoFinder:
         return rvecs, tvecs, ok
     
 
-    # def camera_pose_in_world(self, rvec, tvec, marker_pos_world):
-    #     """
-    #     Calcule la position et l'orientation de la caméra dans le repère monde.
-        
-    #     Args:
-    #         rvec (np.ndarray): vecteur rotation (3x1) du marqueur dans le repère caméra.
-    #         tvec (np.ndarray): vecteur translation (3x1) du marqueur dans le repère caméra.
-    #         marker_pos_world (np.ndarray): position du centre du marqueur dans le repère monde (3x1).
-
-    #     Returns:
-    #         cam_pos_world (np.ndarray): position de la caméra dans le repère monde (3x1).
-    #         cam_rot_world (np.ndarray): rotation de la caméra dans le repère monde (3x3).
-    #     """
-    #     # Convertir rvec en matrice de rotation
-    #     R_marker_cam, _ = cv2.Rodrigues(rvec)  # marker -> camera
-        
-    #     # Position de la caméra dans le repère monde
-    #     cam_pos_world = marker_pos_world.reshape(3,1) - R_marker_cam.T @ tvec.reshape(3,1)
-        
-    #     # Orientation de la caméra dans le repère monde
-    #     # R_marker_cam: marker -> camera
-    #     # R_cam_marker = R_marker_cam.T
-    #     # Pour passer à world: R_cam_world = R_cam_marker @ R_world_marker
-    #     # Si le marqueur est aligné avec le monde, R_world_marker = I
-    #     cam_rot_world = R_marker_cam.T  # si pas de rotation du marqueur dans le monde
-
-    #     print("pose : ")
-    #     print(cam_pos_world)
-    #     print("rot : " )
-    #     print(cam_rot_world)
-
-    #     return cam_pos_world, cam_rot_world
     
     def camera_pose_in_world_from_tags(self, rvec, tvec):
         """
@@ -317,13 +264,10 @@ class ArucoFinder:
         cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
 
         if detected_corners:
-            xs, ys, zs, aruIds= [],[],[],[]
-            qws, qxs, qys, qzs = [],[],[],[]
             centers = []
             centers_id = []
             for corners, id in zip(detected_corners, detected_ids):
                 id = id[0]
-                print(id)
                 if id not in [20,21,22,23]:
                     continue
                 center = corners[0].mean(axis=0)
@@ -343,7 +287,6 @@ class ArucoFinder:
 
             if centers :        
                 rvecs, tvecs, _ = self.estimatePoseFromCenters(centers, self.camera_matrix, self.dist_coeffs)
-                #rvecs, tvecs, _ = self.estimatePoseSingleMarkers(corners, size, self.camera_matrix, self.dist_coeffs)
  
                 if tvecs is not None:
                     rv, tv = rvecs[0], tvecs[0]
@@ -351,21 +294,7 @@ class ArucoFinder:
                     self.camera_pose_in_world_from_tags(rv, tv)
 
                     cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
-                    xs.append(tv[0][0])
-                    ys.append(tv[0][1])
-                    zs.append(tv[0][2])
-                    aruIds.append(id)
-
-                    # Convert rvec to rotation matrix
-                    rotation_matrix, _ = cv2.Rodrigues(np.array(rv))
-                    r =  Rotation.from_matrix(rotation_matrix)
-                    (qx, qy, qz, qw) = r.as_quat()
-                    qxs.append(qx)
-                    qys.append(qy)
-                    qzs.append(qz)
-                    qws.append(qw)
-            #self.arucoFound = Position_aruco(x=xs, y=ys, z=zs, qx=qxs, qy=qys, qz=qzs, qw=qws, ArucoId=aruIds, cameraName=self.name)
-            #self.aruco_pub.send(self.arucoFound)
+                   
         return frame
     
 
@@ -519,13 +448,12 @@ class ArucoFinder:
 
 
 
-
     def process(self, frame):
         """Call it in a while true loop"""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 
-        self.world_objects.clear()
+        
         
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
         gray = clahe.apply(gray)
@@ -535,6 +463,7 @@ class ArucoFinder:
 
         if self.display:
             cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
+            self.world_objects.clear()
         
         cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
 
@@ -547,19 +476,16 @@ class ArucoFinder:
                     continue
                 size = self.arucos[id]
             
-                #rvecs, tvecs, _ = self.estimatePoseFromCenters(corners, self.camera_matrix, self.dist_coeffs)
                 rvecs, tvecs, _ = self.estimatePoseSingleMarkers(corners, size, self.camera_matrix, self.dist_coeffs)
  
                 if tvecs is not None:
                     rv, tv = rvecs[0], tvecs[0]
 
                     #posW = self.objects_in_world(rv, tv)
-         
-                    cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
+                    if self.display:
+                        cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
      
                     # Convert rvec to rotation matrix
-                    
-
                     P_tc = np.array(tv[0])
                     P_cw = np.array(self.camera_pose_in_W)
 
@@ -567,20 +493,27 @@ class ArucoFinder:
                     R_wc = self.camera_rot_in_W   #Rotation.from_quat(Q_wc)
                     P_tw = R_wc @ P_tc + P_cw
 
-                    #rotation_matrix, _ = cv2.Rodrigues(np.array(R_wc))
-                    r =  Rotation.from_matrix(R_wc)   
+                    # Rotation marqueur -> caméra
+                    R_ct, _ = cv2.Rodrigues(rv)
+
+                    # Rotation marqueur -> monde
+                    R_wt = R_wc @ R_ct
+
+                    # Convertir en quaternion
+                    r = Rotation.from_matrix(R_wt)
                     (qx, qy, qz, qw) = r.as_quat(False)
 
                     ar = Aruco(x=P_tw[0], y=P_tw[1], z=P_tw[2],qx=qx, qy=qy, qz=qz, qw=qw, ArucoId=id )
                     arucos.append(ar)
 
                     # TODO : modify the world map to use the arucos message instead
-                    self.world_objects.append( {
-                        "pos": P_tw,
-                        "size": size,
-                        "id": id
-                    })
-            
+                    if self.display:
+                        self.world_objects.append( {
+                            "pos": P_tw,
+                            "size": size,
+                            "id": id
+                        })
+                
             self.arucoFound = Arucos(arucos=arucos, cameraName=self.name)
             self.aruco_pub.send(self.arucoFound)
         return frame
