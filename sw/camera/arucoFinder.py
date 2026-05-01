@@ -137,6 +137,7 @@ class ArucoFinder:
                 if id not in self.arucos:
                     continue
                 size = self.arucos[id]
+                
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers([corners], size, self.camera_matrix, self.dist_coeffs)
                 if tvecs is not None:
                     rv, tv = rvecs[0], tvecs[0]
