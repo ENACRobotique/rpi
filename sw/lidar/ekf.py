@@ -47,7 +47,7 @@ He = np.array([[0,0,0,1,0], [0,0,0,0,1]])
 
 
 class EkfDiff:
-    def __init__(self, X0, dt, lidar_var, gyro_var, enc_var, beacons_var, model_var) -> None:
+    def __init__(self, X0, lidar_var, gyro_var, enc_var, beacons_var, model_var) -> None:
         pass
         if not ecal_core.is_initialized():
             ecal_core.initialize("RadarQt receiver")
@@ -77,10 +77,10 @@ class EkfDiff:
         self.so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.X = X0
-        self.dt = dt
+        self.model_var = model_var
 
         self.P = np.eye(5)
-
+        self.time = time.time()
 
 
         ## observation noises
@@ -97,14 +97,6 @@ class EkfDiff:
         self.Rb = np.array([[beacons_var_r, 0], [0, beacons_var_alpha]])
 
 
-        ## system noise
-        self.Q = np.array([
-            [.25*dt**4, .5*dt**3,        0,         0,        0],
-            [ .5*dt**3,    dt**2,        0,         0,        0],
-            [        0,        0,        dt,        0,        0],
-            [        0,        0,        0,        dt,        0],
-            [        0,        0,        0,         0,       dt]
-        ]) @ np.diag([*model_var])
     
     def __enter__(self):
         return self
@@ -216,15 +208,30 @@ class EkfDiff:
         return H
     
     
+    def calc_Q(self, dt):
+        ## system noise
+        return np.array([
+            [.25*dt**4, .5*dt**3,        0,         0,        0],
+            [ .5*dt**3,    dt**2,        0,         0,        0],
+            [        0,        0,        dt,        0,        0],
+            [        0,        0,        0,        dt,        0],
+            [        0,        0,        0,         0,       dt]
+        ]) @ np.diag([*self.model_var])
+
     def predict(self, U):
         """
         Propagate the model
         U: commande vector
         """
-        self.X = self.X + self.f(self.X, U)*self.dt
+
+        dt = time.time() - self.time
+        self.time += dt
+        Q = self.calc_Q(dt)
+    
+        self.X = self.X + self.f(self.X, U)*dt
         
-        F = np.identity(5) + self.F(self.X, U)*self.dt
-        self.P = F @ self.P @ F.T + self.Q
+        F = np.eye(self.X.shape[0]) + self.F(self.X, U)*dt
+        self.P = F @ self.P @ F.T + Q
         self.send_pos()
     
 
@@ -244,26 +251,30 @@ class EkfDiff:
         y = residual(z, h(self.X))
         K = self.P @ H.T @ inv(H@self.P@H.T + R)
         self.X = self.X + K@y
-        self.P = (np.identity(5) - K@H) @ self.P
+        self.P = (np.eye(self.X.shape[0]) - K@H) @ self.P
         
         self.send_pos()
-    
+
+
+    def estimate(self, z, h, Hx, R, residual=np.subtract):
+        self.predict(np.zeros((2,1)))
+        self.update(z, h, Hx, R, residual)
 
     def handle_lidar_data(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Position]):
         """ Lidar callback. Update the state with lidar measure."""
         z = np.array([msg.message.x, msg.message.y, msg.message.theta])
-        self.update(z, self.h_lidar, self.H_lidar, self.Rl, self.lidar_residual)
+        self.estimate(z, self.h_lidar, self.H_lidar, self.Rl, self.lidar_residual)
     
     def handle_gyro(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Ins]):
         """ Gyro callback. Update the state with gyro measure."""
         # TODO vtheta est à l'envers
         z = np.array([msg.message.vtheta])
-        self.update(z, self.h_gyro, self.H_gyro, self.Rg)
+        self.estimate(z, self.h_gyro, self.H_gyro, self.Rg)
         
     def handle_encoders(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
         """ Encoders callback. Update the state with encoders pos."""
         z = np.array([msg.message.vx, msg.message.vtheta])
-        self.update(z, self.h_enc, self.H_enc, self.Re)
+        self.estimate(z, self.h_enc, self.H_enc, self.Re)
     
     # def handle_beacons(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[lpb2.Balises]):
     #     # TODO directly in [r, alpha]
@@ -304,7 +315,6 @@ class EkfDiff:
         self.so.sendto(f"V:{v}\n".encode(), TELEPOT_SERVER)
         self.so.sendto(f"Omega:{omega}\n".encode(), TELEPOT_SERVER)
 
-
 def main():
     lidar_var = 5**2, 5**2, 0.004**2
     gyro_var = 0.003**2
@@ -317,7 +327,7 @@ def main():
 
     # prediction rate
     dt = 1/100
-    with EkfDiff(X0, dt, lidar_var, gyro_var, enc_var, beacons_var, model_var) as ekf:
+    with EkfDiff(X0, lidar_var, gyro_var, enc_var, beacons_var, model_var) as ekf:
         while True:
             ekf.predict(np.zeros((2,1)))
             time.sleep(dt)
