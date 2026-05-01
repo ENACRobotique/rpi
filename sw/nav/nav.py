@@ -5,7 +5,7 @@ sys.path.append("../..")
 import sw.nav.map as map
 import sw.nav.dijkstra as dijkstra
 # import matplotlib.pyplot as plt
-from math import sqrt,pi
+from math import sqrt,pi, atan2,radians
 
 class Nav(object):  
     def __init__(self):
@@ -53,16 +53,32 @@ class Nav(object):
 
         self.chemin,self.distance_totale = dijkstra.dijkstra_classic(self.graph,self.entree, self.sortie) #a liste des points parcourus,nd distance parcourue
         dist = 0 
+
         x,y = self.getCoords(self.chemin[0])
+
+        if len(self.chemin) == 1:
+            return [(x,y,theta_dest)]
+
         pos=[(x,y,theta_start)]
         
-        for i in range(1,len(self.chemin)):
+        for i in range(1,len(self.chemin) - 1):
             x1,y1 = self.getCoords(self.chemin[i-1])
             x2,y2 = self.getCoords(self.chemin[i])
             dist += sqrt((x2-x1)**2+(y2-y1)**2)
-            theta = theta_start + (dtheta)*dist/self.distance_totale
+            theta = atan2(y2 - y1,x2 - x1)
             pos.append((x2,y2,theta))
-        
+
+        x1,y1 = self.getCoords(self.chemin[-2])
+        x2,y2 = self.getCoords(self.chemin[-1])
+
+        x12,y12 = (x1+x2)/2,(y1+y2)/2
+
+        dist += sqrt((x2-x1)**2+(y2-y1)**2)
+        theta = theta_dest
+        if abs(atan2(y2-y1,x2-x1) - theta) > pi - radians(5):
+            pos.append((x12,y12,theta))
+        pos.append((x2,y2,theta))
+    
         #print("Positions",pos)
         return pos
         
@@ -103,21 +119,29 @@ class Nav(object):
                 dy2 = y2 - y1
 
                 dist += sqrt((x1-x0)**2+(y1-y0)**2)
-                theta = theta_start + (dtheta)*dist/self.distance_totale
+                theta = atan2(dy2,dx2)
 
                 if abs(dx1 * dy2 - dy1 * dx2):
                     reduced_chemin.append(chemin[i])
                     reduced_pos.append((x1,y1, theta))
 
             #on ajoute le dernier points
+
             x0, y0 = self.getCoords(chemin[-2])
             x1, y1 = self.getCoords(chemin[-1])
             dist += sqrt((x1-x0)**2+(y1-y0)**2)
-            theta = theta_start + (dtheta)*dist/self.distance_totale
+            theta = theta_dest
             reduced_chemin.append(chemin[-1])
+            
+            # Rotation moitié demi segment
+            x12, y12 = (x0+x1)/2,(y0+y1)/2
+            if abs(atan2(y1-y0,x1-x0) - theta) > pi - radians(5):
+                reduced_pos.append((x12,y12,theta))
+
             reduced_pos.append((x1,y1, theta))
 
             self.chemin = reduced_chemin
+            print("reduced_pos : ",reduced_pos)
             return reduced_pos
 
 

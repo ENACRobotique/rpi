@@ -115,12 +115,7 @@ class Calibrator:
             if ret_corners:
                 cv2.drawChessboardCorners(frame, (NB_CORNERS_X, NB_CORNERS_Y), corners, ret_corners)
 
-            
-            if args.scale is not None:
-                frame_disp = cv2.resize(frame, None, fx=args.scale, fy=args.scale)
-
-            cv2.imshow('Calibration', frame_disp)
-            
+            cv2.imshow('Calibration', frame)
             
             key = cv2.waitKey(1)
 
@@ -169,8 +164,6 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--fps', type=int, help='framerate', default=None)
     parser.add_argument('--fourcc', type=str, help='fourcc type (MJPG, H264, ...)', default=None)
     parser.add_argument('-d', '--dir', default='../../data/camera_calibrations/', help='Directory for calibration files')
-    parser.add_argument('-s', '--scale', type=float, default=None)
-
     args = parser.parse_args()
 
     if args.cam is not None:

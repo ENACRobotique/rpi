@@ -305,8 +305,7 @@ class Robot:
 
     def resetPosOnEkf(self):
         """Recalage sur la pos du lidar"""
-        pass
-        # self.resetPos(self.ekf_pos)
+        self.resetPos(self.ekf_pos)
     
     def onSetTargetPostition (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[common_pb.Position]):
         """Callback d'un subscriber ecal. Actualise le dernier ordre de position"""
@@ -549,8 +548,8 @@ class Robot:
         ### False sinon
         for caisse in self.coteD:
             if (caisse == Caisse.BLEU and self.color == Team.BLEU) or (caisse == Caisse.JAUNE and self.color == Team.JAUNE):
-                return False
-        return True
+                return True
+        return False
 
     def cote_gauche_ours(self):
         ### True si le cote gauche a des caisse de notre couleur
@@ -567,21 +566,20 @@ class Robot:
         print("===thermoAct===")
         self.setTargetPos(self.dest_to_pos(thermo_pos),blocking=True,timeout=8)
         print("On va bourrer le mur")
-        self.move(-200,thermo_pos[1], blocking=True,timeout=4) # ie on bourre le mur
-        #time.sleep(2)
+        r = self.move(-200,0, blocking=True,timeout=5) # ie on bourre le mur
         print("On descend le bras")
         if self.color ==Team.JAUNE:
-            self.actionneurs.moveBicepsG(act.PosTentacle.THERMO)
+            self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
         else :
-            self.actionneurs.moveBicepsD(act.PosTentacle.THERMO)
+            self.actionneurs.moveTricepsG(act.PosTentacle.THERMO)
         #self.heading(thermo_pos[1],blocking=True,timeout=3)
         print("On pousse le thermo")
-        self.move(510,np.pi,blocking=True,timeout=8)
+        self.move(510,0,blocking=True,timeout=8)
         #time.sleep(3)
         if self.color ==Team.JAUNE:
-            self.actionneurs.moveBicepsG(act.PosTentacle.HAUT)
+            self.actionneurs.moveTricepsD(act.PosTentacle.HAUT)
         else :
-            self.actionneurs.moveBicepsD(act.PosTentacle.HAUT)
+            self.actionneurs.moveTricepsG(act.PosTentacle.HAUT)
         return True
     
     def attraper(self,coteDroit):
@@ -607,11 +605,30 @@ class Robot:
                 if caisse == couleur or couleur == Caisse.TOUT :
                     self.actionneurs.Grab(act.POMPES_DROITES[i],False)
                     self.coteD[i] = Caisse.RIEN
-            time.sleep(2)
+            time.sleep(1)
             self.actionneurs.moveD(act.PosTentacle.HAUT)
         else :
             print("RELEASE : cote gauche =", self.coteG)
             self.actionneurs.moveG(act.PosTentacle.DROP)
+            for (i,caisse) in enumerate(self.coteG):
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_GAUCHES[i],False)
+                    self.coteG[i] = Caisse.RIEN
+            time.sleep(1)
+            self.actionneurs.moveG(act.PosTentacle.HAUT)
+        return True
+    
+    def revolutionner(self,coteDroit,couleur:Caisse):
+        if coteDroit :
+            self.actionneurs.moveD(act.PosTentacle.RETOURNE)
+            for (i,caisse) in enumerate(self.coteD) :
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_DROITES[i],False)
+                    self.coteD[i] = Caisse.RIEN
+            time.sleep(2)
+            self.actionneurs.moveD(act.PosTentacle.HAUT)
+        else :
+            self.actionneurs.moveG(act.PosTentacle.RETOURNE)
             for (i,caisse) in enumerate(self.coteG):
                 if caisse == couleur or couleur == Caisse.TOUT :
                     self.actionneurs.Grab(act.POMPES_GAUCHES[i],False)

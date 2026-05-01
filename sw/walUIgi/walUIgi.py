@@ -18,7 +18,7 @@ import cv2
 
 from PyQt6.QtGui import QImage, QPainter, QColor, QPen, QPixmap
 from PyQt6.QtCore import Qt,pyqtSignal,QObject,QTimer
-import generated.robot_state_pb2 as robot_pb
+from generated import robot_state_pb2 as robot_pb
 
 import generated.common_pb2 as hgpb
 import generated.lidar_data_pb2 as lidarpb

@@ -1,5 +1,5 @@
-# import matplotlib.pyplot as plt
-# import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from math import sqrt
 #import dijkstra
 import random as rd 
@@ -118,67 +118,67 @@ def print_map(graph, ax = None):
             x2 = g.coords[voisin][0]
             y2 = g.coords[voisin][1]
             plt.plot([x1,x2],[y1,y2],color='black')
-            l = data_linewidth_plot([x1,x2],[y1,y2], ax=ax, solid_capstyle="round",linewidth = 2*RAYON_ROBOT, alpha = 0.2)
+            #l = data_linewidth_plot([x1,x2],[y1,y2], ax=ax, solid_capstyle="round",linewidth = 2*RAYON_ROBOT, alpha = 0.2)
 
     #Affichage des bords de table
     table = patches.Rectangle((0,0),3000,2000,linewidth=1.5, edgecolor='black', facecolor='none')
     ax.add_patch(table)
     
-    #Affichage des zones Jaunes
-    j1 = patches.Rectangle((1000,   0),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
-    j2 = patches.Rectangle((2550, 650),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
-    j3 = patches.Rectangle(( 150,1550),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
-    ax.add_patch(j1)
-    ax.add_patch(j2)
-    ax.add_patch(j3)
+    # #Affichage des zones Jaunes
+    # j1 = patches.Rectangle((1000,   0),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
+    # j2 = patches.Rectangle((2550, 650),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
+    # j3 = patches.Rectangle(( 150,1550),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
+    # ax.add_patch(j1)
+    # ax.add_patch(j2)
+    # ax.add_patch(j3)
     
-    #Affichage des zones Bleu
-    b1 = patches.Rectangle((1550,   0),450,450,linewidth=1.5, facecolor='lightblue', edgecolor='black')
-    b2 = patches.Rectangle((   0, 650),450,450,linewidth=1.5, facecolor='lightblue', edgecolor='black')
-    b3 = patches.Rectangle((2400,1550),450,450,linewidth=1.5, facecolor='lightblue', edgecolor='black')
-    ax.add_patch(b1)
-    ax.add_patch(b2)
-    ax.add_patch(b3)
+    # #Affichage des zones Bleu
+    # b1 = patches.Rectangle((1550,   0),450,450,linewidth=1.5, facecolor='lightblue', edgecolor='black')
+    # b2 = patches.Rectangle((   0, 650),450,450,linewidth=1.5, facecolor='lightblue', edgecolor='black')
+    # b3 = patches.Rectangle((2400,1550),450,450,linewidth=1.5, facecolor='lightblue', edgecolor='black')
+    # ax.add_patch(b1)
+    # ax.add_patch(b2)
+    # ax.add_patch(b3)
 
-    #Affichage des stocks 
-    s1  = patches.Rectangle((  25, 200),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s2  = patches.Rectangle((2875, 200),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s3  = patches.Rectangle((  25,1125),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s4  = patches.Rectangle((2875,1125),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s5  = patches.Rectangle(( 575, 200),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s6  = patches.Rectangle((2025, 200),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s7  = patches.Rectangle((1700, 900),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s8  = patches.Rectangle(( 900, 900),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s9  = patches.Rectangle(( 625,1675),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    s10 = patches.Rectangle((1975,1675),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
-    ax.add_patch(s1)
-    ax.add_patch(s2)
-    ax.add_patch(s3)
-    ax.add_patch(s4)
-    ax.add_patch(s5)
-    ax.add_patch(s6)
-    ax.add_patch(s7)
-    ax.add_patch(s8)
-    ax.add_patch(s9)
-    ax.add_patch(s10)
+    # #Affichage des stocks 
+    # s1  = patches.Rectangle((  25, 200),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s2  = patches.Rectangle((2875, 200),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s3  = patches.Rectangle((  25,1125),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s4  = patches.Rectangle((2875,1125),100,400,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s5  = patches.Rectangle(( 575, 200),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s6  = patches.Rectangle((2025, 200),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s7  = patches.Rectangle((1700, 900),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s8  = patches.Rectangle(( 900, 900),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s9  = patches.Rectangle(( 625,1675),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # s10 = patches.Rectangle((1975,1675),400,100,linewidth=1.5, facecolor='burlywood', edgecolor='black')
+    # ax.add_patch(s1)
+    # ax.add_patch(s2)
+    # ax.add_patch(s3)
+    # ax.add_patch(s4)
+    # ax.add_patch(s5)
+    # ax.add_patch(s6)
+    # ax.add_patch(s7)
+    # ax.add_patch(s8)
+    # ax.add_patch(s9)
+    # ax.add_patch(s10)
     
-    #Affichage des zones de construction par équipe
-    c1 = patches.Rectangle((0,0),450,150,linewidth=1.5, facecolor='lightblue', edgecolor='black')
-    c2 = patches.Rectangle((2000,0),450,150,linewidth=1.5, facecolor='lightblue', edgecolor='black')
-    c3 = patches.Rectangle((555,0),450,150,linewidth=1.5, facecolor='yellow', edgecolor='black')
-    c4 = patches.Rectangle((2550,0),450,150,linewidth=1.5, facecolor='yellow', edgecolor='black')
-    ax.add_patch(c1)
-    ax.add_patch(c2)
-    ax.add_patch(c3)
-    ax.add_patch(c4)
+    # #Affichage des zones de construction par équipe
+    # c1 = patches.Rectangle((0,0),450,150,linewidth=1.5, facecolor='lightblue', edgecolor='black')
+    # c2 = patches.Rectangle((2000,0),450,150,linewidth=1.5, facecolor='lightblue', edgecolor='black')
+    # c3 = patches.Rectangle((555,0),450,150,linewidth=1.5, facecolor='yellow', edgecolor='black')
+    # c4 = patches.Rectangle((2550,0),450,150,linewidth=1.5, facecolor='yellow', edgecolor='black')
+    # ax.add_patch(c1)
+    # ax.add_patch(c2)
+    # ax.add_patch(c3)
+    # ax.add_patch(c4)
 
-    #Affichage des rampes
-    r1= patches.Rectangle((1050,1550),900,450, facecolor='purple', linewidth=1.5, edgecolor='black')
-    r2= patches.Rectangle(( 650,1800),400,200, facecolor='purple', linewidth=1.5, edgecolor='black')
-    r3= patches.Rectangle((1950,1800),400,200, facecolor='purple', linewidth=1.5, edgecolor='black')
-    ax.add_patch(r1)
-    ax.add_patch(r2)
-    ax.add_patch(r3)
+    # #Affichage des rampes
+    # r1= patches.Rectangle((1050,1550),900,450, facecolor='purple', linewidth=1.5, edgecolor='black')
+    # r2= patches.Rectangle(( 650,1800),400,200, facecolor='purple', linewidth=1.5, edgecolor='black')
+    # r3= patches.Rectangle((1950,1800),400,200, facecolor='purple', linewidth=1.5, edgecolor='black')
+    # ax.add_patch(r1)
+    # ax.add_patch(r2)
+    # ax.add_patch(r3)
 
 
 def print_chemin(g,chemin):
@@ -195,13 +195,13 @@ def print_chemin(g,chemin):
 
 if __name__ == "__main__" : 
     ### test 
-    file = "sw/graph.txt"
+    file = "graph2026.txt"
     graph = read_graph(file) #map de la table
     graph.weight()
 
     #chemin,distance_totale = dijkstra.dijkstra_classic(graph,"secureB", "potSE") #a liste des points parcourus,nd distance parcourue
     
-    print(graph.weights)
+    #print(graph.weights)
     fig, ax = plt.subplots()
     print_map(graph,ax)
 

@@ -130,6 +130,25 @@ class Relacher(py_trees.behaviour.Behaviour):
         else :
             return py_trees.common.Status.FAILURE
         
+class Revolutionner(py_trees.behaviour.Behaviour):
+    def __init__(self, cote_color):
+        (self.cote,self.color_caisse) = cote_color
+        if self.cote:
+            self.pos_info = "droit"
+        else:
+            self.pos_info = "gauche"
+        super().__init__(name=f"Revolutionner avec le bras {self.pos_info}")
+        self.bb, self.robot, self.world = get_bb_robot(self)
+
+    def initialise(self) -> None:
+        print(f"Revolutionner avec le bras {self.pos_info}")
+        
+    def update(self):
+        if self.robot.revolutionner(self.cote,self.color_caisse):
+            return py_trees.common.Status.SUCCESS
+        else :
+            return py_trees.common.Status.FAILURE
+        
 
 ##### Behavior tree pour l'automatisation #####
 
