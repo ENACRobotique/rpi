@@ -180,12 +180,13 @@ class Deposer(Action):
                 Deposer.nav_point, max_reward = mostRewardingDepotPoint()
                 return max_reward
             else :
-                if world.nid < 6 :
-                    Deposer.nav_point, max_reward = START_POS[robot.color][robot.strat][0],6  - 3 * (robot.distance_from(START_POS[robot.color][robot.strat][0])/DISTANCE_MAX)
-                    return max_reward
-                else:
-                    # On va tenter de retourner
-                    return 0
+                return 0
+                # if world.nid < 6 :
+                #     Deposer.nav_point, max_reward = START_POS[robot.color][robot.strat][0],6  - 3 * (robot.distance_from(START_POS[robot.color][robot.strat][0])/DISTANCE_MAX)
+                #     return max_reward
+                # else:
+                #     # On va tenter de retourner
+                #     return 0
         else:
             return 0
     
@@ -251,11 +252,11 @@ class Retourner(Action):
             return max_wpt,max_reward
         
         if (not robot.cote_droit_vide() and not robot.cote_droit_ours()) or (not robot.cote_gauche_vide() and not robot.cote_gauche_ours()):
-            if world.nid >= 6:
-                Retourner.nav_point, max_reward = mostRewardingDepotPoint()
-                return max_reward
-            else :
-                return 0
+            # if world.nid >= 6:
+            Retourner.nav_point, max_reward = mostRewardingDepotPoint()
+            return max_reward
+            # else :
+            #     return 0
         else:
             return 0
     

@@ -6,7 +6,6 @@ import random as rd
 
 RAYON_ROBOT = 200
 
-
 class data_linewidth_plot():
     def __init__(self, x, y, **kwargs):
         self.ax = kwargs.pop("ax", plt.gca())
@@ -123,7 +122,37 @@ def print_map(graph, ax = None):
     #Affichage des bords de table
     table = patches.Rectangle((0,0),3000,2000,linewidth=1.5, edgecolor='black', facecolor='none')
     ax.add_patch(table)
+
+    nidJ = patches.Rectangle((0, 2000-450), 600,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
+    ax.add_patch(nidJ)
+    nidB = patches.Rectangle((3000-600, 2000-450),600,450,linewidth=1.5, facecolor='blue', edgecolor='black')
+    ax.add_patch(nidB)
+
+    # Frigos
+    frigoJW = patches.Rectangle((0, 700), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoJW)
+    frigoBE = patches.Rectangle((3000-200, 700), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoBE)
+    frigoJS = patches.Rectangle((600, 0), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoJS)
+    frigoBS = patches.Rectangle((3000-(600+200), 0), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoBS)
+    frigoJN = patches.Rectangle((1150, 1350), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoJN)
+    frigoBN = patches.Rectangle((3000-(1150+200), 1350), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoBN)
+    frigoJMid = patches.Rectangle((700, 700), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoJMid)
+    frigoBMid = patches.Rectangle((3000-(700+200), 700), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoBMid)
+
+    frigoMid = patches.Rectangle((0, 700), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoJMid)
+    frigoBMid = patches.Rectangle((3000-(700+200), 700), 200,200,linewidth=1.5, facecolor='white', edgecolor='green')
+    ax.add_patch(frigoBMid)
     
+    ### 2025 ###
+
     # #Affichage des zones Jaunes
     # j1 = patches.Rectangle((1000,   0),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
     # j2 = patches.Rectangle((2550, 650),450,450,linewidth=1.5, facecolor='yellow', edgecolor='black')
