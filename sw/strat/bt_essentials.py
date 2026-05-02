@@ -4,6 +4,7 @@ import time
 import numpy as np
 sys.path.append("../..")
 from robot import Robot, Pos, Speed, Tirette, Team, Strat
+import common as cm
 from world import World
 from math import radians
 from collections.abc import Callable
@@ -44,6 +45,61 @@ CAISSETHERMO_POS = {
     },
     Team.BLEU: {
         Strat.Basique: ('NoixBSE',np.pi/2)
+    }
+}
+
+DEPOT1_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('FrigoJS',np.pi)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('FrigoBS',0)
+    }
+}
+
+
+CAISSE1_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('NoixJSE',0)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('NoixBSW',np.pi)
+    }
+}
+
+CAISSE2_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('NoixJES',0)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('NoixBWS',np.pi)
+    }
+}
+
+DEPOT2_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('FrigoMidS',0)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('FrigoMidS',np.pi)
+    }
+}
+
+DEPOT3_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('FrigoMidNS',0)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('FrigoMidNS',np.pi)
+    }
+}
+
+DEPOT4_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('FrigoJES', 0)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('FrigoBWS', np.pi)
     }
 }
 
@@ -165,23 +221,57 @@ class Navigate(py_trees.behaviour.Behaviour):
 
 class Move(py_trees.behaviour.Behaviour):
     """TODO"""
-    def __init__(self, robot: Robot, distance, direction, speed):
+    def __init__(self, distance, direction):
         super().__init__(name=f"Move")
-        self.robot = robot
+        self.bb, self.robot,_ = get_bb_robot(self)
         self.distance = distance
         self.direction = direction
-        self.speed = speed
+        self.avoiding = False
 
     def initialise(self):
-        self.robot.move(self.distance, self.direction, self.speed)
+
+        self.target = Pos(self.distance * np.cos(self.direction), self.distance * np.sin(self.direction), cm.normalize_angle(self.direction)).from_frame(self.robot.ekf_pos)
+        print(f"move target: {self.target}")
+        self.robot.move(self.distance, self.direction)
 
     def update(self):
-        print("[Move] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
-        if self.robot.hasReachedTarget():
+        if self.robot.obstacle_in_way(self.target):
+             if not self.avoiding:
+                self.robot.log("Obstacle detected, stopping.")
+                self.robot.set_speed(Speed(0, 0, 0))
+                #self.robot.setTargetPos(self.robot.pos) #ARRETER ROBOT
+                print(f"Robot stop ici: {self.robot.pos}")
+                self.avoiding = True
+        else:   # pas d'obstacle
+            if self.avoiding:
+                # resume movement after obstacle avoidance
+                self.robot.log("No obstacle, resuming movement")
+                self.robot.move(self.robot.ekf_pos.distance(self.target), cm.normalize_angle(self.target.theta-self.robot.ekf_pos.theta))
+                self.avoiding = False
+            else:
+                if self.robot.moveEnded():
+                    return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+    
+class MoveSpeed(py_trees.behaviour.Behaviour):
+    """TODO"""
+    def __init__(self, speed,duration):
+        super().__init__(name=f"MoveSpeed")
+        self.bb, self.robot,_ = get_bb_robot(self)
+        self.speed = speed
+        self.duration = duration
+
+    def initialise(self):
+        self.t = time.time()
+        self.robot.set_speed(self.speed)
+
+    def update(self):
+        #print("[MoveSpeed] TODO EVITEMENT!!!!!!!!!!!!!!!!!!!!!!!!")
+        if time.time()-self.t > self.duration:
+            self.robot.set_speed(Speed(0,0,0))
             return py_trees.common.Status.SUCCESS
         # Moving
         return py_trees.common.Status.RUNNING
-
 
 class MoveTo(py_trees.behaviour.Behaviour):
     def __init__(self, position_target:Pos | Callable[[Robot], Pos]):
@@ -192,12 +282,12 @@ class MoveTo(py_trees.behaviour.Behaviour):
         self.avoiding = False
 
     def initialise(self):
+        self.robot.resetPosOnEkf()
         if isinstance(self.position_target, Pos):
             self.dernier_consigne_pos = self.position_target
         else :
              self.dernier_consigne_pos = self.position_target(self.robot)
         self.robot.setTargetPos(self.dernier_consigne_pos)
-
 
     def update(self):
         if self.robot.obstacle_in_way(self.dernier_consigne_pos):
@@ -214,7 +304,7 @@ class MoveTo(py_trees.behaviour.Behaviour):
                 self.robot.setTargetPos(self.dernier_consigne_pos)
                 self.avoiding = False
             else:
-                if self.robot.hasReachedTarget():
+                if self.robot.moveEnded():
                     return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
 

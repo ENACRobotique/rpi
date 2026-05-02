@@ -9,7 +9,7 @@ from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
 from world import World,RAMASSAGE_POS,DEPOT_POS,DEPOT_ANG,RAMASSAGE_ANG
 from bt_essentials import MatchTimer, Navigate, WaitMatchStart, WaitUntil
-from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, START_POS, CAISSETHERMO_POS
+from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, MoveSpeed, START_POS, CAISSETHERMO_POS, DEPOT1_POS, CAISSE1_POS,DEPOT2_POS, DEPOT3_POS, DEPOT4_POS, CAISSE2_POS
 from typing import Callable
 from dataclasses import dataclass
 import time
@@ -266,6 +266,87 @@ class Retourner(Action):
             robot.updateScore(6)
 
 
+
+#########################################
+###### MATCH BASIQUE #####################
+#########################################
+
+class Match(Action):
+    name = "Match"
+    
+    @staticmethod
+    def create_bt(robot: Robot, world: World) -> Behaviour:
+        match = py_trees.composites.Sequence("Match", True)
+
+        coteThermo = False if robot.color == Team.JAUNE else True # ie on recup cote Gauche avec le jaune pour avoir bras droit libre (et inversement cote bleu)
+
+        notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.BLEU # La color opposee
+
+        match.add_children([
+
+            WaitSeconds(0.5),
+
+            #Thermo Action
+            MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
+            #WaitSeconds(1),
+            Aligner(coteThermo),
+            
+            Attraper(coteThermo),
+            MoveTo(robot.dest_to_pos(THERMO_POS[robot.color][robot.strat])),
+            MoveSpeed(Speed(-200,0,0),1),
+            MoveBrasThermo(PosTentacle.THERMO),
+            Move(510,0),
+            MoveBrasThermo(PosTentacle.HAUT),
+
+            #### Retourner au depot 1
+            MoveTo(robot.dest_to_pos(DEPOT1_POS[robot.color][robot.strat])), 
+            Revolutionner((coteThermo,pas_notre_couleur)),
+
+            #### Recup CAISSE 1
+            WaitSeconds(1),
+            Move(0,np.pi),
+            WaitSeconds(1),
+            MoveTo(robot.dest_to_pos(CAISSE1_POS[robot.color][robot.strat])),
+            Aligner(not coteThermo),
+            Attraper(not coteThermo),
+
+            ### Deposer au depot 2
+            MoveTo(robot.dest_to_pos(DEPOT2_POS[robot.color][robot.strat])),
+            Relacher((not coteThermo, notre_couleur)),
+
+            ## Deposer au depot 3
+            MoveTo(robot.dest_to_pos(DEPOT3_POS[robot.color][robot.strat])),
+            Relacher((coteThermo, notre_couleur)),
+
+            #### Recup CAISSE 2
+            MoveTo(robot.dest_to_pos(CAISSE2_POS[robot.color][robot.strat])),
+            Aligner(coteThermo),
+            Attraper(coteThermo),
+
+            ## Deposer au depot 4
+            MoveTo(robot.dest_to_pos(DEPOT4_POS[robot.color][robot.strat])),
+            Relacher((coteThermo, notre_couleur)),
+            
+        ])
+        return match
+    
+    @staticmethod
+    def reward(robot: Robot, world: World) -> float:
+        if world.main_match_action_done :
+            return 0
+        else :
+            return 50
+    
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        print("World time left : ",world.time_left())
+        world.main_match_action_done = True
+        return
+
+
+
+
 #######################################################################################################################################################################################  2025
 
 
@@ -374,7 +455,7 @@ class GoHomeAction(Action):
         terminate.add_children([
             Navigate(nana),
             WaitUntil(94,world.matchStartTime),
-            Move(robot,200,0,Velocity.NORMAL.value) 
+            Move(200,0) 
         ])
             #Bouge(Speed(200,0,0),4)])
         return terminate
@@ -395,7 +476,7 @@ class GoHomeAction(Action):
     
     @staticmethod
     def start_cb(robot: Robot, world: World) -> None:
-        robot.set_speed(Velocity.NORMAL.value)
+        pass
     
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:

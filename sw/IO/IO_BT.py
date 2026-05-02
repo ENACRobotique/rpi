@@ -31,6 +31,38 @@ class MoveBrasD(py_trees.behaviour.Behaviour):
         else :
             return py_trees.common.Status.FAILURE
 
+class MoveBrasThermo(py_trees.behaviour.Behaviour):
+    def __init__(self, pos:PosTentacle):
+        self.pos_info= "BUG"
+        if pos == PosTentacle.BAS:
+            self.pos_info = "BAS"
+        if pos == PosTentacle.HAUT:
+            self.pos_info = "HAUT"
+        if pos == PosTentacle.THERMO:
+            self.pos_info = "THERMO"
+        if pos == PosTentacle.RETOURNE:
+            self.pos_info = "RETOURNER"
+        if pos == PosTentacle.DROP:
+            self.pos_info = "DROP"
+        super().__init__(name=f"Move le bras Droit {self.pos_info}")
+        self.bb, self.robot, self.world = get_bb_robot(self)
+        self.pos = pos
+
+    def initialise(self) -> None:
+        print(f"Move le bras pour le thermometre {self.pos}")
+        if self.robot.color ==Team.JAUNE:
+            self.action = self.robot.actionneurs.moveTricepsD
+        else :
+            self.action = self.robot.actionneurs.moveTricepsG
+        
+    def update(self):
+        if self.action(self.pos):
+            return py_trees.common.Status.SUCCESS
+        else :
+            return py_trees.common.Status.FAILURE
+
+
+
 
 class MoveBrasG(py_trees.behaviour.Behaviour):
     def __init__(self, pos:PosTentacle):

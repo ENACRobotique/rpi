@@ -237,10 +237,7 @@ class Robot:
         
 
     def hasReachedTarget(self):
-        if self.pos.distance(self.last_target) < 15 and (abs(self.pos.theta - self.last_target.theta) < np.deg2rad(3)):
-            return True
-        else:
-            return False
+        return self.moveEnded()
 
     def setTargetPos(self, pos: Pos, frame=Frame.TABLE,blocking=False, timeout = 10):
         """Faire setTargetPos(Pos(x,y,theta)) en mm et angle en radian """
@@ -253,6 +250,8 @@ class Robot:
         if blocking:
             return self.response_event.wait(timeout) and self.response_status == 0
 
+    def moveEnded(self,timeout=0):
+        return self.response_event.wait(timeout)
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
@@ -285,6 +284,7 @@ class Robot:
         self.speed_cons_pub.send(speed.to_proto())
     
     def resetPos(self, position: Pos, timeout=2):
+        position.theta = normalize_angle(position.theta)
         self.log(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
         start_time = time.time()
@@ -410,7 +410,7 @@ class Robot:
 
     def closeToNavPoint(self, nav_id):
         d=sqrt((self.pos.x-self.nav_pos[nav_id].x)**2 + (self.pos.y-self.nav_pos[nav_id].y)**2)
-        return (d <= XY_ACCURACY)
+        return (d <= XY_ACCURACY*1.2)
     
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
@@ -482,7 +482,6 @@ class Robot:
     def align_with_pack(self,coteDroit,timeout=0):
         cam = "mabel" if coteDroit else "dipper"
         time_deb = time.time()
-        print(self.aruco_state.get_aruco_robot())
         arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
         while (len(arucosPosRobot)!=4 and (time.time()-time_deb)<timeout):
             arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
@@ -562,25 +561,6 @@ class Robot:
     def brasThermo(self):
         self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
 
-    def thermoAct(self,thermo_pos):
-        print("===thermoAct===")
-        self.setTargetPos(self.dest_to_pos(thermo_pos),blocking=True,timeout=8)
-        print("On va bourrer le mur")
-        r = self.move(-200,0, blocking=True,timeout=5) # ie on bourre le mur
-        print("On descend le bras")
-        if self.color ==Team.JAUNE:
-            self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
-        else :
-            self.actionneurs.moveTricepsG(act.PosTentacle.THERMO)
-        #self.heading(thermo_pos[1],blocking=True,timeout=3)
-        print("On pousse le thermo")
-        self.move(510,0,blocking=True,timeout=8)
-        #time.sleep(3)
-        if self.color ==Team.JAUNE:
-            self.actionneurs.moveTricepsD(act.PosTentacle.HAUT)
-        else :
-            self.actionneurs.moveTricepsG(act.PosTentacle.HAUT)
-        return True
     
     def attraper(self,coteDroit):
         print("===Atrapper===")

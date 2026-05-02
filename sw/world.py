@@ -26,6 +26,7 @@ class World:
         self.matchStartTime: float = -1      # Match start time. negative if match not started
         self.backInZone = False
         self.nid = 0
+        self.main_match_action_done = False
     
     def time_left(self) -> float:
         if self.matchStartTime < 0:

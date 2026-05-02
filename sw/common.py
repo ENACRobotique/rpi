@@ -93,6 +93,7 @@ class Pos:
         rot = rot.transpose()
         pos = rot.dot(self.to_np())
         pos = Pos.from_np(pos) + pos_frame
+        pos.theta = normalize_angle(pos.theta)
         return pos
 
 @dataclass

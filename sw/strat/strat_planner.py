@@ -28,12 +28,13 @@ if __name__ == "__main__":
 
         planner = Planner(r, w)
         planner.add_action(MatchStartAction)
-        planner.add_action(EndAction)
-        planner.add_action(ThermometreAction)
-        planner.add_action(Recuperer)
-        planner.add_action(Deposer)
-        planner.add_action(Retourner)
+        # planner.add_action(EndAction)
+        # planner.add_action(ThermometreAction)
+        # planner.add_action(Recuperer)
+        # planner.add_action(Deposer)
+        # planner.add_action(Retourner)
         planner.add_action(GoHomeAction)
+        planner.add_action(Match)
         
         # r.play_music(musics.smoke_on_the_water)
 
