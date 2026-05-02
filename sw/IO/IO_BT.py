@@ -139,6 +139,7 @@ class Aligner(py_trees.behaviour.Behaviour):
         
     def update(self):
         if self.robot.align_with_pack(self.cote,timeout=2):
+            print("Fin Alignement")
             return py_trees.common.Status.SUCCESS
         else :
             return py_trees.common.Status.FAILURE

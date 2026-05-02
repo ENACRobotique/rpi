@@ -274,7 +274,7 @@ class Robot:
     def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
          \nArgs, float:theta en radians """
-        self.move(0,angle,blocking=False, timeout = 10)
+        self.move(0,angle, blocking = blocking, timeout = timeout)
 
     def set_speed(self, speed: Speed):
         """
@@ -509,15 +509,13 @@ class Robot:
                 print("Mauvais dy")
 
             self.rotate(angle_droite_robot,blocking=True,timeout=3)
-            print("tourne de ", angle_droite_robot)
-            time.sleep(1)
+            #time.sleep(5)
 
             ## Alignement en x: 
             #print(-x_repereCaisse+200)
             #self.move(200 - x_repereCaisse,0,blocking=True,timeout=2)
             self.move(x_repereCaisse,0,blocking=True,timeout=3)
-            print("on bouge de ",x_repereCaisse)
-            time.sleep(1)
+            #time.sleep(5)
 
             if coteDroit :
                 self.coteD = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
