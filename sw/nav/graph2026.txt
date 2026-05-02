@@ -24,6 +24,6 @@ ThermoB 2800 200 NoixBSE
 FrigoBS 2300 400 NoixBSE,FrigoBWS,NoixBSW
 FrigoBWS 2200 575 FrigoBE,NoixBSE,FrigoBS,NoixBSW,NoixBWS
 NoixBWS 1850 575 FrigoBWS,FrigoMidNS,FrigoMidS,NoixBSW,FrigoBS
-NoixBSW 1850 400 FrigoBS,FrigoBWS,NoixBWS,FrigoMidS,FrigoMidS
+NoixBSW 1900 400 FrigoBS,FrigoBWS,NoixBWS,FrigoMidS,FrigoMidS
 FrigoBWN 2200 1025 EntreeB,FrigoBN,NoixBWN,FrigoBE,NoixBN
 NoixBWN 1850 1025 FrigoMidNN,FrigoBWN,FrigoBN,EntreeB

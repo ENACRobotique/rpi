@@ -14,13 +14,9 @@ from loca_lidar import BEACONS_BLUE, BEACONS_YELLOW
 from common import Pos
 from typing import Callable
 
-# Question, sachant que : 
 # - le retour d'info des encodeurs est très rapide (1kHz)
 # - Les encodeurs me donnent la même chose que ma commande [V, omega], avec le retard et les imperfections de l'asservissement entre les deux.
-# Est-ce que je dois plutôt faire :
 # 1- prédiction avec mes commandes, update avec lidar + gyro + encodeurs
-# 2- prédiction avec les encodeurs, update avec lidar + gyro (les encodeurs deviennent mes commandes)
-# --> je fais 2- pour l'instant.
 
 TELEPOT_SERVER = ("localhost", 47269)
 """
@@ -42,7 +38,7 @@ https://nbviewer.org/github/rlabbe/Kalman-and-Bayesian-Filters-in-Python/blob/ma
 """
 
 Hl = np.array([[1,0,0,0,0], [0,1,0,0,0], [0,0,1,0,0]])
-Hg = np.array([[0,0,0,0,1]])
+Hg = np.array([[0,0,1,0,0], [0,0,0,0,1]])
 He = np.array([[0,0,0,1,0], [0,0,0,0,1]])
 
 
@@ -50,7 +46,7 @@ class EkfDiff:
     def __init__(self, X0, lidar_var, gyro_var, enc_var, beacons_var, model_var) -> None:
         pass
         if not ecal_core.is_initialized():
-            ecal_core.initialize("RadarQt receiver")
+            ecal_core.initialize("EKF")
         self.lidar_sub = ProtoSubscriber(cpb2.Position, "lidar_pos")
         self.lidar_sub.set_receive_callback(self.handle_lidar_data)
         self.gyro_sub = ProtoSubscriber(cpb2.Ins, "ins")
@@ -88,7 +84,8 @@ class EkfDiff:
         lv_x, lv_y, lv_theta = lidar_var
         self.Rl = np.array([[lv_x, 0, 0], [0, lv_y, 0], [0, 0, lv_theta]])
 
-        self.Rg = np.array([[np.radians(gyro_var)]])
+        gyro_var_theta, gyro_var_vtheta = gyro_var
+        self.Rg = np.array([[gyro_var_theta, 0], [0, gyro_var_vtheta]])
 
         enc_var_v, enc_var_omega = enc_var
         self.Re = np.array([[enc_var_v, 0], [0, enc_var_omega]])
@@ -167,8 +164,8 @@ class EkfDiff:
     @staticmethod
     def h_gyro( X):
         """Returns what the gyro should output at X."""
-        _x, _y, _theta, _v, omega = X
-        return np.array([omega])
+        _x, _y, theta, _v, omega = X
+        return np.array([theta, omega])
     
     @staticmethod
     def H_gyro(_X):
@@ -268,7 +265,7 @@ class EkfDiff:
     def handle_gyro(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Ins]):
         """ Gyro callback. Update the state with gyro measure."""
         # TODO vtheta est à l'envers
-        z = np.array([msg.message.vtheta])
+        z = np.array([msg.message.theta, msg.message.vtheta])
         self.estimate(z, self.h_gyro, self.H_gyro, self.Rg)
         
     def handle_encoders(self, pub_id : ecal_core.TopicId, msg : ReceiveCallbackData[cpb2.Speed]):
@@ -316,8 +313,8 @@ class EkfDiff:
         self.so.sendto(f"Omega:{omega}\n".encode(), TELEPOT_SERVER)
 
 def main():
-    lidar_var = 5**2, 5**2, 0.004**2
-    gyro_var = 0.003**2
+    lidar_var = 5**2, 5**2, 0.5**2
+    gyro_var = 0.02**2, 0.003**2
     enc_var = 2**2, np.radians(2)**2
     beacons_var = 10**2, np.radians(0.5)**2
     var_speed, var_theta, var_accel = 5**2, 0.1**2, 100**2

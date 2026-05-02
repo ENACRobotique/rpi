@@ -1,5 +1,5 @@
 [Unit]
-Description= LCD driver 
+Description= EKF localisation
 After=network.target network-online.target
 
 [Service]

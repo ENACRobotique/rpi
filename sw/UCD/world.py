@@ -13,15 +13,15 @@ from threading import Event
 
 
 class Zone:
-    def __init__(nhh, xmin, xmax, ymin, ymax, name ):
-        nhh.xmin = xmin 
-        nhh.xmax = xmax
-        nhh.ymin = ymin 
-        nhh.ymax = ymax
-        nhh.name = name
+    def __init__(self, xmin, xmax, ymin, ymax, name ):
+        self.xmin = xmin 
+        self.xmax = xmax
+        self.ymin = ymin 
+        self.ymax = ymax
+        self.name = name
 
-    def contains(nhh, x, y):
-        return (x >= nhh.xmin) and (x<= nhh.xmax) and (y <= nhh.ymax) and (y >= nhh.ymin)
+    def contains(self, x, y):
+        return (x >= self.xmin) and (x<= self.xmax) and (y <= self.ymax) and (y >= self.ymin)
 
 
 class ZoneManager:
@@ -66,16 +66,30 @@ class World:
         self.arucosReportSub = ProtoSubscriber(Arucos, "Arucos_world")
         self.arucosReportSub.set_receive_callback(self.onReceiveArucos)
 
-        self.zone_manager = ZoneManager({
+        #on prend en général 100 de marge sauf pour les N on prend que 50 (pour éviter de voir ceux de la scène)
+        self.zone_rangement = ZoneManager({
             "FrigoJE": Zone(600, 1000, 600, 1000, "FrigoJE"),
             "FrigoJW": Zone(-100, 300, 200, 600, "FrigoJW"),
             "FrigoJS": Zone(500, 900, -100, 300, "FrigoJS"),
+            "FrigoJN": Zone(1100, 1400, 1300, 1600, "FrigoJN"),
             "FrigoMidN": Zone(1300, 1700, 600, 1000, "FrigoMidN"),
             "FrigoMidS": Zone(1300, 1700, -100, 300, "FrigoMidS"),
             "FrigoBS": Zone(2100, 2500, -100, 300, "FrigoBS"),
             "FrigoBE": Zone(2700, 3100, 600, 1000, "FrigoBE"),
-            "FrigoJS": Zone(500, 900, -100, 300, "FrigoJS")
+            "FrigoBW": Zone(2000, 2400, -100, 300, "FrigoJS"),
+            "FrigoBN": Zone(1600, 1900, 1300, 1600,"FrigoBN"), 
+        })
 
+        #on prend 50 de marge
+        self.zone_collecte = ZoneManager({
+            "NoixJN": Zone(50, 300, 1050, 1350,"NoixJN"),
+            "NoixJSW": Zone(50, 300, 250, 550, "NoixJSW"),  
+            "NoixJE": Zone(1000, 1300, 675, 925,"NoixJE"),
+            "NoixJSE": Zone(950, 1250, 50, 300, "NoixJSE"),
+            "NoixBN": Zone(2700, 2950, 1050, 1350,"NoixBN"),
+            "NoixBSE": Zone(2700, 2950, 250, 550,"NoixBSE"),
+            "NoixBW": Zone(1700, 2000,675, 925, "NoixBW"),
+            "NoixBSW": Zone(1750, 2050, 50, 300, "NoixBSW")
         })
 
 
@@ -83,7 +97,7 @@ class World:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.sub.remove_receive_callback()
+        self.arucosReportSub.remove_receive_callback()
 
 
     def onReceiveArucos (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[Arucos]):
@@ -96,7 +110,7 @@ class World:
                 time.sleep(0.1)
                 continue
 
-            results = self.zone_manager.analyze(self.arucos)
+            results = self.zone_rangement.analyze(self.arucos)
 
             for zone_name, res in results.items():
                 print(f"\nZone: {zone_name}")
