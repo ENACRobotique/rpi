@@ -123,7 +123,6 @@ class LidarLoca:
     
     def amalgames_cb(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[lidar_pb.Amalgames]):
         def estimate_pos(estimatedBeacons):
-            assert(len(estimatedBeacons) >=3)
             result = self.estimate(estimatedBeacons)
             # TODO test result.success, and tune ftol (in least_squares args)?
             estimated_pos = Pos.from_np(result.x)
@@ -131,7 +130,7 @@ class LidarLoca:
 
         msg = data.message
         estimatedBeacons_comb = self.estimate_beacons_pos(msg)
-        filtered_combs = filter(lambda x: len(x) >= 2, estimatedBeacons_comb)  # filter out combinations with less than 2 beacons
+        filtered_combs = filter(lambda x: len(x) >= 3, estimatedBeacons_comb)  # filter out combinations with less than 2 beacons
         estimated_poses = map(estimate_pos, filtered_combs)
         sorted_estimated_poses = list(sorted(estimated_poses, key=lambda x: x[1]))  # sort by cost
         #print([cost for estimated_pos, cost, estimatedBeacons in sorted_estimated_poses])
