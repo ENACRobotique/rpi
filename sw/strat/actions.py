@@ -8,7 +8,7 @@ sys.path.append("../..")
 from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
 from world import World,RAMASSAGE_POS,DEPOT_POS,DEPOT_ANG,RAMASSAGE_ANG
-from bt_essentials import MatchTimer, Navigate, WaitMatchStart, WaitUntil
+from bt_essentials import MatchTimer, Navigate, PrintPourDebug, WaitMatchStart, WaitUntil
 from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, MoveSpeed, START_POS, CAISSETHERMO_POS, DEPOT1_POS, CAISSE1_POS,DEPOT2_POS, DEPOT3_POS, DEPOT4_POS, CAISSE2_POS
 from typing import Callable
 from dataclasses import dataclass
@@ -40,12 +40,15 @@ class ThermometreAction(Action):
         bougerThermo = py_trees.composites.Sequence("Thermometre", True)
         bougerThermo.add_children([
             WaitSeconds(0.5),
-            Navigate(caissethermo_point),
+            MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
+            #WaitSeconds(1),
             Aligner(cote),
             Attraper(cote),
-            Navigate(thermo_point),
-            #MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
-            ThermoAction(THERMO_POS[robot.color][robot.strat])
+            MoveTo(robot.dest_to_pos(THERMO_POS[robot.color][robot.strat])),
+            MoveSpeed(Speed(-200,0,0),1),
+            MoveBrasThermo(PosTentacle.THERMO),
+            Move(500,0),
+            MoveBrasThermo(PosTentacle.HAUT)
         ])
         return bougerThermo
     
@@ -282,7 +285,7 @@ class Match(Action):
         coteThermo = False if robot.color == Team.JAUNE else True # ie on recup cote Gauche avec le jaune pour avoir bras droit libre (et inversement cote bleu)
 
         notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
-        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.BLEU # La color opposee
+        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.JAUNE # La color opposee
 
         match.add_children([
 
@@ -297,7 +300,7 @@ class Match(Action):
             MoveTo(robot.dest_to_pos(THERMO_POS[robot.color][robot.strat])),
             MoveSpeed(Speed(-200,0,0),1),
             MoveBrasThermo(PosTentacle.THERMO),
-            Move(510,0),
+            Move(500,0),
             MoveBrasThermo(PosTentacle.HAUT),
 
             #### Retourner au depot 1

@@ -170,6 +170,7 @@ class MatchTimer(py_trees.behaviour.Behaviour):
             if abs(self.world.matchStartTime-time.time()) >= self.world.MATCH_DURATION:
                 #print("Achievement Made! The End ?")
                 self.robot.set_speed(Speed(0, 0, 0))
+                self.robot.stop()
                 return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.FAILURE
     
