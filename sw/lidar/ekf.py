@@ -13,6 +13,7 @@ from functools import partial
 from loca_lidar import BEACONS_BLUE, BEACONS_YELLOW
 from common import Pos
 from typing import Callable
+from common import normalize_angle
 
 # - le retour d'info des encodeurs est très rapide (1kHz)
 # - Les encodeurs me donnent la même chose que ma commande [V, omega], avec le retard et les imperfections de l'asservissement entre les deux.
@@ -301,7 +302,7 @@ class EkfDiff:
     
     def send_pos(self):
         x, y, theta, _, _ = self.X
-        self.ekf_pub.send(cpb2.Position(x=x, y=y, theta=theta))
+        self.ekf_pub.send(cpb2.Position(x=x, y=y, theta=normalize_angle(theta)))
         self.plotX()
     
     def plotX(self):
