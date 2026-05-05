@@ -14,7 +14,7 @@ class Pos:
     theta: float
 
     def __add__(self, other):
-        return Pos(self.x + other.x, self.y + other.y, self.theta + other.theta)
+        return Pos(self.x + other.x, self.y + other.y, normalize_angle(self.theta + other.theta))
     
     def __sub__(self, other):
         return Pos(self.x - other.x, self.y - other.y, normalize_angle(self.theta - other.theta))
@@ -54,6 +54,10 @@ class Pos:
 
     def to_proto(self):
         return common_pb.Position(x=self.x, y=self.y, theta=self.theta) # type: ignore
+    
+    def pos_with_normalize_angle(self):
+        self.theta = normalize_angle(self.theta)
+        return Pos(self.x,self.y,self.theta)
     
     @staticmethod
     def from_proto(p: common_pb.Position):

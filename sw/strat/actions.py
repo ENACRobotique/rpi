@@ -293,7 +293,7 @@ class Match(Action):
 
             #Thermo Action
             MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
-            #WaitSeconds(1),
+            #WaitSeconds(5),
             Aligner(coteThermo),
             
             Attraper(coteThermo),

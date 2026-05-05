@@ -216,7 +216,6 @@ class Robot:
         msg.score = self.score
         self.score_pub.send(msg)
 
-    
  
     # def set_strat(self, strat):
     #     self.strat = strat
@@ -251,7 +250,9 @@ class Robot:
             return self.response_event.wait(timeout) and self.response_status == 0
 
     def moveEnded(self,timeout=0):
-        return self.response_event.wait(timeout)
+        rep = self.response_event.wait(timeout)
+        self.response_event.clear()
+        return rep
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
@@ -274,7 +275,7 @@ class Robot:
     def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
          \nArgs, float:theta en radians """
-        self.move(0,angle, blocking = blocking, timeout = timeout)
+        return self.move(0,angle, blocking = blocking, timeout = timeout)
 
     def set_speed(self, speed: Speed):
         """
@@ -284,6 +285,7 @@ class Robot:
         self.speed_cons_pub.send(speed.to_proto())
     
     def resetPos(self, position: Pos, timeout=2):
+        self.log(f"pos : {self.pos}")
         position.theta = normalize_angle(position.theta)
         self.log(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
@@ -508,13 +510,19 @@ class Robot:
             if (abs(y_repereCaisse) > 300) or (abs(y_repereCaisse) < 130) :
                 print("Mauvais dy")
 
-            self.rotate(angle_droite_robot,blocking=True,timeout=3)
+            print("tourne de ", angle_droite_robot)
+            success = self.rotate(angle_droite_robot,blocking=True,timeout=0.1)
+            if not success:
+                print("FAAAAAIIIIIIIIILLLLLLLLLLLLLLLL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! (rotate)")
             #time.sleep(5)
 
             ## Alignement en x: 
             #print(-x_repereCaisse+200)
             #self.move(200 - x_repereCaisse,0,blocking=True,timeout=2)
-            self.move(x_repereCaisse,0,blocking=True,timeout=3)
+            print("on bouge de ",x_repereCaisse)
+            success = self.move(x_repereCaisse,0,blocking=True,timeout=0.1)
+            if not success:
+                print("FAAAAAIIIIIIIIILLLLLLLLLLLLLLLL!!!!!!!!!!!!!!!!!!!!!!!!!!!!! (move)")
             #time.sleep(5)
 
             if coteDroit :

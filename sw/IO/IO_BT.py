@@ -57,8 +57,10 @@ class MoveBrasThermo(py_trees.behaviour.Behaviour):
         
     def update(self):
         if self.action(self.pos):
+            print("oui c bien")
             return py_trees.common.Status.SUCCESS
         else :
+            print("c pas bien")
             return py_trees.common.Status.FAILURE
 
 

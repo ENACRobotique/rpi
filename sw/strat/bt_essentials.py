@@ -230,12 +230,12 @@ class Move(py_trees.behaviour.Behaviour):
         self.avoiding = False
 
     def initialise(self):
-
         self.target = Pos(self.distance * np.cos(self.direction), self.distance * np.sin(self.direction), cm.normalize_angle(self.direction)).from_frame(self.robot.ekf_pos)
         print(f"move target: {self.target}")
         self.robot.move(self.distance, self.direction)
 
     def update(self):
+        #print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         if self.robot.obstacle_in_way(self.target):
              if not self.avoiding:
                 self.robot.log("Obstacle detected, stopping.")
@@ -278,7 +278,7 @@ class MoveTo(py_trees.behaviour.Behaviour):
     def __init__(self, position_target:Pos | Callable[[Robot], Pos]):
         super().__init__(name=f"MoveTo")
         self.bb, self.robot,_ = get_bb_robot(self)
-        self.position_target = position_target
+        self.position_target = position_target.pos_with_normalize_angle()
         self.dernier_consigne_pos = None
         self.avoiding = False
 
@@ -381,3 +381,17 @@ class Recalage(py_trees.behaviour.Behaviour):
             self.robot.log(f"Pos reseted to : {self.position}")
             return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
+
+
+class PrintPourDebug(py_trees.behaviour.Behaviour):
+    """TODO"""
+    def __init__(self, chaine):
+        super().__init__(name=f"PrintPourDebug")
+        self.bb, self.robot,_ = get_bb_robot(self)
+        self.chaine = chaine
+
+    def initialise(self):
+        self.robot.log("[PrintPourDebug] " + self.chaine)
+
+    def update(self):
+        return py_trees.common.Status.SUCCESS

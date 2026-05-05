@@ -58,6 +58,7 @@ class IO_Manager:
 
     def ready(self,act,val,seuil):
         pos = self.sap_master.ax12.read_pos(act)
+        #print(pos, act)
         if type(pos) == int:
             return (abs(pos - val) < seuil)
         else :
