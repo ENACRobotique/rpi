@@ -8,7 +8,7 @@ sys.path.append("../..")
 from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
 from world import World,RAMASSAGE_POS,DEPOT_POS,DEPOT_ANG,RAMASSAGE_ANG
-from bt_essentials import MatchTimer, Navigate, PrintPourDebug, WaitMatchStart, WaitUntil
+from bt_essentials import MatchTimer, Navigate, WaitMatchStart, WaitUntil
 from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, MoveSpeed, START_POS, CAISSETHERMO_POS, DEPOT1_POS, CAISSE1_POS,DEPOT2_POS, DEPOT3_POS, DEPOT4_POS, CAISSE2_POS
 from typing import Callable
 from dataclasses import dataclass
@@ -16,7 +16,7 @@ import time
 import subprocess
 from IO.IO_BT import *
 
-DISTANCE_MAX  = np.sqrt(13) * 1000 # en mm
+DISTANCE_MAX  = np.sqrt(13) * 1000 # en mm, sqrt(2**2 + 3**2)
 SEUIL_AGRESSIVITE = 3 # Compris entre 4 (Ghandi) et 2 (Chabal)
 
 ##################################
@@ -28,18 +28,12 @@ class ThermometreAction(Action):
 
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        nav_pt = THERMO_POS[robot.color][robot.strat]
-        nav_pt2 = CAISSETHERMO_POS[robot.color][robot.strat]
         cote = False if robot.color == Team.JAUNE else True # ie on recup cote Gauche avec le jaune pour avoir bras droit libre (et inversement cote bleu)
-
-        def thermo_point(_):
-            return nav_pt
-        def caissethermo_point(_):
-            return nav_pt2
-        
         bougerThermo = py_trees.composites.Sequence("Thermometre", True)
         bougerThermo.add_children([
             WaitSeconds(0.5),
+
+            #Thermo Action
             MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
             #WaitSeconds(1),
             Aligner(cote),
@@ -48,12 +42,11 @@ class ThermometreAction(Action):
             MoveSpeed(Speed(-200,0,0),1),
             MoveBrasThermo(PosTentacle.THERMO),
             Move(500,0),
-            MoveBrasThermo(PosTentacle.HAUT)
+            MoveBrasThermo(PosTentacle.HAUT),
         ])
         return bougerThermo
     
     @staticmethod
-    #POUSSE = 2
     def reward(robot: Robot, world: World) -> float:
         if world.thermo_positioned:
             return 0
