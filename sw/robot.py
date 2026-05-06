@@ -137,6 +137,9 @@ class Robot:
         self.colorSub = ProtoSubscriber(robot_pb.Side, "color")
         self.colorSub.set_receive_callback(self.onColorChanged)
 
+        self.stratSub = ProtoSubscriber(robot_pb.Strat, "strat")
+        self.stratSub.set_receive_callback(self.onStratChanged)
+
         # When Using Robokontrol
         self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
         self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
@@ -325,6 +328,15 @@ class Robot:
         ekf_pos = Pos.from_proto(msg)
         self.ekf_pos = Pos(ekf_pos.x,ekf_pos.y,ekf_pos.theta%(2*np.pi))
 
+    def onStratChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Strat]):
+        msg = data.message
+        if msg.strat == "Basique":
+            self.strat = Strat.Basique
+        elif msg.strat == "Adaptative":
+            self.strat = Strat.Audacieuse
+        else :
+            self.strat = Strat.Homologation
+        
     def onColorChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Side]):
         msg = data.message
         if msg.color == robot_pb.Side.Color.YELLOW :
