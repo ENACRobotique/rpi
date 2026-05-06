@@ -381,17 +381,3 @@ class Recalage(py_trees.behaviour.Behaviour):
             self.robot.log(f"Pos reseted to : {self.position}")
             return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.RUNNING
-
-
-class PrintPourDebug(py_trees.behaviour.Behaviour):
-    """TODO"""
-    def __init__(self, chaine):
-        super().__init__(name=f"PrintPourDebug")
-        self.bb, self.robot,_ = get_bb_robot(self)
-        self.chaine = chaine
-
-    def initialise(self):
-        self.robot.log("[PrintPourDebug] " + self.chaine)
-
-    def update(self):
-        return py_trees.common.Status.SUCCESS

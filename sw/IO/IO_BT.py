@@ -91,22 +91,6 @@ class MoveBrasG(py_trees.behaviour.Behaviour):
         else :
             return py_trees.common.Status.FAILURE
         
-class ThermoAction(py_trees.behaviour.Behaviour):
-    def __init__(self,thermo_pos):
-        super().__init__(name=f"Bouger Thermometre")
-        self.bb, self.robot, self.world = get_bb_robot(self)
-        self.thermo_pos = thermo_pos
-        
-
-    def initialise(self) -> None:
-        print(f"Bouger Thermometre")
-        
-    def update(self):
-        if self.robot.thermoAct(self.thermo_pos):
-            return py_trees.common.Status.SUCCESS
-        else :
-            return py_trees.common.Status.FAILURE
-        
 class Attraper(py_trees.behaviour.Behaviour):
     def __init__(self, coteDroit:bool):
         if coteDroit:
