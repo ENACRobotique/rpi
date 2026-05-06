@@ -604,6 +604,35 @@ class Robot:
             self.actionneurs.moveG(act.PosTentacle.HAUT)
         return True
     
+    def relacher2(self,coteDroit,couleur:Caisse,timeout=5):
+        cam = "mabel" if coteDroit else "dipper"
+        time_deb = time.time()
+        arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
+        while (len(arucosPosRobot)!=4 and (time.time()-time_deb)<timeout):
+            arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
+        
+        if len(arucosPosRobot) == 0:
+            if coteDroit :
+                print("RELEASE : cote droit =", self.coteD)
+                self.actionneurs.moveD(act.PosTentacle.DROP)
+                for (i,caisse) in enumerate(self.coteD) :
+                    if caisse == couleur or couleur == Caisse.TOUT :
+                        self.actionneurs.Grab(act.POMPES_DROITES[i],False)
+                        self.coteD[i] = Caisse.RIEN
+                time.sleep(1)
+                self.actionneurs.moveD(act.PosTentacle.HAUT)
+            else :
+                print("RELEASE : cote gauche =", self.coteG)
+                self.actionneurs.moveG(act.PosTentacle.DROP)
+                for (i,caisse) in enumerate(self.coteG):
+                    if caisse == couleur or couleur == Caisse.TOUT :
+                        self.actionneurs.Grab(act.POMPES_GAUCHES[i],False)
+                        self.coteG[i] = Caisse.RIEN
+                time.sleep(1)
+                self.actionneurs.moveG(act.PosTentacle.HAUT)
+            return True
+
+
     def revolutionner(self,coteDroit,couleur:Caisse):
         if coteDroit :
             self.actionneurs.moveD(act.PosTentacle.RETOURNE)
