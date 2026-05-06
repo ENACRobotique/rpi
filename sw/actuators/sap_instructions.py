@@ -37,7 +37,7 @@ class SAPInstructions:
       response = self.client.call_with_response("write_reg", msg_bin, RESP_TIMEOUT)
       if response is not None:
         return True
-      print(f"[SAP Write] c'est raté bébé {i}")
+      print(f"[SAP Write] c'est raté bébé {id} ({i}/{NB_RETRY})")
     print(f"[SAP Write]: failed to write to {id}.")
     return False
 
@@ -51,7 +51,7 @@ class SAPInstructions:
         if msg_resp.id == id and msg_resp.reg == reg and msg_resp.len == len and msg_resp.status == 0:
           return msg_resp.data
         return None
-      print(f"[SAP Read] c'est raté bébé {i}")
+      print(f"[SAP Read] c'est raté bébé {id} ({i}/{NB_RETRY})")
     print(f"[SAP Read] failed to read from {id}.")
 
 
