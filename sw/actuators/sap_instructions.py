@@ -43,7 +43,7 @@ class SAPInstructions:
 
   def read(self, id, reg, len):
     rec = SAPRecord(id=id, reg=reg, len=len)
-    for _ in range(NB_RETRY):
+    for i in range(NB_RETRY):
       response = self.client.call_with_response("read_reg", rec.SerializeToString(), RESP_TIMEOUT)
       if response is not None:
         msg_resp = SAPRecord()
