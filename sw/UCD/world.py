@@ -25,11 +25,20 @@ class Zone:
 
 
 class ZoneManager:
-    def __init__(self, zones):
-        self.zones = zones  # dict {name: Zone}
+    def __init__(self, zones, team_color):
+        self.zones = zones          # dict {name: Zone}
+        self.team_color = team_color.lower()
+
+        # ID associé à chaque couleur
+        self.team_ids = {
+            "yellow": 47,
+            "blue": 36
+        }
 
     def analyze(self, arucos):
         results = {}
+
+        target_id = self.team_ids[self.team_color]
 
         for name, zone in self.zones.items():
             in_zone = [a for a in arucos if zone.contains(a.x, a.y)]
@@ -44,14 +53,38 @@ class ZoneManager:
             # Flag : au moins 3 de même ID
             has_3_same = any(v >= 3 for v in id_counts.values())
 
+            # =========================
+            # Calcul des points
+            # =========================
+
+            # Nombre de tags de notre couleur
+            team_count = id_counts.get(target_id, 0)
+
+            # Chaque tag vaut 3 pts
+            points = team_count * 3
+
+            # Bonus majorité
+            other_count = count - team_count
+
+            has_majority = team_count > other_count
+
+            if has_majority:
+                points += 5
+
             results[name] = {
                 "count": count,
                 "arucos": in_zone,
                 "id_counts": id_counts,
-                "has_3_same": has_3_same
+                "has_3_same": has_3_same,
+                "team_count": team_count,
+                "has_majority": has_majority,
+                "points": points
             }
 
         return results
+
+    def total_points(self, analysis_results):
+        return sum(zone["points"] for zone in analysis_results.values())
 
 
 class World:
@@ -69,16 +102,16 @@ class World:
         #on prend en général 100 de marge sauf pour les N on prend que 50 (pour éviter de voir ceux de la scène)
         self.zone_rangement = ZoneManager({
             "FrigoJE": Zone(600, 1000, 600, 1000, "FrigoJE"),
-            "FrigoJW": Zone(-100, 300, 200, 600, "FrigoJW"),
+            "FrigoJW": Zone(-100, 300, 600, 1000, "FrigoJW"),
             "FrigoJS": Zone(500, 900, -100, 300, "FrigoJS"),
             "FrigoJN": Zone(1100, 1400, 1300, 1600, "FrigoJN"),
             "FrigoMidN": Zone(1300, 1700, 600, 1000, "FrigoMidN"),
             "FrigoMidS": Zone(1300, 1700, -100, 300, "FrigoMidS"),
             "FrigoBS": Zone(2100, 2500, -100, 300, "FrigoBS"),
             "FrigoBE": Zone(2700, 3100, 600, 1000, "FrigoBE"),
-            "FrigoBW": Zone(2000, 2400, -100, 300, "FrigoJS"),
+            "FrigoBW": Zone(2000, 2400, 600, 1000, "FrigoJS"),
             "FrigoBN": Zone(1600, 1900, 1300, 1600,"FrigoBN"), 
-        })
+        }, 'yellow')
 
         #on prend 50 de marge
         self.zone_collecte = ZoneManager({
@@ -90,7 +123,7 @@ class World:
             "NoixBSE": Zone(2700, 2950, 250, 550,"NoixBSE"),
             "NoixBW": Zone(1700, 2000,675, 925, "NoixBW"),
             "NoixBSW": Zone(1750, 2050, 50, 300, "NoixBSW")
-        })
+        },'yellow')
 
 
     def __enter__(self):
@@ -111,6 +144,7 @@ class World:
                 continue
 
             results = self.zone_rangement.analyze(self.arucos)
+            total_points = self.zone_rangement.total_points(results)
 
             for zone_name, res in results.items():
                 print(f"\nZone: {zone_name}")
@@ -119,6 +153,8 @@ class World:
 
                 for a in res["arucos"]:
                     print(f"  ID: {a.ArucoId} | x={a.x:.1f}, y={a.y:.1f}")
+
+            print(f"\n=== TOTAL POINTS : {total_points} ===")
 
             time.sleep(2)
 
