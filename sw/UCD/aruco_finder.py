@@ -39,6 +39,17 @@ class ArucoFinder:
         # ArUco settings (API OpenCV 4.7+)
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.aruco_params = cv2.aruco.DetectorParameters()
+        self.aruco_params.adaptiveThreshWinSizeMin = 5
+        self.aruco_params.adaptiveThreshWinSizeMax = 23
+        self.aruco_params.adaptiveThreshWinSizeStep = 10
+
+        self.aruco_params.minMarkerPerimeterRate = 0.02
+        self.aruco_params.maxMarkerPerimeterRate = 4.0
+
+        self.aruco_params.polygonalApproxAccuracyRate = 0.03
+
+        self.aruco_params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
 
         self.world_objects = []   # dict id → position world
@@ -64,6 +75,7 @@ class ArucoFinder:
     def open_capture(self):
         if src_type == Source.CAM:
             self.cap = cv2.VideoCapture(src)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             if args.fourcc is not None:
                 self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc(*args.fourcc))
             if self.cap is None:
@@ -260,8 +272,6 @@ class ArucoFinder:
         if self.display:
             cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
         
-        cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
-
         if detected_corners:
             centers = []
             centers_id = []
@@ -292,7 +302,8 @@ class ArucoFinder:
                     
                     self.camera_pose_in_world_from_tags(rv, tv)
 
-                    cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
+                    if self.display:
+                        cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
                    
         return frame
     
@@ -451,11 +462,12 @@ class ArucoFinder:
         """Call it in a while true loop"""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+        #clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
+        #gray = clahe.apply(gray)
 
-        
-        
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-        gray = clahe.apply(gray)
+        #On rogne l'image
+        #gray = gray[500:, :]
+        #gray = gray[:-1000, :]
 
         # Détection ArUco
         detected_corners, detected_ids, rejected = self.aruco_detector.detectMarkers(gray)
@@ -463,8 +475,6 @@ class ArucoFinder:
         if self.display:
             cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
             self.world_objects.clear()
-        
-        cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
 
         if detected_corners:
             arucos = []
@@ -482,7 +492,7 @@ class ArucoFinder:
 
                     #posW = self.objects_in_world(rv, tv)
                     if self.display:
-                        cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
+                        cv2.drawFrameAxes(gray, self.camera_matrix, self.dist_coeffs, rv, tv, size)
      
                     # Convert rvec to rotation matrix
                     P_tc = np.array(tv[0])
@@ -515,7 +525,7 @@ class ArucoFinder:
                 
             self.arucoFound = Arucos(arucos=arucos, cameraName=self.name)
             self.aruco_pub.send(self.arucoFound)
-        return frame
+        return gray
     
 
     def run(self):
