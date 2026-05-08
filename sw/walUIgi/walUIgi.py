@@ -80,6 +80,7 @@ class SignalEmitter(QObject):
     pos_lidar_signal = pyqtSignal(float, float, float)
     pos_odom_signal = pyqtSignal(float, float, float)
     pos_ekf_signal = pyqtSignal(float, float, float)
+    pos_ennemie_signal = pyqtSignal(float, float, float)
     balise_signal = pyqtSignal(int)
     score_signal = pyqtSignal(int)
     service_signal = pyqtSignal()
@@ -255,10 +256,19 @@ class TabStatus(QtWidgets.QWidget):
             self.signal_emitter.pos_ekf_signal.emit(data.message.x, data.message.y, data.message.theta)
         self.pos_ekf_sub.set_receive_callback(sendPosEKFSignal)
         self.signal_emitter.pos_ekf_signal.connect(self.point_ekf.updatePosition)
+
+        # Ennemie position (same pattern, different color)
+        self.point_ennemie = RobotGraphic("ennemie", self.robot, "magenta")
+        self.pos_ennemie_sub = ProtoSubscriber(hgpb.Position, "ennemie_pos")
+        def sendPosEnnemieSignal(pub_id : ecal_core.TopicId, data : ReceiveCallbackData[hgpb.Position]):
+            self.signal_emitter.pos_ennemie_signal.emit(data.message.x, data.message.y, data.message.theta)
+        self.pos_ennemie_sub.set_receive_callback(sendPosEnnemieSignal)
+        self.signal_emitter.pos_ennemie_signal.connect(self.point_ennemie.updatePosition)
             
         map.addItem(self.point_odom)
         map.addItem(self.point_lidar)
         map.addItem(self.point_ekf)
+        map.addItem(self.point_ennemie)
 
         view_map = Map_view(map)
 
