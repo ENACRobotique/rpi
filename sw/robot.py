@@ -560,16 +560,6 @@ class Robot:
 
             #on attrape best_align
             x_centerPack,y_centerPack = 0,0
-<<<<<<< HEAD
-            for aruco in arucosPosRobot:
-                x_centerPack += aruco.pos[0]/len(arucosPosRobot)
-                y_centerPack += aruco.pos[1]/len(arucosPosRobot)
-            
-            # Hypothèse : on est globalement dans le bon sens à peu de choses près...
-            x_droite = (min([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]), max([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]))
-            angle_droite_robot = np.atan2(x_droite[1][1]-x_droite[0][1],x_droite[1][0]-x_droite[0][0])
-=======
->>>>>>> 3d0284a ([aruco] On s'aligne ave tous les arucos meme si il en manque, c trop bien)
 
             nb_ar_aligned = len(best_align)
             print("on s'aligne avec", nb_ar_aligned, "arucos")
