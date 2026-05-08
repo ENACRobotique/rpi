@@ -7,7 +7,7 @@ Type=simple
 RemainAfterExit=no
 Restart=no
  
-WorkingDirectory=/home/robot/rpi/sw
+WorkingDirectory=/home/robot/rpi/sw/strat
 ExecStart=/home/robot/rpi/robEnv/bin/python3 /home/robot/rpi/sw/strat/strat_planner.py
 
 [Install]

@@ -1,8 +1,8 @@
 [Unit]
 Description= start all systems for the robot
 After=network.target network-online.target
+
 Wants=robot_bridge.service
-#Wants=robot_lcd.service
 Wants=robot_lidar_driver.service
 Wants=robot_lidar_amalgameur.service
 Wants=robot_lidar_loca.service
@@ -10,21 +10,11 @@ Wants=robot_lidar_loca.service
 Wants=robot_IO.service
 Wants=robot_aruco.service
 Wants=robot_aruco2.service
-#Wants=robot_strat.service
+Wants=robot_strat.service
 Wants=robot_joystick.service
 Wants=robot_ui.service
 Wants=robot_tirette.service
 Wants=robot_ekf.service
-
-[Service]
-Type=simple
- 
-ExecStart=/home/robot/rpi/services/heartbeat_v2.sh
- 
-Restart=on-failure
-RestartSec=2 
-# Configures the time to wait before service is stopped forcefully.
-TimeoutStopSec=300
  
 [Install]
 WantedBy=default.target
