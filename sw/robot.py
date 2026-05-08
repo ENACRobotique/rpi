@@ -194,6 +194,7 @@ class Robot:
     def log(self, message:str):
         self.logger.info(message)
         self.logs_pub.send(message)
+        print(message)
 
         
 # ---------------------------- #
@@ -533,18 +534,18 @@ class Robot:
                 print("Mauvais dy")
 
             print("tourne de ", angle_droite_robot)
-            success = self.rotate(angle_droite_robot,blocking=True,timeout=0.1)
+            success = self.rotate(angle_droite_robot,blocking=True,timeout=3)
             if not success:
-                print("FAAAAAIIIIIIIIILLLLLLLLLLLLLLLL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! (rotate)")
+                self.log("[Align with pack] fail to rotate")
             #time.sleep(5)
 
             ## Alignement en x: 
             #print(-x_repereCaisse+200)
             #self.move(200 - x_repereCaisse,0,blocking=True,timeout=2)
             print("on bouge de ",x_repereCaisse)
-            success = self.move(x_repereCaisse,0,blocking=True,timeout=0.1)
+            success = self.move(x_repereCaisse,0,blocking=True,timeout=3)
             if not success:
-                print("FAAAAAIIIIIIIIILLLLLLLLLLLLLLLL!!!!!!!!!!!!!!!!!!!!!!!!!!!!! (move)")
+                self.log("[Align with pack] fail to move")
             #time.sleep(5)
 
             if coteDroit :
