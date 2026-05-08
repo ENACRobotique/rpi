@@ -58,6 +58,7 @@ class IO_Manager:
 
     def ready(self,act,val,seuil):
         pos = self.sap_master.ax12.read_pos(act)
+        #print(pos, act)
         if type(pos) == int:
             return (abs(pos - val) < seuil)
         else :
@@ -85,7 +86,7 @@ class IO_Manager:
             time.sleep(0.1)
         return False
     
-    def moveTricepsD(self, position : PosTentacle,timeout=1):
+    def moveTricepsD(self, position : PosTentacle,timeout=2):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsD.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         while (time.time()-debut < timeout) :
@@ -94,16 +95,16 @@ class IO_Manager:
             time.sleep(0.1)
         return False
     
-    def moveTricepsG(self, position : PosTentacle,timeout=1):
+    def moveTricepsG(self, position : PosTentacle,timeout=2):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.tricepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         while (time.time()-debut < timeout) :
-            if self.ready(Actionneur.tricepsD.value,VALEURS_ACTIONNEURS[position.value],50) :
+            if self.ready(Actionneur.tricepsG.value,VALEURS_ACTIONNEURS[position.value],50) :
                 return True
             time.sleep(0.1)
         return False
     
-    def moveBicepsD(self, position : PosTentacle,timeout=1):
+    def moveBicepsD(self, position : PosTentacle,timeout=2):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.bicepsD.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         while (time.time()-debut < timeout) :
@@ -112,11 +113,11 @@ class IO_Manager:
             time.sleep(0.1)
         return False
     
-    def moveBicepsG(self, position : PosTentacle,timeout=1):
+    def moveBicepsG(self, position : PosTentacle,timeout=2):
         debut = time.time()
         self.sap_master.ax12.move_speed(Actionneur.bicepsG.value, VALEURS_ACTIONNEURS[position.value], TENTACLE_SPEED)
         while (time.time()-debut < timeout) :
-            if self.ready(Actionneur.bicepsD.value,VALEURS_ACTIONNEURS[position.value],50) :
+            if self.ready(Actionneur.bicepsG.value,VALEURS_ACTIONNEURS[position.value],50) :
                 return True
             time.sleep(0.1)
         return False

@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
         planner = Planner(r, w)
         planner.add_action(MatchStartAction)
-        # planner.add_action(EndAction)
+        planner.add_action(EndAction)
         # planner.add_action(ThermometreAction)
         # planner.add_action(Recuperer)
         # planner.add_action(Deposer)

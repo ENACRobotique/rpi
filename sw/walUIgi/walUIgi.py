@@ -46,6 +46,8 @@ TOTAL_SERVICE = len(LISTE_SERVICE)
 LISTE_ID_ACTIONNEURS = [5,7,11,20,40,41,42,43,44,45,46,47]
 TOTAL_ACTIONNEURS = len(LISTE_ID_ACTIONNEURS)
 
+STRATS = {0:"None",1:"Basique",2:"Adaptative"}
+
 BASEROULANTE_TIMEOUT = 1000 # ms
 
 class Robot:
@@ -53,7 +55,9 @@ class Robot:
         self.name = "Poulpey"
         self.diameter = 300 #mm
         self.couleur = "Jaune"
+        self.num_strat = 0
         self.color_pub = ProtoPublisher(robot_pb.Side, "color")
+        self.strat_pub = ProtoPublisher(robot_pb.Strat, "strat")
         self.position_lidar = (0, 0, 0)
         self.position_odom = (0, 0, 0)
         self.state_baseRoulante = False
@@ -174,6 +178,13 @@ class TabStatus(QtWidgets.QWidget):
         grid.addWidget(self.l_nbBalises, 3, 0) ; grid.addWidget(self.icon_nbBalises, 3, 1)
         layout.addLayout(grid)
 
+        # Strat
+        self.b_status_strat = QtWidgets.QPushButton(STRATS[self.robot.num_strat])
+        self.b_status_strat.setMinimumSize(100, 50); self.b_status_strat.setStyleSheet(f"background-color: rgb(230,{230-220*(self.robot.num_strat/(len(STRATS)))},15);")
+        self.b_status_strat.clicked.connect(lambda:self.updateStrat((self.robot.num_strat+1)%len(STRATS)))
+        layout.addWidget(self.b_status_strat, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter)
+
+
         ## Map avec le robot
         class Map_view(QGraphicsView):
             def resizeEvent(self, event):
@@ -270,6 +281,15 @@ class TabStatus(QtWidgets.QWidget):
             self.b_status_color.setStyleSheet("background-color: blue")
             msg.color = robot_pb.Side.Color.BLUE
         self.robot.color_pub.send(msg)
+
+    def updateStrat(self, num_strat):
+        # Envoie un message de changement de couleur, change la couleur du bouton
+        msg = robot_pb.Strat()
+        msg.strat = STRATS[num_strat]
+        self.robot.num_strat+=1
+        self.b_status_strat.setStyleSheet(f"background-color: rgb(230,{230-220*(num_strat/(len(STRATS)))},15);")
+        self.b_status_strat.setText(STRATS[num_strat])
+        self.robot.strat_pub.send(msg)
 
     def updateBalise(self,nb):
         # Lit les messages ecal balises_odom et regarde combien il en détecte

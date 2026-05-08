@@ -137,6 +137,9 @@ class Robot:
         self.colorSub = ProtoSubscriber(robot_pb.Side, "color")
         self.colorSub.set_receive_callback(self.onColorChanged)
 
+        self.stratSub = ProtoSubscriber(robot_pb.Strat, "strat")
+        self.stratSub.set_receive_callback(self.onStratChanged)
+
         # When Using Robokontrol
         self.setPositionSub = ProtoSubscriber(common_pb.Position, "set_position")
         self.setPositionSub.set_receive_callback(self.onSetTargetPostition)
@@ -191,6 +194,7 @@ class Robot:
     def log(self, message:str):
         self.logger.info(message)
         self.logs_pub.send(message)
+        print(message)
 
         
 # ---------------------------- #
@@ -216,7 +220,6 @@ class Robot:
         msg.score = self.score
         self.score_pub.send(msg)
 
-    
  
     # def set_strat(self, strat):
     #     self.strat = strat
@@ -251,7 +254,9 @@ class Robot:
             return self.response_event.wait(timeout) and self.response_status == 0
 
     def moveEnded(self,timeout=0):
-        return self.response_event.wait(timeout)
+        rep = self.response_event.wait(timeout)
+        self.response_event.clear()
+        return rep
 
     def move(self, distance, direction, blocking=False, timeout = 10):
         """
@@ -274,7 +279,7 @@ class Robot:
     def rotate(self,angle,blocking=False, timeout = 10):
         """ Rotation en relatif
          \nArgs, float:theta en radians """
-        self.move(0,angle, blocking = blocking, timeout = timeout)
+        return self.move(0,angle, blocking = blocking, timeout = timeout)
 
     def set_speed(self, speed: Speed):
         """
@@ -284,6 +289,7 @@ class Robot:
         self.speed_cons_pub.send(speed.to_proto())
     
     def resetPos(self, position: Pos, timeout=2):
+        self.log(f"pos : {self.pos}")
         position.theta = normalize_angle(position.theta)
         self.log(f"Reseting position to: {position} ")
         self.reset_pos_pub.send(position.to_proto())
@@ -323,8 +329,23 @@ class Robot:
         ekf_pos = Pos.from_proto(msg)
         self.ekf_pos = Pos(ekf_pos.x,ekf_pos.y,ekf_pos.theta%(2*np.pi))
 
+    def onStratChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Strat]):
+        msg = data.message
+        if msg is None:
+            print("[Strat] None msg")
+            return
+        if msg.strat == "Basique":
+            self.strat = Strat.Basique
+        elif msg.strat == "Adaptative":
+            self.strat = Strat.Audacieuse
+        else :
+            self.strat = Strat.Homologation
+        
     def onColorChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Side]):
         msg = data.message
+        if msg is None:
+            print("[Side] None msg")
+            return
         if msg.color == robot_pb.Side.Color.YELLOW :
             self.color = Team.JAUNE
         else:
@@ -341,7 +362,11 @@ class Robot:
     
     def onReceiveTirette(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Tirette]):
         """Callback d'un subscriber ecal. Actualise la tirette du robot"""
-        if data.message.tirette_state == robot_pb.Tirette.IN :
+        msg = data.message
+        if msg is None:
+            print("[Tirette] None msg")
+            return
+        if msg.tirette_state == robot_pb.Tirette.IN :
             self.tirette = Tirette.IN
         else:
             self.tirette = Tirette.OUT
@@ -493,10 +518,10 @@ class Robot:
 
             x_centerPack,y_centerPack = 0,0
             for aruco in arucosPosRobot:
-                x_centerPack += aruco.pos[0]/4
-                y_centerPack += aruco.pos[1]/4
+                x_centerPack += aruco.pos[0]/len(arucosPosRobot)
+                y_centerPack += aruco.pos[1]/len(arucosPosRobot)
             
-            # Hypothèse : on est globalement dans le bon sens à peut de choses près...
+            # Hypothèse : on est globalement dans le bon sens à peu de choses près...
             x_droite = (min([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]), max([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]))
             angle_droite_robot = np.atan2(x_droite[1][1]-x_droite[0][1],x_droite[1][0]-x_droite[0][0])
 
@@ -508,13 +533,19 @@ class Robot:
             if (abs(y_repereCaisse) > 300) or (abs(y_repereCaisse) < 130) :
                 print("Mauvais dy")
 
-            self.rotate(angle_droite_robot,blocking=True,timeout=3)
+            print("tourne de ", angle_droite_robot)
+            success = self.rotate(angle_droite_robot,blocking=True,timeout=3)
+            if not success:
+                self.log("[Align with pack] fail to rotate")
             #time.sleep(5)
 
             ## Alignement en x: 
             #print(-x_repereCaisse+200)
             #self.move(200 - x_repereCaisse,0,blocking=True,timeout=2)
-            self.move(x_repereCaisse,0,blocking=True,timeout=3)
+            print("on bouge de ",x_repereCaisse)
+            success = self.move(x_repereCaisse,0,blocking=True,timeout=3)
+            if not success:
+                self.log("[Align with pack] fail to move")
             #time.sleep(5)
 
             if coteDroit :
@@ -523,6 +554,17 @@ class Robot:
                 self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
             print("Gauche = ", self.coteG," Droite = ",self.coteD)
             return True
+        
+        # nb_ar = len(arucosPosRobot)
+        # if nb_ar >= 2 :
+        #     x_centerPack,y_centerPack = 0,0
+        #     for aruco in arucosPosRobot:
+        #         x_centerPack += aruco.pos[0]/nb_ar
+        #         y_centerPack += aruco.pos[1]/nb_ar
+        #     # Hypothèse : on est globalement dans le bon sens à peu de choses près...
+        #     x_droite = (min([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]), max([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]))
+        #     angle_droite_robot = np.atan2(x_droite[1][1]-x_droite[0][1],x_droite[1][0]-x_droite[0][0])
+
 
         else : 
             print("Alignement echoue avec ", len(arucosPosRobot))
@@ -560,17 +602,25 @@ class Robot:
         self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
 
     
-    def attraper(self,coteDroit):
+    def attraper(self,coteDroit,couleur=Caisse.TOUT):
         print("===Atrapper===")
         if coteDroit :
             self.actionneurs.moveD(act.PosTentacle.BAS)
-            self.actionneurs.GrabD(True)
+            for (i,caisse) in enumerate(self.coteD) :
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_DROITES[i],True)
+                else :
+                    self.coteD[i] = Caisse.RIEN
             time.sleep(1)
             self.actionneurs.moveD(act.PosTentacle.HAUT)
             return True
         else :
             self.actionneurs.moveG(act.PosTentacle.BAS)
-            self.actionneurs.GrabG(True)
+            for (i,caisse) in enumerate(self.coteG):
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_GAUCHES[i],True)
+                else : 
+                    self.coteG[i] = Caisse.RIEN
             time.sleep(1)
             self.actionneurs.moveG(act.PosTentacle.HAUT)
             return True
@@ -596,6 +646,35 @@ class Robot:
             self.actionneurs.moveG(act.PosTentacle.HAUT)
         return True
     
+    def relacher2(self,coteDroit,couleur:Caisse,timeout=5):
+        cam = "mabel" if coteDroit else "dipper"
+        time_deb = time.time()
+        arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
+        while (len(arucosPosRobot)!=4 and (time.time()-time_deb)<timeout):
+            arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
+        
+        if len(arucosPosRobot) == 0:
+            if coteDroit :
+                print("RELEASE : cote droit =", self.coteD)
+                self.actionneurs.moveD(act.PosTentacle.DROP)
+                for (i,caisse) in enumerate(self.coteD) :
+                    if caisse == couleur or couleur == Caisse.TOUT :
+                        self.actionneurs.Grab(act.POMPES_DROITES[i],False)
+                        self.coteD[i] = Caisse.RIEN
+                time.sleep(1)
+                self.actionneurs.moveD(act.PosTentacle.HAUT)
+            else :
+                print("RELEASE : cote gauche =", self.coteG)
+                self.actionneurs.moveG(act.PosTentacle.DROP)
+                for (i,caisse) in enumerate(self.coteG):
+                    if caisse == couleur or couleur == Caisse.TOUT :
+                        self.actionneurs.Grab(act.POMPES_GAUCHES[i],False)
+                        self.coteG[i] = Caisse.RIEN
+                time.sleep(1)
+                self.actionneurs.moveG(act.PosTentacle.HAUT)
+            return True
+
+
     def revolutionner(self,coteDroit,couleur:Caisse):
         if coteDroit :
             self.actionneurs.moveD(act.PosTentacle.RETOURNE)
