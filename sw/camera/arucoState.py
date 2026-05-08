@@ -10,13 +10,14 @@ from generated.robot_state_pb2 import Aruco, Arucos
 import os 
 import time
 from threading import Lock
+from scipy.spatial.transform import Rotation as R
 
 
 @dataclass
 class ArucoInfo:
     id:int
     pos:np.ndarray
-    #rot:np.ndarray
+    rot:np.ndarray
     cam:str
 
 
@@ -75,9 +76,11 @@ class ArucoState:
             for ar in ars:
 
                 P_tc = np.array([ar.x,ar.y,ar.z])
+                R_tc = R.from_quat([ar.qx, ar.qy, ar.qz, ar.qw]).as_matrix()
                 P_tw = R_wc @ P_tc + P_cw
+                R_tw = R_wc @ R_tc
 
-                arucos.append(ArucoInfo(ar.ArucoId,P_tw,cam))
+                arucos.append(ArucoInfo(ar.ArucoId,P_tw, R_tw, cam))
         self.lock.release()
         return arucos
 

@@ -527,13 +527,40 @@ class Robot:
         arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
         while (len(arucosPosRobot)!=4 and (time.time()-time_deb)<timeout):
             arucosPosRobot = [aruco for aruco in self.aruco_state.get_aruco_robot() if (aruco.cam == cam) and (aruco.id == Caisse.BLEU.value or aruco.id ==Caisse.JAUNE.value)]
-               
-        # print(arucosPosRobot[2].pos,type(arucosPosRobot[2].pos))
-        if len(arucosPosRobot)==4:
+ 
 
-            print("===Alignement===")
+        nb_ar = len(arucosPosRobot)
+        if nb_ar >= 2:
+            x = [arucos.pos[0] for arucos in arucosPosRobot]
+            y = [arucos.pos[1] for arucos in arucosPosRobot]
+            thetas = [np.arctan2(arucos.rot[1, 0], arucos.rot[0, 0])%np.pi for arucos in arucosPosRobot]
 
+
+            #voir par rapport à la mediane
+            print(np.array((thetas)) * 180/np.pi)
+            mean_theta = np.mean(thetas)
+            for theta in thetas:
+                if abs(theta - mean_theta) > 13/180*np.pi:
+                    print("ecart d'angle trop grand:", abs(theta - mean_theta) * 180 / np.pi)
+                    return False
+            best_align = []
+            for i in range(nb_ar):
+                aligned = [arucosPosRobot[i]]
+                for j in range(i+1,nb_ar):
+                    d = np.sqrt((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0])**2 + (arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1])**2)
+                    eps = 10
+
+                    #si la distance x = 50 * k +/_ eps et x<200 
+                    if d < 200 + eps and (d%50 < eps or d%50 > 50 - eps):
+                        aligned.append(arucosPosRobot[j]) 
+                #si on peut prendre plus de palet qu'avant
+                if len(aligned) > len(best_align):
+                    best_align = aligned.copy()
+                aligned = []
+
+            #on attrape best_align
             x_centerPack,y_centerPack = 0,0
+<<<<<<< HEAD
             for aruco in arucosPosRobot:
                 x_centerPack += aruco.pos[0]/len(arucosPosRobot)
                 y_centerPack += aruco.pos[1]/len(arucosPosRobot)
@@ -541,9 +568,37 @@ class Robot:
             # Hypothèse : on est globalement dans le bon sens à peu de choses près...
             x_droite = (min([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]), max([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]))
             angle_droite_robot = np.atan2(x_droite[1][1]-x_droite[0][1],x_droite[1][0]-x_droite[0][0])
+=======
+>>>>>>> 3d0284a ([aruco] On s'aligne ave tous les arucos meme si il en manque, c trop bien)
 
-            ## Etre parralléle
-            x_repereCaisse = x_centerPack * np.cos(angle_droite_robot) + y_centerPack * np.sin(angle_droite_robot)
+            nb_ar_aligned = len(best_align)
+            print("on s'aligne avec", nb_ar_aligned, "arucos")
+            for aruco in best_align:
+                x_centerPack += aruco.pos[0]/nb_ar_aligned
+                y_centerPack += aruco.pos[1]/nb_ar_aligned
+            
+
+            # Hypothèse : on est globalement dans le bon sens à peut de choses près...
+            droite = sorted([aruco.pos for aruco in best_align], key=lambda elt: elt[0])
+            angle_droite_robot = np.atan2(droite[-1][1]-droite[0][1],droite[-1][0]-droite[0][0])
+
+
+            
+            ind_pos = [(droite[0], 0)]
+            p0 = droite[0]
+            for i, p in enumerate(droite[1:], start=1):
+                d = np.linalg.norm(np.array(p0) - np.array(p))
+                for k in range(5):
+                    if abs(d - 50 * k) < eps:
+                        ind_pos.append((p, k))
+                        break
+            
+            
+            ## Etre parrallèle
+            x_repereCaisse = 0
+            for p, i in ind_pos:
+                x_repereCaisse += (p[0] * np.cos(angle_droite_robot) + p[1] * np.sin(angle_droite_robot) + 75 - i * 50)/ nb_ar_aligned
+
             y_repereCaisse = y_centerPack * np.cos(angle_droite_robot) - x_centerPack * np.sin(angle_droite_robot)
 
             ## Alignement en y :
@@ -557,18 +612,31 @@ class Robot:
             #time.sleep(5)
 
             ## Alignement en x: 
-            #print(-x_repereCaisse+200)
-            #self.move(200 - x_repereCaisse,0,blocking=True,timeout=2)
             print("on bouge de ",x_repereCaisse)
             success = self.move(x_repereCaisse,0,blocking=True,timeout=3)
             if not success:
                 self.log("[Align with pack] fail to move")
             #time.sleep(5)
 
+
+            #stockage result
+            arucos_ordre = [(arucos, ind) for arucos, (_, ind) in zip(sorted(best_align, key=lambda elt: elt.pos[0]), ind_pos)]
             if coteDroit :
-                self.coteD = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+                self.coteD = [Caisse.RIEN] * 4
+                for aruco, ind in arucos_ordre:
+                    self.coteD[ind] = (
+                        Caisse.BLEU
+                        if aruco.id == Caisse.BLEU.value
+                        else Caisse.JAUNE
+                        )
             else :
-                self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
+                self.coteG = [Caisse.RIEN] * 4
+                for aruco, ind in arucos_ordre:
+                    self.coteG[ind] = (
+                        Caisse.BLEU
+                        if aruco.id == Caisse.BLEU.value
+                        else Caisse.JAUNE
+                        )
             print("Gauche = ", self.coteG," Droite = ",self.coteD)
             return True
         
