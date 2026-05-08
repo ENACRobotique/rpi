@@ -11,31 +11,48 @@ from collections.abc import Callable
 
 START_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NidJ',np.pi/2)
+        Strat.Basique: ('NidJ',np.pi/2),
+        Strat.Audacieuse: ('NidJ',np.pi/2),
+        Strat.Homologation: ('NidJ',np.pi/2)
         # Strat.Audacieuse: ('secureJ', -pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NidB',np.pi/2)
-        # Strat.Audacieuse: ('secureB', -pi/2)
+        Strat.Basique: ('NidB',np.pi/2),
+        Strat.Audacieuse: ('NidB',np.pi/2),
+        Strat.Homologation: ('NidB',np.pi/2)
+    },
+    Team.AUCUNE: {
+        
+        Strat.Basique: ('FrigoMidS',0),
+        Strat.Audacieuse: ('FrigoMidS',0),
+        Strat.Homologation: ('FrigoMidS',0)
     }
+
 }
 END_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NidJ',-np.pi/2)
-        # Strat.Audacieuse: 'midJ'
+        Strat.Basique: ('NidJ',np.pi/2),
+        Strat.Audacieuse: ('NidJ',np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NidB',-np.pi/2)
-        # Strat.Audacieuse: 'midB'
+        Strat.Basique: ('NidB',np.pi/2),
+        Strat.Audacieuse: ('NidB',np.pi/2)
+    },
+    Team.AUCUNE: {   
+        Strat.Basique: ('FrigoMidS',0),
+        Strat.Audacieuse: ('FrigoMidS',0),
+        Strat.Homologation: ('FrigoMidS',0)
     }
 }
 
 THERMO_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('ThermoJ',0)
+        Strat.Basique: ('ThermoJ',0),
+        Strat.Audacieuse: ('ThermoJ',0)
     },
     Team.BLEU: {
-        Strat.Basique: ('ThermoB',np.pi)
+        Strat.Basique: ('ThermoB',np.pi),
+        Strat.Audacieuse: ('ThermoB',np.pi)
     }
 }
 
@@ -45,6 +62,24 @@ CAISSETHERMO_POS = {
     },
     Team.BLEU: {
         Strat.Basique: ('NoixBSE',np.pi/2)
+    }
+}
+
+CAISSE0_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('NoixJN',np.pi/2)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('NoixBN',np.pi/2)
+    }
+}
+
+DEPOT0_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('FrigoJW',np.pi/2)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('FrigoBE',np.pi/2)
     }
 }
 
@@ -213,7 +248,7 @@ class Navigate(py_trees.behaviour.Behaviour):
                     print("Navigation end !")
                     return py_trees.common.Status.SUCCESS
                 else:
-                    if self.robot.closeToNavPoint(self.nav_id) and self.robot.hasReachedTarget() and self.nav_id < len(self.robot.nav_pos)-1:
+                    if self.robot.closeToNavPoint(self.nav_id) and self.nav_id < len(self.robot.nav_pos)-1: #and self.robot.hasReachedTarget()
                         self.nav_id+=1
                         self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
                         self.robot.log(f"Navigation :{self.robot.nav_pos[self.nav_id]} \n")
@@ -317,6 +352,7 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
         self.firstIN = False
         self.matchStarted = False
         self.color = self.robot.color
+        self.strat = self.robot.strat
         self.last_time = time.time()
     
     def initialise(self):
@@ -344,8 +380,9 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                     self.robot.log("Match Started !")
                     self.world.matchStartTime = time.time()
                     self.matchStarted = True
-        if self.color != self.robot.color:
+        if self.color != self.robot.color or self.strat != self.robot.strat:
             self.color = self.robot.color
+            self.strat = self.robot.strat
             print("reset posssssssssss")
             self.robot.resetPos(self.robot.dest_to_pos(START_POS[self.color][self.robot.strat]))
         return py_trees.common.Status.RUNNING

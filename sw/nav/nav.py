@@ -134,9 +134,9 @@ class Nav(object):
             reduced_chemin.append(chemin[-1])
             
             # Rotation moitié demi segment
-            x12, y12 = (x0+x1)/2,(y0+y1)/2
-            if abs(atan2(y1-y0,x1-x0) - theta) > pi - radians(5):
-                reduced_pos.append((x12,y12,theta))
+            # x12, y12 = (x0+x1)/2,(y0+y1)/2
+            # if abs(atan2(y1-y0,x1-x0) - theta) > pi - radians(5):
+            #     reduced_pos.append((x12,y12,theta))
 
             reduced_pos.append((x1,y1, theta))
 

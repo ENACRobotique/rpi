@@ -92,7 +92,7 @@ class MoveBrasG(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.FAILURE
         
 class Attraper(py_trees.behaviour.Behaviour):
-    def __init__(self, coteDroit:bool):
+    def __init__(self, coteDroit:bool,caisse = Caisse.TOUT):
         if coteDroit:
             self.pos_info = "droit"
         else:
@@ -100,12 +100,13 @@ class Attraper(py_trees.behaviour.Behaviour):
         super().__init__(name=f"Attraper avec le bras {self.pos_info}")
         self.bb, self.robot, self.world = get_bb_robot(self)
         self.cote = coteDroit
+        self.caisse = caisse
 
     def initialise(self) -> None:
         print(f"Attraper avec le bras {self.pos_info}")
         
     def update(self):
-        if self.robot.attraper(self.cote):
+        if self.robot.attraper(self.cote,self.caisse):
             return py_trees.common.Status.SUCCESS
         else :
             return py_trees.common.Status.FAILURE

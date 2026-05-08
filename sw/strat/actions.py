@@ -8,7 +8,7 @@ sys.path.append("../..")
 from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
 from world import World,RAMASSAGE_POS,DEPOT_POS,DEPOT_ANG,RAMASSAGE_ANG
-from bt_essentials import MatchTimer, Navigate, WaitMatchStart, WaitUntil
+from bt_essentials import CAISSE0_POS, DEPOT0_POS, MatchTimer, Navigate, WaitMatchStart, WaitUntil
 from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, MoveSpeed, START_POS, CAISSETHERMO_POS, DEPOT1_POS, CAISSE1_POS,DEPOT2_POS, DEPOT3_POS, DEPOT4_POS, CAISSE2_POS
 from typing import Callable
 from dataclasses import dataclass
@@ -265,7 +265,7 @@ class Retourner(Action):
 
 
 #########################################
-###### MATCH BASIQUE #####################
+###### MATCH BASIQUE ####################
 #########################################
 
 class Match(Action):
@@ -284,52 +284,70 @@ class Match(Action):
 
             WaitSeconds(0.5),
 
+            Navigate(lambda _: CAISSE0_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(CAISSE0_POS[robot.color][robot.strat])),
+            Aligner(coteThermo),
+            Attraper(coteThermo,notre_couleur),
+            Navigate(lambda _: DEPOT0_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT0_POS[robot.color][robot.strat])),
+            Relacher((coteThermo, notre_couleur)),
+
             #Thermo Action
-            MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
+            Navigate(lambda _: CAISSETHERMO_POS[robot.color][robot.strat]),#MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
             #WaitSeconds(5),
             Aligner(coteThermo),
-            
             Attraper(coteThermo),
-            MoveTo(robot.dest_to_pos(THERMO_POS[robot.color][robot.strat])),
+            Navigate(lambda _: THERMO_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(THERMO_POS[robot.color][robot.strat])),
             MoveSpeed(Speed(-200,0,0),1),
             MoveBrasThermo(PosTentacle.THERMO),
             Move(500,0),
             MoveBrasThermo(PosTentacle.HAUT),
 
             #### Retourner au depot 1
-            MoveTo(robot.dest_to_pos(DEPOT1_POS[robot.color][robot.strat])), 
+            Navigate(lambda _: DEPOT1_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT1_POS[robot.color][robot.strat])), 
             Revolutionner((coteThermo,pas_notre_couleur)),
 
             #### Recup CAISSE 1
-            WaitSeconds(1),
             Move(0,np.pi),
-            WaitSeconds(1),
-            MoveTo(robot.dest_to_pos(CAISSE1_POS[robot.color][robot.strat])),
+            Navigate(lambda _: CAISSE1_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(CAISSE1_POS[robot.color][robot.strat])),
             Aligner(not coteThermo),
             Attraper(not coteThermo),
 
             ### Deposer au depot 2
-            MoveTo(robot.dest_to_pos(DEPOT2_POS[robot.color][robot.strat])),
+            Navigate(lambda _: DEPOT2_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT2_POS[robot.color][robot.strat])),
             Relacher((not coteThermo, notre_couleur)),
 
             ## Deposer au depot 3
-            MoveTo(robot.dest_to_pos(DEPOT3_POS[robot.color][robot.strat])),
+            Navigate(lambda _: DEPOT3_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT3_POS[robot.color][robot.strat])),
             Relacher((coteThermo, notre_couleur)),
 
             #### Recup CAISSE 2
-            MoveTo(robot.dest_to_pos(CAISSE2_POS[robot.color][robot.strat])),
+            Navigate(lambda _: CAISSE2_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(CAISSE2_POS[robot.color][robot.strat])),
             Aligner(coteThermo),
             Attraper(coteThermo),
 
             ## Deposer au depot 4
-            MoveTo(robot.dest_to_pos(DEPOT4_POS[robot.color][robot.strat])),
+            Navigate(lambda _: DEPOT4_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT4_POS[robot.color][robot.strat])),
             Relacher((coteThermo, notre_couleur)),
+
+            ##
+            Navigate(lambda _: DEPOT0_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT0_POS[robot.color][robot.strat])),
+            Revolutionner((coteThermo, pas_notre_couleur)),
+
+            Move(-200,np.pi),
+
+            MoveBrasD(PosTentacle.BAS) if coteThermo == False else MoveBrasG(PosTentacle.BAS),
+
+            Move(-800,0),
+
+            WaitUntil(94,world.matchStartTime),
+            
+            Relacher((not coteThermo, Caisse.TOUT))
             
         ])
         return match
     
     @staticmethod
     def reward(robot: Robot, world: World) -> float:
+        if robot.strat == Strat.Audacieuse : return 0
         if world.main_match_action_done :
             return 0
         else :

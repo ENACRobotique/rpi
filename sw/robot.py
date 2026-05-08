@@ -330,6 +330,9 @@ class Robot:
 
     def onStratChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Strat]):
         msg = data.message
+        if msg is None:
+            print("[Strat] None msg")
+            return
         if msg.strat == "Basique":
             self.strat = Strat.Basique
         elif msg.strat == "Adaptative":
@@ -339,6 +342,9 @@ class Robot:
         
     def onColorChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Side]):
         msg = data.message
+        if msg is None:
+            print("[Side] None msg")
+            return
         if msg.color == robot_pb.Side.Color.YELLOW :
             self.color = Team.JAUNE
         else:
@@ -355,7 +361,11 @@ class Robot:
     
     def onReceiveTirette(self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Tirette]):
         """Callback d'un subscriber ecal. Actualise la tirette du robot"""
-        if data.message.tirette_state == robot_pb.Tirette.IN :
+        msg = data.message
+        if msg is None:
+            print("[Tirette] None msg")
+            return
+        if msg.tirette_state == robot_pb.Tirette.IN :
             self.tirette = Tirette.IN
         else:
             self.tirette = Tirette.OUT
@@ -507,10 +517,10 @@ class Robot:
 
             x_centerPack,y_centerPack = 0,0
             for aruco in arucosPosRobot:
-                x_centerPack += aruco.pos[0]/4
-                y_centerPack += aruco.pos[1]/4
+                x_centerPack += aruco.pos[0]/len(arucosPosRobot)
+                y_centerPack += aruco.pos[1]/len(arucosPosRobot)
             
-            # Hypothèse : on est globalement dans le bon sens à peut de choses près...
+            # Hypothèse : on est globalement dans le bon sens à peu de choses près...
             x_droite = (min([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]), max([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]))
             angle_droite_robot = np.atan2(x_droite[1][1]-x_droite[0][1],x_droite[1][0]-x_droite[0][0])
 
@@ -543,6 +553,17 @@ class Robot:
                 self.coteG = [Caisse.BLEU if aruco.id == Caisse.BLEU.value else Caisse.JAUNE for aruco in sorted(arucosPosRobot,key = lambda aruco : aruco.pos[0])]
             print("Gauche = ", self.coteG," Droite = ",self.coteD)
             return True
+        
+        # nb_ar = len(arucosPosRobot)
+        # if nb_ar >= 2 :
+        #     x_centerPack,y_centerPack = 0,0
+        #     for aruco in arucosPosRobot:
+        #         x_centerPack += aruco.pos[0]/nb_ar
+        #         y_centerPack += aruco.pos[1]/nb_ar
+        #     # Hypothèse : on est globalement dans le bon sens à peu de choses près...
+        #     x_droite = (min([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]), max([aruco.pos for aruco in arucosPosRobot], key=lambda elt: elt[0]))
+        #     angle_droite_robot = np.atan2(x_droite[1][1]-x_droite[0][1],x_droite[1][0]-x_droite[0][0])
+
 
         else : 
             print("Alignement echoue avec ", len(arucosPosRobot))
@@ -580,17 +601,25 @@ class Robot:
         self.actionneurs.moveTricepsD(act.PosTentacle.THERMO)
 
     
-    def attraper(self,coteDroit):
+    def attraper(self,coteDroit,couleur=Caisse.TOUT):
         print("===Atrapper===")
         if coteDroit :
             self.actionneurs.moveD(act.PosTentacle.BAS)
-            self.actionneurs.GrabD(True)
+            for (i,caisse) in enumerate(self.coteD) :
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_DROITES[i],True)
+                else :
+                    self.coteD[i] = Caisse.RIEN
             time.sleep(1)
             self.actionneurs.moveD(act.PosTentacle.HAUT)
             return True
         else :
             self.actionneurs.moveG(act.PosTentacle.BAS)
-            self.actionneurs.GrabG(True)
+            for (i,caisse) in enumerate(self.coteG):
+                if caisse == couleur or couleur == Caisse.TOUT :
+                    self.actionneurs.Grab(act.POMPES_GAUCHES[i],True)
+                else : 
+                    self.coteG[i] = Caisse.RIEN
             time.sleep(1)
             self.actionneurs.moveG(act.PosTentacle.HAUT)
             return True
