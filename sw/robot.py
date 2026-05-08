@@ -105,6 +105,7 @@ class Robot:
         self.strat = Strat.Basique
         self.score = 0
         self.obstacles = [] # obstacles in table frame
+        self.ennemiePos = Pos(0,0,0)
 
         self._pid_gains = [0, 0, 0]     # Just for manual setting of PIDS
 
@@ -173,6 +174,9 @@ class Robot:
 
         self.logs_pub = StringPublisher("logs")
         self.objects_pubs = [ProtoPublisher(common_pb.Position, f"Obstacle{i}") for i in range(3)]
+        
+        self.ennemie_pub = ProtoPublisher(common_pb.Position, "ennemie_pos")
+
         time.sleep(1)
 
         self.nav.initialisation()
@@ -459,6 +463,17 @@ class Robot:
                     return False
                 return True
             return False
+        
+        def track_enemies():
+            if len(self.obstacles) == 1:
+                self.ennemiePos, _ = self.obstacles[0]
+            elif len(self.obstacles) == 0:
+                return
+            else :
+                self.ennemiePos,_ = min(self.obstacles,key = lambda obj : max( abs(2/3 * (obj[0].x - 1500)), abs(obj[0].y - 1000))) # Distance de Tchebychev, comme si la table etait un carre
+
+            self.ennemie_pub.send(self.ennemiePos.to_proto())
+            return
 
         amalgames = [(Pos(x,y,0).from_frame(self.pos), size) for x,y,size in zip(msg.x,msg.y,msg.size)]
         
@@ -466,6 +481,8 @@ class Robot:
         for i,ob in enumerate(self.obstacles) :
             if i < 3:
                 self.objects_pubs[i].send(ob[0].to_proto())
+        
+        track_enemies()
 
     def obstacle_in_way(self, target_pos: Pos):
         """Return True if obstacles in bounds towards target_pos"""

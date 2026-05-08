@@ -10,7 +10,6 @@ robot_bridge \
 robot_lidar_driver \
 robot_lidar_amalgameur \
 robot_lidar_loca \
-robot_start \
 robot_strat \
 robot_vl53 \
 robot_IO \
@@ -23,8 +22,9 @@ robot_ekf ; do
     ln -s ~/rpi/services/$f.service ~/.config/systemd/user/$f.service
 done
 
+ln -s ~/rpi/services/robot_start.target ~/.config/systemd/user/robot_start.target
 
-systemctl --user enable robot_start.service
+systemctl --user enable robot_start.target
 
 systemctl --user daemon-reload
 
