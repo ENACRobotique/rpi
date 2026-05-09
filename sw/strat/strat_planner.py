@@ -17,7 +17,7 @@ import ecal.nanobind_core as ecal_core
 # === Boucle principale ===
 if __name__ == "__main__":
     with Robot() as r:
-        w = World()
+        w = World(r)
         blackboard = py_trees.blackboard.Client(name="Foo Global")
         blackboard.register_key(key="robot", access=py_trees.common.Access.WRITE)
         blackboard.register_key(key="world", access=py_trees.common.Access.WRITE)
@@ -29,10 +29,10 @@ if __name__ == "__main__":
         planner = Planner(r, w)
         planner.add_action(MatchStartAction)
         planner.add_action(EndAction)
-        # planner.add_action(ThermometreAction)
-        # planner.add_action(Recuperer)
-        # planner.add_action(Deposer)
-        # planner.add_action(Retourner)
+        planner.add_action(ThermometreAction)
+        planner.add_action(Recuperer)
+        planner.add_action(Deposer)
+        planner.add_action(Retourner)
         planner.add_action(GoHomeAction)
         planner.add_action(Match)
         

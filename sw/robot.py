@@ -531,23 +531,32 @@ class Robot:
 
         nb_ar = len(arucosPosRobot)
         if nb_ar >= 2:
-            x = [arucos.pos[0] for arucos in arucosPosRobot]
-            y = [arucos.pos[1] for arucos in arucosPosRobot]
-            thetas = [np.arctan2(arucos.rot[1, 0], arucos.rot[0, 0])%np.pi for arucos in arucosPosRobot]
+            thetas = np.array([np.arctan2(arucos.rot[1, 0], arucos.rot[0, 0])%np.pi for arucos in arucosPosRobot])
 
 
             #voir par rapport à la mediane
-            print(np.array((thetas)) * 180/np.pi)
-            mean_theta = np.mean(thetas)
+            print("les thetas en deg:", np.array((thetas)) * 180/np.pi)
+
+            #calcul de la moyenne ciruculaire de 2*theta que l'on divise par 2
+            mean_theta = 0.5 * np.atan2(np.mean(np.sin(2 * thetas)), np.mean(np.cos(2 * thetas)))
+            print("le theta moyen :", mean_theta * 180/np.pi)
+
+
+            #elimination si theta trop grand
+            if mean_theta < 45/180*np.pi:
+                print("on peut pas les prendre, l'angle est trop grand", mean_theta * 180 / np.pi)
+                return False  
+
             for theta in thetas:
-                if abs(theta - mean_theta) > 13/180*np.pi:
-                    print("ecart d'angle trop grand:", abs(theta - mean_theta) * 180 / np.pi)
+                circular_dist = abs((theta - mean_theta + np.pi/2) % np.pi - np.pi/2)
+                if circular_dist > 13/180*np.pi:
+                    print("ecart d'angle trop grand entre 2 palets:", abs(theta - mean_theta) * 180 / np.pi)
                     return False
             best_align = []
             for i in range(nb_ar):
                 aligned = [arucosPosRobot[i]]
                 for j in range(i+1,nb_ar):
-                    d = np.sqrt((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0])**2 + (arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1])**2)
+                    d =  np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0])* np.sin(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.cos(theta))**2) #np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0]) * np.cos(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.sin(mean_theta))**2)
                     eps = 10
 
                     #si la distance x = 50 * k +/_ eps et x<200 
@@ -577,7 +586,7 @@ class Robot:
             ind_pos = [(droite[0], 0)]
             p0 = droite[0]
             for i, p in enumerate(droite[1:], start=1):
-                d = np.linalg.norm(np.array(p0) - np.array(p))
+                d = np.sqrt(((p[0] - p0[0])* np.sin(mean_theta))**2 + ((p[1] - p0[1]) * np.cos(theta))**2)
                 for k in range(5):
                     if abs(d - 50 * k) < eps:
                         ind_pos.append((p, k))

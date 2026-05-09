@@ -58,10 +58,12 @@ THERMO_POS = {
 
 CAISSETHERMO_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NoixJSW',np.pi/2)
+        Strat.Basique: ('NoixJSW',np.pi/2),
+        Strat.Audacieuse: ('NoixJSW',np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NoixBSE',np.pi/2)
+        Strat.Basique: ('NoixBSE',np.pi/2),
+        Strat.Audacieuse: ('NoixJSW',np.pi/2)
     }
 }
 
