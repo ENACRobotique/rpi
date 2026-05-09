@@ -43,7 +43,12 @@ class Nav(object):
         #print(f"Waypoint {waypoint} is : {x}\t{y} \n")
         return x,y
 
-    def findPath(self, theta_start, theta_dest):
+    def findPath(self, theta_start, theta_dest, entree = None, sortie = None):
+        if entree == None:
+           entree = self.entree
+        if sortie == None:
+            sortie = self.sortie
+
         """Renvoi le chemin le plus cours entre l'entrée et la sortie -> une liste de tuple des positions (x,y,theta) a faire"""
         dtheta =theta_dest-theta_start
         if dtheta < -pi :
@@ -51,7 +56,7 @@ class Nav(object):
         elif dtheta > pi :
             theta_start += 2*pi
 
-        self.chemin,self.distance_totale = dijkstra.dijkstra_classic(self.graph,self.entree, self.sortie) #a liste des points parcourus,nd distance parcourue
+        self.chemin,self.distance_totale = dijkstra.dijkstra_classic(self.graph,entree, sortie) #a liste des points parcourus,nd distance parcourue
         dist = 0 
 
         x,y = self.getCoords(self.chemin[0])
@@ -83,17 +88,14 @@ class Nav(object):
         return pos
         
 
-        #print("distance", self.distance_totale)
-        # print(graph.coords[chemin[1]][0]) #coordonnes x du point 
-        #pour obtenir les coords d'un point le la liste a : pt = g.coords["nom_du_point"]
 
 
-    def findReducedPath(self, theta_start, theta_dest):
+    def findReducedPath(self, theta_start, theta_dest, entree = None, sortie = None):
 
-        chemin, self.distance_totale = dijkstra.dijkstra_classic(self.graph, self.entree, self.sortie)
+        chemin, self.distance_totale = dijkstra.dijkstra_classic(self.graph, entree, sortie)
 
         if len(chemin) <= 2:
-            return self.findPath(theta_start, theta_dest)
+            return self.findPath(theta_start, theta_dest, entree, sortie)
         else :
             dtheta =theta_dest-theta_start
             if dtheta < -pi :
