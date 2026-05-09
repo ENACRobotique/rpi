@@ -71,12 +71,12 @@ class Nav(object):
         x1,y1 = self.getCoords(self.chemin[-2])
         x2,y2 = self.getCoords(self.chemin[-1])
 
-        x12,y12 = (x1+x2)/2,(y1+y2)/2
+        # x12,y12 = (x1+x2)/2,(y1+y2)/2
 
         dist += sqrt((x2-x1)**2+(y2-y1)**2)
         theta = theta_dest
-        if abs(atan2(y2-y1,x2-x1) - theta) > pi - radians(5):
-            pos.append((x12,y12,theta))
+        # if abs(atan2(y2-y1,x2-x1) - theta) > pi - radians(5):
+        #     pos.append((x12,y12,theta))
         pos.append((x2,y2,theta))
     
         #print("Positions",pos)

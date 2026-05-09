@@ -7,7 +7,7 @@ import numpy as np
 sys.path.append("../..")
 from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
-from world import World,RAMASSAGE_POS,DEPOT_POS,DEPOT_ANG,RAMASSAGE_ANG
+from world import POINT_DEPOT, POINT_RAMASSAGE, World
 from bt_essentials import CAISSE0_POS, DEPOT0_POS, MatchTimer, Navigate, WaitMatchStart, WaitUntil
 from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, MoveSpeed, START_POS, CAISSETHERMO_POS, DEPOT1_POS, CAISSE1_POS,DEPOT2_POS, DEPOT3_POS, DEPOT4_POS, CAISSE2_POS
 from typing import Callable
@@ -55,7 +55,7 @@ class ThermometreAction(Action):
     
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
-        RAMASSAGE_POS[CAISSETHERMO_POS[robot.color][robot.strat][0]]=False # On dit qu'on a recup la caisse
+        POINT_RAMASSAGE[CAISSETHERMO_POS[robot.color][robot.strat][0]].ramasse = 0 # On dit qu'on a recup la caisse
         if status == py_trees.common.Status.SUCCESS:
             world.thermo_positioned = True
             robot.updateScore(10)
@@ -67,7 +67,7 @@ class Recuperer(Action):
 
     @staticmethod
     def recup_point(_,cote):
-        angle = RAMASSAGE_ANG[Recuperer.nav_point]  if cote else RAMASSAGE_ANG[Recuperer.nav_point]+ np.pi
+        angle = POINT_RAMASSAGE[Recuperer.nav_point].angle  if cote else POINT_RAMASSAGE[Recuperer.nav_point].angle + np.pi
         return (Recuperer.nav_point,angle)
     
     @staticmethod
@@ -90,8 +90,8 @@ class Recuperer(Action):
             def mostRewardingGrabPoint():
                 max_reward = -1
                 max_wpt = "NAN"
-                for wpt in RAMASSAGE_POS.keys():
-                    if RAMASSAGE_POS[wpt]:
+                for wpt in POINT_RAMASSAGE.keys():
+                    if POINT_RAMASSAGE[wpt].ramasse>0:
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                         val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
                     else :
@@ -110,12 +110,12 @@ class Recuperer(Action):
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
             if Recuperer.nav_point == "NoixJEN" or Recuperer.nav_point == "NoixJES":
-                RAMASSAGE_POS["NoixJEN"] = False
-                RAMASSAGE_POS["NoixJES"] = False
+                POINT_RAMASSAGE["NoixJEN"].ramasse = 0
+                POINT_RAMASSAGE["NoixJES"].ramasse = 0
             if Recuperer.nav_point == "NoixBWN" or Recuperer.nav_point == "NoixJWS":
-                RAMASSAGE_POS["NoixBWN"] = False
-                RAMASSAGE_POS["NoixBWS"] = False
-            RAMASSAGE_POS[Recuperer.nav_point] = False
+                POINT_RAMASSAGE["NoixBWN"].ramasse = 0
+                POINT_RAMASSAGE["NoixBWS"].ramasse = 0
+            POINT_RAMASSAGE[Recuperer.nav_point].ramasse = 0
             robot.updateScore(0)
 
 class Deposer(Action):
@@ -125,7 +125,7 @@ class Deposer(Action):
 
     @staticmethod
     def recup_point(_,cote):
-        angle = DEPOT_ANG[Deposer.nav_point] if cote else DEPOT_ANG[Deposer.nav_point] + np.pi
+        angle = POINT_DEPOT[Deposer.nav_point].angle if cote else POINT_DEPOT[Deposer.nav_point].angle + np.pi
         return (Deposer.nav_point,angle)
     
     @staticmethod
@@ -160,8 +160,8 @@ class Deposer(Action):
         def mostRewardingDepotPoint():
                 max_reward = -1
                 max_wpt = "NAN"
-                for wpt in DEPOT_POS.keys():
-                    if DEPOT_POS[wpt]<2:
+                for wpt in POINT_DEPOT.keys():
+                    if len(POINT_DEPOT[wpt].contient)<2:
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                         val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
                     else :
@@ -193,7 +193,8 @@ class Deposer(Action):
                 world.nid+=2
                 robot.updateScore(4)
             else :
-                DEPOT_POS[Deposer.nav_point] += 2
+                POINT_DEPOT[Deposer.nav_point].contient.append(Caisse.JAUNE)
+                POINT_DEPOT[Deposer.nav_point].contient.append(Caisse.JAUNE)
                 robot.updateScore(6)
 
 class Retourner(Action):
@@ -202,7 +203,7 @@ class Retourner(Action):
 
     @staticmethod
     def recup_point(_,cote):
-        angle = DEPOT_ANG[Retourner.nav_point] if cote else DEPOT_ANG[Retourner.nav_point] + np.pi
+        angle = POINT_DEPOT[Retourner.nav_point].angle if cote else POINT_DEPOT[Retourner.nav_point].angle + np.pi
         return (Retourner.nav_point,angle)
     
     @staticmethod
@@ -236,8 +237,8 @@ class Retourner(Action):
         def mostRewardingDepotPoint():
             max_reward = -1
             max_wpt = "NAN"
-            for wpt in DEPOT_POS.keys():
-                if DEPOT_POS[wpt]<2:
+            for wpt in POINT_DEPOT.keys():
+                if len(POINT_DEPOT[wpt].contient)<2:
                     # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                     val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
                 else :
@@ -259,7 +260,8 @@ class Retourner(Action):
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
-            DEPOT_POS[Deposer.nav_point] += 2
+            POINT_DEPOT[Retourner.nav_point].contient.append(Caisse.JAUNE)
+            POINT_DEPOT[Retourner.nav_point].contient.append(Caisse.JAUNE)
             robot.updateScore(6)
 
 
@@ -338,9 +340,9 @@ class Match(Action):
 
             Move(-800,0),
 
-            WaitUntil(94,world.matchStartTime),
-            
-            Relacher((not coteThermo, Caisse.TOUT))
+            Relacher((not coteThermo, Caisse.TOUT)),
+
+            WaitUntil(94,world.matchStartTime)
             
         ])
         return match
@@ -470,7 +472,8 @@ class GoHomeAction(Action):
         terminate.add_children([
             Navigate(nana),
             WaitUntil(94,world.matchStartTime),
-            Move(200,0) 
+            Relacher((False,Caisse.TOUT)),
+            Relacher((True,Caisse.TOUT))
         ])
             #Bouge(Speed(200,0,0),4)])
         return terminate
