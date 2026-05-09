@@ -557,7 +557,6 @@ class Robot:
                 aligned = [arucosPosRobot[i]]
                 for j in range(i+1,nb_ar):
                     d =  np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0])* np.sin(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.cos(theta))**2) #np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0]) * np.cos(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.sin(mean_theta))**2)
-                    print("d :", d)
                     eps = 10
 
                     #si la distance x = 50 * k +/_ eps et x<200 
@@ -587,7 +586,7 @@ class Robot:
             ind_pos = [(droite[0], 0)]
             p0 = droite[0]
             for i, p in enumerate(droite[1:], start=1):
-                d = np.linalg.norm(np.array(p0) - np.array(p))
+                d = np.sqrt(((p[0] - p0[0])* np.sin(mean_theta))**2 + ((p[1] - p0[1]) * np.cos(theta))**2)
                 for k in range(5):
                     if abs(d - 50 * k) < eps:
                         ind_pos.append((p, k))
