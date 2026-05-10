@@ -31,7 +31,7 @@ class ThermometreAction(Action):
         cote = False if robot.color == Team.JAUNE else True # ie on recup cote Gauche avec le jaune pour avoir bras droit libre (et inversement cote bleu)
         bougerThermo = py_trees.composites.Sequence("Thermometre", True)
         bougerThermo.add_children([
-            WaitSeconds(0.5),
+            WaitSeconds(0.3),
 
             #Thermo Action
             MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
@@ -56,8 +56,8 @@ class ThermometreAction(Action):
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         POINT_RAMASSAGE[CAISSETHERMO_POS[robot.color][robot.strat][0]].ramasse = 0 # On dit qu'on a recup la caisse
+        world.thermo_positioned = True
         if status == py_trees.common.Status.SUCCESS:
-            world.thermo_positioned = True
             robot.updateScore(10)
 
 
@@ -68,15 +68,14 @@ class Recuperer(Action):
     @staticmethod
     def recup_point(_,cote):
         angle = POINT_RAMASSAGE[Recuperer.nav_point].angle  if cote else POINT_RAMASSAGE[Recuperer.nav_point].angle + np.pi
-        return (Recuperer.nav_point,angle)
+        return (Recuperer.nav_point,normalize_angle(angle))
     
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
         recup = py_trees.composites.Sequence("Recuperer", True)
         cote = True if robot.cote_droit_vide() else False
-
         recup.add_children([
-            WaitSeconds(0.5),
+            WaitSeconds(0.2),
             Navigate(lambda x : Recuperer.recup_point(x,cote)), 
             Aligner(cote),
             Attraper(cote)
@@ -91,11 +90,8 @@ class Recuperer(Action):
                 max_reward = -1
                 max_wpt = "NAN"
                 for wpt in POINT_RAMASSAGE.keys():
-                    if POINT_RAMASSAGE[wpt].ramasse>0:
-                        # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
-                        val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
-                    else :
-                        val = 0
+                    # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
+                    val = POINT_RAMASSAGE[wpt].ramasse * (6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX))  #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
                     if max_reward < val:
                         max_reward = val
                         max_wpt = wpt
@@ -108,15 +104,13 @@ class Recuperer(Action):
     
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
-        if status == py_trees.common.Status.SUCCESS:
-            if Recuperer.nav_point == "NoixJEN" or Recuperer.nav_point == "NoixJES":
-                POINT_RAMASSAGE["NoixJEN"].ramasse = 0
-                POINT_RAMASSAGE["NoixJES"].ramasse = 0
-            if Recuperer.nav_point == "NoixBWN" or Recuperer.nav_point == "NoixJWS":
-                POINT_RAMASSAGE["NoixBWN"].ramasse = 0
-                POINT_RAMASSAGE["NoixBWS"].ramasse = 0
-            POINT_RAMASSAGE[Recuperer.nav_point].ramasse = 0
-            robot.updateScore(0)
+        if Recuperer.nav_point == "NoixJEN" or Recuperer.nav_point == "NoixJES":
+            POINT_RAMASSAGE["NoixJEN"].ramasse = 0
+            POINT_RAMASSAGE["NoixJES"].ramasse = 0
+        if Recuperer.nav_point == "NoixBWN" or Recuperer.nav_point == "NoixJWS":
+            POINT_RAMASSAGE["NoixBWN"].ramasse = 0
+            POINT_RAMASSAGE["NoixBWS"].ramasse = 0
+        POINT_RAMASSAGE[Recuperer.nav_point].ramasse = 0
 
 class Deposer(Action):
     name = "Deposer"
@@ -126,7 +120,7 @@ class Deposer(Action):
     @staticmethod
     def recup_point(_,cote):
         angle = POINT_DEPOT[Deposer.nav_point].angle if cote else POINT_DEPOT[Deposer.nav_point].angle + np.pi
-        return (Deposer.nav_point,angle)
+        return (Deposer.nav_point,normalize_angle(angle))
     
     @staticmethod
     def calcul_cote_couleur(robot):
@@ -149,7 +143,7 @@ class Deposer(Action):
         print("===========Relache:",Deposer.calcul_cote_couleur(robot),"=============")
 
         recup.add_children([
-            WaitSeconds(0.5),
+            WaitSeconds(0.2),
             Navigate(lambda x : Deposer.recup_point(x,Deposer.calcul_cote_couleur(robot)[0])), 
             Relacher(Deposer.calcul_cote_couleur(robot))
         ])
@@ -163,7 +157,7 @@ class Deposer(Action):
                 for wpt in POINT_DEPOT.keys():
                     if len(POINT_DEPOT[wpt].contient)<2:
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
-                        val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                        val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax) # AAAAAAAAAA
                     else :
                         val = 0
                     if max_reward < val:
@@ -193,8 +187,30 @@ class Deposer(Action):
                 world.nid+=2
                 robot.updateScore(4)
             else :
-                POINT_DEPOT[Deposer.nav_point].contient.append(Caisse.JAUNE)
-                POINT_DEPOT[Deposer.nav_point].contient.append(Caisse.JAUNE)
+                notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+                if Deposer.nav_point == "FrigoJES":
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                if Deposer.nav_point == "FrigoJEN":
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                        
+                if Deposer.nav_point == "FrigoBWS":
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                if Deposer.nav_point == "FrigoBWN":
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+
+                if Deposer.nav_point == "FrigoMidNS":
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                if Deposer.nav_point == "FrigoMidNN":
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+
+                POINT_DEPOT[Deposer.nav_point].contient.append(notre_couleur)
+                POINT_DEPOT[Deposer.nav_point].contient.append(notre_couleur)
                 robot.updateScore(6)
 
 class Retourner(Action):
@@ -204,7 +220,7 @@ class Retourner(Action):
     @staticmethod
     def recup_point(_,cote):
         angle = POINT_DEPOT[Retourner.nav_point].angle if cote else POINT_DEPOT[Retourner.nav_point].angle + np.pi
-        return (Retourner.nav_point,angle)
+        return (Retourner.nav_point,normalize_angle(angle))
     
     @staticmethod
     def calcul_cote_couleur(robot):
@@ -226,7 +242,7 @@ class Retourner(Action):
 
         print("=========== Retourner:",Retourner.calcul_cote_couleur(robot)," =============")
         recup.add_children([
-            WaitSeconds(0.5),
+            WaitSeconds(0.2),
             Navigate(lambda x : Retourner.recup_point(x,Retourner.calcul_cote_couleur(robot)[0])), 
             Revolutionner(Retourner.calcul_cote_couleur(robot))
         ])
@@ -260,9 +276,31 @@ class Retourner(Action):
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
-            POINT_DEPOT[Retourner.nav_point].contient.append(Caisse.JAUNE)
-            POINT_DEPOT[Retourner.nav_point].contient.append(Caisse.JAUNE)
-            robot.updateScore(6)
+                notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+                if Retourner.nav_point == "FrigoJES":
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                if Retourner.nav_point == "FrigoJEN":
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                        
+                if Retourner.nav_point == "FrigoBWS":
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                if Retourner.nav_point == "FrigoBWN":
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+
+                if Retourner.nav_point == "FrigoMidNS":
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                if Retourner.nav_point == "FrigoMidNN":
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+
+                POINT_DEPOT[Retourner.nav_point].contient.append(notre_couleur)
+                POINT_DEPOT[Retourner.nav_point].contient.append(notre_couleur)
+                robot.updateScore(6)
 
 
 

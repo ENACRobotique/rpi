@@ -11,15 +11,15 @@ from collections.abc import Callable
 
 START_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NidJ',np.pi/2),
-        Strat.Audacieuse: ('NidJ',np.pi/2),
-        Strat.Homologation: ('NidJ',np.pi/2)
+        Strat.Basique: ('StartJ',np.pi/2),
+        Strat.Audacieuse: ('StartJ',np.pi/2),
+        Strat.Homologation: ('StartJ',np.pi/2)
         # Strat.Audacieuse: ('secureJ', -pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NidB',np.pi/2),
-        Strat.Audacieuse: ('NidB',np.pi/2),
-        Strat.Homologation: ('NidB',np.pi/2)
+        Strat.Basique: ('StartB',np.pi/2),
+        Strat.Audacieuse: ('StartB',np.pi/2),
+        Strat.Homologation: ('StartB',np.pi/2)
     },
     Team.AUCUNE: {
         
