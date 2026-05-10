@@ -8,6 +8,7 @@ from world import World
 from typing import Callable
 from dataclasses import dataclass
 
+DISTANCE_LIMITE_ARRETE_GRAPH = 300
 
 class Action:
     name: str
@@ -43,6 +44,9 @@ class Planner:
         self.actions.append(action)
     
     def plan(self) -> type[Action]:
+        #met a jour les noeuds du graph pour le calcul des distances pour les rewards
+        pos_ennemie = self.robot.ennemiePos
+        self.robot.nav.graph.update_edge_pos(pos_ennemie.x, pos_ennemie.y, DISTANCE_LIMITE_ARRETE_GRAPH)
         # return the action that yields the maximum reward
         action = max(self.actions, key=lambda a: a.reward(self.robot, self.world))
         return action

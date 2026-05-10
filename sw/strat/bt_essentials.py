@@ -222,7 +222,11 @@ class Navigate(py_trees.behaviour.Behaviour):
         self.nav_cb = nav_cb
         self.nav_id = 0
         self.avoiding = False
+<<<<<<< HEAD
         self.hasTurnedAtLast = False
+=======
+        self.echec = False
+>>>>>>> 3205f5e7b7b9b2e81f07c5e02f9865c7d14b8592
         # TODO ajouter un timeout pour l'évitement ?
 
     def initialise(self):
