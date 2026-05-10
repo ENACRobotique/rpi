@@ -6,7 +6,7 @@ NoixJN 400 1200 EntreeJ,FrigoJEN,EquerreNW
 FrigoJW 400 800 EquerreNW,EquerreSW
 NoixJSW 400 400 ThermoJ,FrigoJS,FrigoJES,EquerreSW
 ThermoJ 200 200 NoixJSW
-FrigoJS 700 400 NoixJSW,FrigoJES,NoixJSE
+FrigoJS 700 400 NoixJSW,FrigoJES,NoixJSE,EquerreNW
 FrigoJES 800 575 NoixJSW,FrigoJS,NoixJSE,NoixJES,EquerreSW
 NoixJES 1150 575 FrigoJES,FrigoMidNS,FrigoMidS,NoixJSE,FrigoJS
 NoixJSE 1100 400 FrigoJS,FrigoJES,NoixJES,FrigoMidS,FrigoMidS
@@ -23,13 +23,13 @@ NoixBN 2600 1200 EntreeB,FrigoBWN,EquerreNE
 FrigoBE 2600 800 EquerreSE,EquerreNE
 NoixBSE 2600 400 ThermoB,FrigoBS,FrigoBWS,EquerreSE
 ThermoB 2800 200 NoixBSE
-FrigoBS 2300 400 NoixBSE,FrigoBWS,NoixBSW
+FrigoBS 2300 400 NoixBSE,FrigoBWS,NoixBSW,EquerreNE
 FrigoBWS 2200 575 NoixBSE,FrigoBS,NoixBSW,NoixBWS,EquerreSE
 NoixBWS 1850 575 FrigoBWS,FrigoMidNS,FrigoMidS,NoixBSW,FrigoBS
 NoixBSW 1900 400 FrigoBS,FrigoBWS,NoixBWS,FrigoMidS,FrigoMidS
 FrigoBWN 2200 1025 EntreeB,FrigoBN,NoixBWN,NoixBN,EquerreNE
 NoixBWN 1850 1025 FrigoMidNN,FrigoBWN,FrigoBN,EntreeB
-EquerreNW 400 1025 FrigoJW,FrigoJEN,NoixJN
-EquerreNE 2600 1025 FrigoBE,FrigoBWN,NoixBN
+EquerreNW 400 1025 FrigoJW,FrigoJEN,NoixJN,FrigoJS
+EquerreNE 2600 1025 FrigoBE,FrigoBWN,NoixBN,FrigoBS
 EquerreSW 400 575 FrigoJW,FrigoJES,NoixJSW
 EquerreSE 2600 575 FrigoBE,FrigoBWS,NoixBSE
