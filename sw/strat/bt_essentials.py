@@ -9,6 +9,9 @@ from world import World
 from math import radians
 from collections.abc import Callable
 
+MAX_TIME_AVOIDING = 7
+
+
 START_POS = {
     Team.JAUNE: {
         Strat.Basique: ('StartJ',np.pi/2),
@@ -245,6 +248,11 @@ class Navigate(py_trees.behaviour.Behaviour):
                 self.robot.log("Obstacle detected, stopping.")
                 self.robot.set_speed(Speed(0, 0, 0))
                 self.avoiding = True
+                self.time_avoiding = time.time()
+            else :
+                if time.time() - self.time_avoiding > MAX_TIME_AVOIDING:
+                    print("Je suis bloqué depuis longtemps dans le navigate, j'échoue")
+                    return py_trees.common.Status.FAILURE
         else:   # pas d'obstacle
             if self.avoiding:
                 # resume movement after obstacle avoidance
@@ -287,14 +295,18 @@ class Move(py_trees.behaviour.Behaviour):
         self.robot.move(self.distance, self.direction)
 
     def update(self):
-        #print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         if self.robot.obstacle_in_way(self.target):
-             if not self.avoiding:
+            if not self.avoiding:
                 self.robot.log("Obstacle detected, stopping.")
                 self.robot.set_speed(Speed(0, 0, 0))
                 #self.robot.setTargetPos(self.robot.pos) #ARRETER ROBOT
                 print(f"Robot stop ici: {self.robot.pos}")
                 self.avoiding = True
+                self.time_avoiding = time.time()
+            else :
+                if time.time() - self.time_avoiding > MAX_TIME_AVOIDING:
+                    print("Je suis bloqué depuis longtemps dans le move, j'échoue")
+                    return py_trees.common.Status.FAILURE
         else:   # pas d'obstacle
             if self.avoiding:
                 # resume movement after obstacle avoidance
