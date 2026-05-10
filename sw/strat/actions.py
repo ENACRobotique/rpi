@@ -117,9 +117,11 @@ class RecupererDroite(Action):
         if RecupererDroite.nav_point == "NoixJEN" or RecupererDroite.nav_point == "NoixJES":
             POINT_RAMASSAGE["NoixJEN"].ramasse = 0
             POINT_RAMASSAGE["NoixJES"].ramasse = 0
+            robot.nav.graph.add_edge("NoixJEN","NoixJES")
         if RecupererDroite.nav_point == "NoixBWN" or RecupererDroite.nav_point == "NoixJWS":
             POINT_RAMASSAGE["NoixBWN"].ramasse = 0
             POINT_RAMASSAGE["NoixBWS"].ramasse = 0
+            robot.nav.graph.add_edge("NoixBWN","NoixBWS")
         POINT_RAMASSAGE[RecupererDroite.nav_point].ramasse = 0
 
 class RecupererGauche(Action):
