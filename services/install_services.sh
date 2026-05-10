@@ -18,6 +18,7 @@ robot_ui \
 robot_tirette \
 robot_aruco2 \
 robot_aruco \
+robot_UCD \
 robot_ekf ; do 
     ln -s ~/rpi/services/$f.service ~/.config/systemd/user/$f.service
 done
