@@ -17,6 +17,7 @@ from threading import Event
 from xbee import Xbee
 from common_pb2 import Position
 import time
+from aruco_filter import ArucoFilter
 
 MAX_ARUCOS_PER_PACKET = 4
 NB_CALIB_IMG = 10
@@ -41,6 +42,7 @@ class ArucoFinder:
         self.display = display
         self.event = Event()
         self.img = None     # img received from eCAL
+        self.tracker = ArucoFilter()
 
         self.calib_centers = {20:[], 21:[],22:[],23:[]}
 
@@ -320,7 +322,6 @@ class ArucoFinder:
 
                     if self.display:
                         cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
-                   
         return frame
     
 
@@ -392,18 +393,25 @@ class ArucoFinder:
         # draw aruco
 
         for obj in self.world_objects:
-            pos = obj["pos"]    # centre (mm)
-            size = obj["size"]  # taille réelle (mm)
-            aruco_id = obj["id"]
 
-            xw, yw = pos[0], pos[1]
+            xw = obj["x"]
+            yw = obj["y"]
+
+            theta = obj["theta"]
+
+            size = obj["size"]
+
+            aruco_id = obj["id"]
 
             xi = int(ox + (xw - cx) * px_per_mm)
             yi = int(oy - (yw - cy) * px_per_mm)
 
             half_px = int((size / 2) * px_per_mm)
 
-            # Dessin du carré
+            # ========================================================
+            # Draw square
+            # ========================================================
+
             cv2.rectangle(
                 map_img,
                 (xi - half_px, yi - half_px),
@@ -412,7 +420,10 @@ class ArucoFinder:
                 2
             )
 
-            # Texte ID
+            # ========================================================
+            # Draw text
+            # ========================================================
+
             cv2.putText(
                 map_img,
                 f"ID {aruco_id}",
@@ -546,29 +557,40 @@ class ArucoFinder:
                     ids_to_send.append(id)
 
                     # TODO : modify the world map to use the arucos message instead
-                    if self.display:
-                        self.world_objects.append( {
-                            "pos": P_tw,
-                            "size": size,
-                            "id": id
-                        })
+                    # if self.display:
+                    #     self.world_objects.append( {
+                    #         "pos": P_tw,
+                    #         "size": size,
+                    #         "id": id
+                    #     })
                 
             self.arucoFound = Arucos(arucos=arucos, cameraName=self.name)
             self.aruco_pub.send(self.arucoFound)
+
+            self.tracker.update(pos, ids_to_send)
+
+            filtered_pos, filtered_ids = self.tracker.get_filtered_detections()
+            for position, uid in zip(filtered_pos, filtered_ids):
+
+                self.world_objects.append({
+                    "x": position.x,
+                    "y": position.y,
+                    "theta": position.theta,
+                    "size": self.arucos[uid],
+                    "id": uid
+                })
 
             # =========================
             # Envoi XBEE fragmenté
             # =========================
 
-            MAX_ARUCOS_PER_PACKET = 4
+            print("nb tags :", len(filtered_pos))
 
-            print("nb tags :", len(ids_to_send))
-
-            for i in range(0, len(ids_to_send), MAX_ARUCOS_PER_PACKET):
+            for i in range(0, len(filtered_ids), MAX_ARUCOS_PER_PACKET):
 
                 # Batch courant
-                batch_pos = pos[i:i + MAX_ARUCOS_PER_PACKET]
-                batch_ids = ids_to_send[i:i + MAX_ARUCOS_PER_PACKET]
+                batch_pos = filtered_pos[i:i + MAX_ARUCOS_PER_PACKET]
+                batch_ids = filtered_ids[i:i + MAX_ARUCOS_PER_PACKET]
 
                 # Création message protobuf
                 msg = Aruco_UCD(
