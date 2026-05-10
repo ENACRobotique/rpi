@@ -457,6 +457,10 @@ class Robot:
         d=sqrt((self.pos.x-self.nav_pos[nav_id].x)**2 + (self.pos.y-self.nav_pos[nav_id].y)**2)
         return (d <= XY_ACCURACY*1.2)
     
+    def moyennementProcheToNavPoint(self, nav_id):
+        d=sqrt((self.pos.x-self.nav_pos[nav_id].x)**2 + (self.pos.y-self.nav_pos[nav_id].y)**2)
+        return (d <= 300)
+    
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
         Nécéssite de vider continuement la liste des points de nav !"""
@@ -554,7 +558,7 @@ class Robot:
             print("les thetas en deg:", np.array((thetas)) * 180/np.pi)
 
             #calcul de la moyenne ciruculaire de 2*theta que l'on divise par 2
-            mean_theta = 0.5 * np.atan2(np.mean(np.sin(2 * thetas)), np.mean(np.cos(2 * thetas)))
+            mean_theta = np.atan2(np.mean(np.sin(thetas)), np.mean(np.cos(thetas)))
             print("le theta moyen :", mean_theta * 180/np.pi)
 
 
