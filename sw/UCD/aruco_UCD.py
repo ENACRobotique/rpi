@@ -3,6 +3,7 @@ from generated.robot_state_pb2 import Aruco_UCD
 import ecal.nanobind_core as ecal_core
 from ecal.msg.proto.core import Publisher as ProtoPublisher
 import argparse
+from google.protobuf.message import DecodeError
 
 class Lecteur_aruco_ucd:
 
@@ -10,14 +11,19 @@ class Lecteur_aruco_ucd:
         self.msg = Aruco_UCD()
 
     def cb(self, _sender, data):
-        msg_resp = Aruco_UCD()
-        msg_resp.ParseFromString(data)
-        if msg_resp.frame_id == self.msg.frame_id:
-            self.msg.ArucoId.extend(msg_resp.ArucoId)
-            self.msg.pos.extend(msg_resp.pos)
-        else:     
-            aruco_UCD_pub.send(self.msg)
-            self.msg = Aruco_UCD(frame_id=msg_resp.frame_id, pos= msg_resp.pos, ArucoId=msg_resp.ArucoId)
+        try :
+            msg_resp = Aruco_UCD()
+            msg_resp.ParseFromString(data)
+            if msg_resp.frame_id == self.msg.frame_id:
+                self.msg.ArucoId.extend(msg_resp.ArucoId)
+                self.msg.pos.extend(msg_resp.pos)
+            else:     
+                aruco_UCD_pub.send(self.msg)
+                self.msg = Aruco_UCD(frame_id=msg_resp.frame_id, pos= msg_resp.pos, ArucoId=msg_resp.ArucoId)
+                
+        except DecodeError:
+            print("DecodeError")
+
   
 
 

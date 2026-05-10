@@ -20,10 +20,10 @@ StartB 2600 1700 EntreeB,NidB
 EntreeB 2600 1450 NidB,FrigoBN,FrigoBWN,NoixBN,NoixBWN,StartB
 FrigoBN 2000 1450 EntreeB,NoixBWN,FrigoBWN
 NoixBN 2600 1200 EntreeB,FrigoBWN,EquerreNE
-FrigoBE 2600 800 EquerreSE,EquerreNE
+FrigoBE 2600 800 EquerreSE
 NoixBSE 2600 400 ThermoB,FrigoBS,FrigoBWS,EquerreSE
 ThermoB 2800 200 NoixBSE
-FrigoBS 2300 400 NoixBSE,FrigoBWS,NoixBSW
+FrigoBS 2300 400 NoixBSE,FrigoBWS,NoixBSW,EquerreNE
 FrigoBWS 2200 575 NoixBSE,FrigoBS,NoixBSW,NoixBWS,EquerreSE
 NoixBWS 1850 575 FrigoBWS,FrigoMidNS,FrigoMidS,NoixBSW,FrigoBS
 NoixBSW 1900 400 FrigoBS,FrigoBWS,NoixBWS,FrigoMidS,FrigoMidS
