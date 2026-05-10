@@ -19,6 +19,7 @@ from common_pb2 import Position
 import time
 
 MAX_ARUCOS_PER_PACKET = 4
+NB_CALIB_IMG = 10
 
 class Source(Enum):
     CAM = 0
@@ -38,9 +39,10 @@ class ArucoFinder:
         self.src = src
         self.arucos = arucos
         self.display = display
-        
         self.event = Event()
         self.img = None     # img received from eCAL
+
+        self.calib_centers = {20:[], 21:[],22:[],23:[]}
 
         # ArUco settings (API OpenCV 4.7+)
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -283,30 +285,34 @@ class ArucoFinder:
             cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
         
         if detected_corners:
-            centers = []
-            centers_id = []
             for corners, id in zip(detected_corners, detected_ids):
                 id = id[0]
                 if id not in [20,21,22,23]:
                     continue
                 center = corners[0].mean(axis=0)
-                centers.append(center)
-                centers_id.append(id)
-
+                self.calib_centers[id].append(center)
                 size = self.arucos[id]
-            
-            combined = list(zip(centers_id, centers))
+        
 
-            # Sort by id
-            combined.sort(key=lambda x: x[0])
-            centers_id, centers = zip(*combined)
+            if all(len(v) >= NB_CALIB_IMG for v in self.calib_centers.values()):
+                centers_id = []
+                centers = []
 
-            centers_id = list(centers_id)
-            centers = list(centers)
+                for marker_id in [20, 21, 22, 23]:
 
-            if centers :        
+                    # moyenne temporelle du centre
+                    mean_center = np.mean(
+                        self.calib_centers[marker_id],
+                        axis=0
+                    )
+
+                    centers_id.append(marker_id)
+                    centers.append(mean_center)
+
+                centers = np.array(centers, dtype=np.float32)
+       
                 rvecs, tvecs, _ = self.estimatePoseFromCenters(centers, self.camera_matrix, self.dist_coeffs)
- 
+
                 if tvecs is not None:
                     rv, tv = rvecs[0], tvecs[0]
                     
@@ -490,10 +496,13 @@ class ArucoFinder:
             for corners, id in zip(detected_corners, detected_ids):
                 id = id[0]
             
+
                 if id not in self.arucos:
                     continue
+                if id in [20, 21, 22, 23]:
+                    continue
+
                 size = self.arucos[id]
-            
                 rvecs, tvecs, _ = self.estimatePoseSingleMarkers(corners, size, self.camera_matrix, self.dist_coeffs)
  
                 if tvecs is not None:
@@ -501,7 +510,9 @@ class ArucoFinder:
 
                     #posW = self.objects_in_world(rv, tv)
                     if self.display:
-                        cv2.drawFrameAxes(gray, self.camera_matrix, self.dist_coeffs, rv, tv, size)
+                        #cv2.drawFrameAxes(gray, self.camera_matrix, self.dist_coeffs, rv, tv, size)
+                        cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rv, tv, size)
+     
      
                     # Convert rvec to rotation matrix
                     P_tc = np.array(tv[0])
@@ -522,6 +533,9 @@ class ArucoFinder:
 
                     roll, pitch, yaw = r.as_euler('xyz', degrees=False)
 
+                    #print("roll : ", roll*180/np.pi,"pitch:", pitch*180/np.pi, "yaw:", yaw*180/np.pi)
+
+  
                     (qx, qy, qz, qw) = r.as_quat(False)
 
                     ar = Aruco(x=P_tw[0], y=P_tw[1], z=P_tw[2],qx=qx, qy=qy, qz=qz, qw=qw, ArucoId=id )
@@ -530,7 +544,6 @@ class ArucoFinder:
                     tag = Position(x=P_tw[0],y=P_tw[1],theta=yaw)
                     pos.append(tag)
                     ids_to_send.append(id)
-
 
                     # TODO : modify the world map to use the arucos message instead
                     if self.display:
@@ -582,8 +595,8 @@ class ArucoFinder:
                 self.xbee.send_data(3, msg_octet)
                 #time.sleep(0.05)
                 
-                print(len(msg_octet))
-        return gray
+                #print(len(msg_octet))
+        return frame
     
 
     def run(self):
@@ -613,7 +626,6 @@ class ArucoFinder:
             #     self.send_processed_frame(processed)
 
                 if self.display :
-
                     self.draw_world_map()
 
             if self. display:
@@ -650,7 +662,7 @@ if __name__ == "__main__":
     else:
         print("Please specify the source: cam, video or ecal topic.")
     
-    arucos = {20:100, 21:100, 22:100, 23:100, 6:70, 47:30, 13:30, 36:30, 7:70}
+    arucos = {20:100, 21:100, 22:100, 23:100, 6:70, 47:30, 13:30, 36:30, 1:70,2:70,3:70,4:70,5:70,6:70,7:70,8:70,9:70,10:70}
 
     known_markers = {
         20: np.array([600, 1400, 0]),   # x=600, y=1400, z=0
