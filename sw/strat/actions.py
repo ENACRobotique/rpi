@@ -57,6 +57,10 @@ class ThermometreAction(Action):
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         POINT_RAMASSAGE[CAISSETHERMO_POS[robot.color][robot.strat][0]].ramasse = 0 # On dit qu'on a recup la caisse
         world.thermo_positioned = True
+        if robot.color == Team.JAUNE:
+            robot.actionneurs.moveD(act.PosTentacle.HAUT)
+        else :
+            robot.actionneurs.moveG(act.PosTentacle.HAUT)
         if status == py_trees.common.Status.SUCCESS:
             robot.updateScore(10)
 
