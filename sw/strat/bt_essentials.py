@@ -222,11 +222,8 @@ class Navigate(py_trees.behaviour.Behaviour):
         self.nav_cb = nav_cb
         self.nav_id = 0
         self.avoiding = False
-<<<<<<< HEAD
         self.hasTurnedAtLast = False
-=======
         self.echec = False
->>>>>>> 3205f5e7b7b9b2e81f07c5e02f9865c7d14b8592
         # TODO ajouter un timeout pour l'évitement ?
 
     def initialise(self):
@@ -234,10 +231,15 @@ class Navigate(py_trees.behaviour.Behaviour):
         self.robot.resetPosOnEkf()
         print("Navigation go !")
         if not self.robot.folowingPath:
-            self.robot.pathFinder(self.dest, self.orientation)
-            self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
+            try :
+                self.robot.pathFinder(self.dest, self.orientation)
+                self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
+            except KeyError :
+                self.echec = True
 
     def update(self):
+        if self.echec :
+            return py_trees.common.Status.FAILURE
         if self.robot.obstacle_in_way(self.robot.nav_pos[self.nav_id]):
             if not self.avoiding:
                 self.robot.log("Obstacle detected, stopping.")
