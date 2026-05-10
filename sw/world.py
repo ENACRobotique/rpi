@@ -2,7 +2,7 @@ import time
 import numpy as np
 from robot import Robot
 from common import Pos
-
+import threading
 
 SEUIL_CONSIDERATION = 200 # en mm
 
@@ -12,7 +12,7 @@ class RamassagePoint :
         self.nav_point = nav_point
         self.angle = angle
         self.pos_milieu = pos_milieu
-        self.ramasse = 10 # Indique s'il y a des caisse => 10 = on est sur qur qu'il y a des caisses, => 0 on est sur qu'il y en a pas
+        self.ramasse = 1. # Indique s'il y a des caisse => 10 = on est sur qur qu'il y a des caisses, => 0 on est sur qu'il y en a pas
         self.temps_ennemie_passe = 0
 
 
@@ -61,7 +61,9 @@ class World:
         self.backInZone = False
         self.nid = 0
         self.main_match_action_done = False
-    
+        self.thread_track_ennemie = threading.Thread(target=self.track_ennemie,daemon=True)
+        self.thread_track_ennemie.start()
+
     def time_left(self) -> float:
         if self.matchStartTime < 0:
             return self.MATCH_DURATION
@@ -72,7 +74,10 @@ class World:
         return self.matchStartTime >= 0
 
     def track_ennemie(self):
+        print("[WORLD] Thread OPENING")
+        total_tick = 0
         while True:
+            time.sleep(0.1)
             ep = self.robot.ennemiePos
             if ep is not None:
                 # On regarde s'il est proche d'un point de ramassage
@@ -90,6 +95,9 @@ class World:
 
                         
                         POINT_RAMASSAGE[nav_point].temps_ennemie_passe +=1 # On augmente le temps passe dans le point interet
+                        if POINT_RAMASSAGE[nav_point].temps_ennemie_passe > 50  and POINT_RAMASSAGE[nav_point].ramasse > 0.5:
+                            POINT_RAMASSAGE[nav_point].ramasse = 0.5
+                            #print(f"***********  [{nav_point}] : Il y a peut etre plus de caisse ici :(  *****************")
 
                 for nav_point in POINT_DEPOT.keys():
                     if ep.distance(POINT_DEPOT[nav_point].pos_milieu) < SEUIL_CONSIDERATION:
@@ -110,3 +118,5 @@ class World:
                             POINT_DEPOT["FrigoMidNS"].temps_ennemie_passe +=1
 
                         POINT_DEPOT[nav_point].temps_ennemie_passe +=1 # On augmente le temps passe dans le point interet
+
+                
