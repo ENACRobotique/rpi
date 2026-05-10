@@ -96,7 +96,10 @@ class Nav(object):
 
 
     def findReducedPath(self, theta_start, theta_dest, entree = None, sortie = None):
-
+        if entree == None:
+           entree = self.entree
+        if sortie == None:
+            sortie = self.sortie
         chemin, self.distance_totale = dijkstra.dijkstra_classic(self.graph, entree, sortie)
 
         if len(chemin) <= 2:
