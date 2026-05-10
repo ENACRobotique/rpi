@@ -1,4 +1,6 @@
 import os
+
+from common import normalize_angle
 current_dir = os.path.dirname(os.path.abspath(__file__))
 import sys
 sys.path.append("../..")
@@ -80,8 +82,11 @@ class Nav(object):
 
         dist += sqrt((x2-x1)**2+(y2-y1)**2)
         theta = theta_dest
-        # if abs(atan2(y2-y1,x2-x1) - theta) > pi - radians(5):
-        #     pos.append((x12,y12,theta))
+        # x12, y12 = (x1+x2)/2,(y2+y1)/2
+        # if abs(normalize_angle(atan2(y2-y1,x2-x1) - theta + pi)) < abs(normalize_angle(atan2(y2-y1,x2-x1) - theta)):
+        #     print("************************************ JE VAIS TOURNER BIP BOUP *********************************************")
+        #     print("avec pi : ",abs(normalize_angle(atan2(y2-y1,x2-x1) - theta + pi)), " et sans pi",abs(normalize_angle(atan2(y2-y1,x2-x1) - theta)))
+        #     pos.append((x12,y12,atan2(y2-y1,x2-x1)+pi))
         pos.append((x2,y2,theta))
     
         #print("Positions",pos)
@@ -137,15 +142,15 @@ class Nav(object):
             
             # Rotation moitié demi segment
             # x12, y12 = (x0+x1)/2,(y0+y1)/2
-            # if abs(atan2(y1-y0,x1-x0) - theta) > pi - radians(5):
-            #     reduced_pos.append((x12,y12,theta))
+            # if abs(normalize_angle(atan2(y1-y0,x1-x0) - theta + pi)) < abs(normalize_angle(atan2(y1-y0,x1-x0) - theta)):
+            #     print("************************************ JE VAIS TOURNER BIP BOUP *********************************************")
+            #     reduced_pos.append((x12,y12,atan2(y1-y0,x1-x0)+pi))
 
             reduced_pos.append((x1,y1, theta))
 
             self.chemin = reduced_chemin
-            print("reduced_pos : ",reduced_pos)
+            #print("reduced_pos : ",reduced_pos)
             return reduced_pos
-
 
     def resetPath(self):
         self.chemin = []

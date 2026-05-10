@@ -225,6 +225,7 @@ class Navigate(py_trees.behaviour.Behaviour):
         self.nav_cb = nav_cb
         self.nav_id = 0
         self.avoiding = False
+        self.hasTurnedAtLast = False
         self.echec = False
         # TODO ajouter un timeout pour l'évitement ?
 
@@ -259,6 +260,14 @@ class Navigate(py_trees.behaviour.Behaviour):
                 self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
                 self.avoiding = False
             else:
+                
+                if self.nav_id == len(self.robot.nav_pos)-1 and self.robot.moyennementProcheToNavPoint(self.nav_id) and not self.hasTurnedAtLast:
+                    if abs(cm.normalize_angle(self.robot.pos.theta - self.orientation + np.pi)) < abs(cm.normalize_angle(self.robot.pos.theta - self.orientation)):
+                        print("************************************ JE VAIS TOURNER BIP BOUP *********************************************")
+                        self.hasTurnedAtLast = True
+                        self.robot.rotate(np.pi,blocking=True,timeout=2)
+                        self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
+                
                 # normal case, no obstacle
                 if self.robot.isNavDestReached():
                     print("Navigation end !")

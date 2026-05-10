@@ -411,7 +411,7 @@ class Robot:
     def distance_du_path(self,waypoint):
         #distance par rapport au point le plus proche
         close_nav_point = self.nav.closestWaypoint(self.pos.x,self.pos.y)
-        print(close_nav_point)
+        #print(close_nav_point)
         pos_close = self.dest_to_pos((close_nav_point,0))
         d = self.pos.distance(pos_close)
 
@@ -459,7 +459,7 @@ class Robot:
     
     def moyennementProcheToNavPoint(self, nav_id):
         d=sqrt((self.pos.x-self.nav_pos[nav_id].x)**2 + (self.pos.y-self.nav_pos[nav_id].y)**2)
-        return (d <= 300)
+        return (d <= 150)
     
     def isNavDestReached(self):
         """Si le dernier point de Nav est atteint renvoie True\n
@@ -578,7 +578,6 @@ class Robot:
                 for j in range(i+1,nb_ar):
                     d =  np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0])* np.sin(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.cos(theta))**2) #np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0]) * np.cos(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.sin(mean_theta))**2)
                     eps = 10
-
                     #si la distance x = 50 * k +/_ eps et x<200 
                     if d < 200 + eps and (d%50 < eps or d%50 > 50 - eps):
                         aligned.append(arucosPosRobot[j]) 
