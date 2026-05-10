@@ -189,9 +189,10 @@ class EndStrat(py_trees.behaviour.Behaviour):
     
     def initialise(self):
         self.robot.set_speed(Speed(0, 0, 0))
-
-    def update(self):
+        self.robot.stop()
         print("Strat terminée !")
+
+    def update(self): 
         # play tune ?
         # TODO: do this in a non blocking manner
         return py_trees.common.Status.RUNNING
@@ -204,18 +205,20 @@ class MatchTimer(py_trees.behaviour.Behaviour):
         super().__init__(name=f"Match End ?")
         self.MatchEnd = False
         self.bb, self.robot, self.world = get_bb_robot(self)
+        self.stopped = False
     
     def update(self):
         if self.world.matchStartTime > 0:
-            if abs(self.world.matchStartTime-time.time()) >= self.world.MATCH_DURATION:
+            if abs(self.world.matchStartTime-time.time()) >= self.world.MATCH_DURATION :
                 #print("Achievement Made! The End ?")
                 self.robot.set_speed(Speed(0, 0, 0))
-                self.robot.stop()
+                if  not self.stopped : 
+                    print("durée match timer :", )
+                    self.robot.stop()
+                    self.stopped = True
                 return py_trees.common.Status.SUCCESS
         return py_trees.common.Status.FAILURE
     
-
-
     
 class Navigate(py_trees.behaviour.Behaviour):
     """TODO"""
