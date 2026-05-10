@@ -408,6 +408,22 @@ class Robot:
         x,y = self.nav.getCoords(waypoint)
         return self.pos.distance(Pos(x,y,0))
 
+    def distance_du_path(self,waypoint):
+        #distance par rapport au point le plus proche
+        close_nav_point = self.nav.closestWaypoint(self.pos.x,self.pos.y)
+        print(close_nav_point)
+        pos_close = self.dest_to_pos((close_nav_point,0))
+        d = self.pos.distance(pos_close)
+
+        #calcul du chemin le mieux
+        reduced_pos = self.nav.findReducedPath(self.pos.theta,0, close_nav_point, waypoint)
+        def dist(wp1, wp2):
+            return np.sqrt((wp1[0] - wp2[0])**2 + (wp1[1] - wp2[1])**2)
+        for i in range(len(reduced_pos) - 1):
+            d+= dist((reduced_pos[i]), reduced_pos[i+1])
+        return d
+        
+
     def resetPosFromNav(self, waypoint, theta=None):
         self.log("Reseted nav at : {waypoint}")
         if theta is None:

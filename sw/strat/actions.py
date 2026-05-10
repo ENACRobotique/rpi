@@ -16,7 +16,7 @@ import time
 import subprocess
 from IO.IO_BT import *
 
-DISTANCE_MAX  = np.sqrt(13) * 1000 # en mm, sqrt(2**2 + 3**2)
+DISTANCE_MAX  = 3000*2 + 1500*2 #np.sqrt(13) * 1000 # en mm, sqrt(2**2 + 3**2)
 SEUIL_AGRESSIVITE = 3 # Compris entre 4 (Ghandi) et 2 (Chabal)
 
 ##################################
@@ -90,8 +90,11 @@ class Recuperer(Action):
                 max_reward = -1
                 max_wpt = "NAN"
                 for wpt in POINT_RAMASSAGE.keys():
-                    # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
-                    val = POINT_RAMASSAGE[wpt].ramasse * (6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX))  #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                    if POINT_RAMASSAGE[wpt].ramasse>0:
+                        # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
+                        val = POINT_RAMASSAGE[wpt].ramasse * (6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX)) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                    else :
+                        val = 0
                     if max_reward < val:
                         max_reward = val
                         max_wpt = wpt

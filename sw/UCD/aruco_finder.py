@@ -7,20 +7,26 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids Modul
 import ecal.nanobind_core as ecal_core
 from ecal.msg.proto.core import Publisher as ProtoPublisher
 from generated.robot_state_pb2 import Aruco, Arucos
-# from generated.robot_state_pb2 import Position_aruco
+from generated.robot_state_pb2 import Aruco_UCD
 # from generated import CompressedImage_pb2 as cipb
 import argparse
 from enum import Enum
 from scipy.spatial.transform import Rotation
 #import time
 from threading import Event
+from xbee import Xbee
+from common_pb2 import Position
+import time
 
+MAX_ARUCOS_PER_PACKET = 4
 
 class Source(Enum):
     CAM = 0
     VIDEO = 1
     ECAL = 2
     
+def cb(sender, data):
+        print(f"msg from {sender}: {data.decode()}")
 
 class ArucoFinder:
     def __init__(self, name, src_type, src, arucos, display):
@@ -61,6 +67,9 @@ class ArucoFinder:
         self.camera_rot_in_W = None
 
         self.aruco_pub = ProtoPublisher(Arucos, "Arucos_world")
+
+        self.xbee = Xbee(cb, 12, "/dev/ttyUSB0")
+        self.xbee.start()
         
         self.open_capture()
 
@@ -71,6 +80,10 @@ class ArucoFinder:
         pass
     #     if src_type == Source.ECAL:
     #         self.sub.remove_receive_callback()
+
+    def cb(sender, data):
+        print(f"msg from {sender}: {data.decode()}")
+
     
     def open_capture(self):
         if src_type == Source.CAM:
@@ -96,9 +109,6 @@ class ArucoFinder:
                 return
             w, h = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
             print(f"Opened video with resolution {w}x{h}!\n")
-        # elif src_type == Source.ECAL:
-        #     self.sub = ProtoSubscriber(cipb.CompressedImage, src)
-        #     self.sub.set_receive_callback(self.on_img)
 
     def getCalibration(self, w, h):
         """Provide Calibration Matrix and distance coefs as .npy file"""
@@ -458,19 +468,18 @@ class ArucoFinder:
 
 
 
-    def process(self, frame):
+    def process(self, frame,frame_id):
         """Call it in a while true loop"""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         #clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
         #gray = clahe.apply(gray)
 
-        #On rogne l'image
-        #gray = gray[500:, :]
-        #gray = gray[:-1000, :]
-
         # Détection ArUco
         detected_corners, detected_ids, rejected = self.aruco_detector.detectMarkers(gray)
+
+        pos = []
+        ids_to_send = []
 
         if self.display:
             cv2.aruco.drawDetectedMarkers(frame, detected_corners, detected_ids)
@@ -510,10 +519,18 @@ class ArucoFinder:
 
                     # Convertir en quaternion
                     r = Rotation.from_matrix(R_wt)
+
+                    roll, pitch, yaw = r.as_euler('xyz', degrees=False)
+
                     (qx, qy, qz, qw) = r.as_quat(False)
 
                     ar = Aruco(x=P_tw[0], y=P_tw[1], z=P_tw[2],qx=qx, qy=qy, qz=qz, qw=qw, ArucoId=id )
                     arucos.append(ar)
+
+                    tag = Position(x=P_tw[0],y=P_tw[1],theta=yaw)
+                    pos.append(tag)
+                    ids_to_send.append(id)
+
 
                     # TODO : modify the world map to use the arucos message instead
                     if self.display:
@@ -525,11 +542,53 @@ class ArucoFinder:
                 
             self.arucoFound = Arucos(arucos=arucos, cameraName=self.name)
             self.aruco_pub.send(self.arucoFound)
+
+            # =========================
+            # Envoi XBEE fragmenté
+            # =========================
+
+            MAX_ARUCOS_PER_PACKET = 4
+
+            print("nb tags :", len(ids_to_send))
+
+            for i in range(0, len(ids_to_send), MAX_ARUCOS_PER_PACKET):
+
+                # Batch courant
+                batch_pos = pos[i:i + MAX_ARUCOS_PER_PACKET]
+                batch_ids = ids_to_send[i:i + MAX_ARUCOS_PER_PACKET]
+
+                # Création message protobuf
+                msg = Aruco_UCD(
+                    frame_id=frame_id,
+                    pos=batch_pos,
+                    ArucoId=batch_ids
+                )
+
+                # Sérialisation
+                msg_octet = msg.SerializeToString()
+
+                # print(
+                #     f"Packet {i // MAX_ARUCOS_PER_PACKET} | "
+                #     f"tags={len(batch_ids)} | "
+                #     f"size={len(msg_octet)} bytes"
+                # )
+
+                # Sécurité taille XBee
+                if len(msg_octet) > 99:
+                    print("ERROR: packet too large for XBee")
+                    continue
+
+                # Envoi
+                self.xbee.send_data(3, msg_octet)
+                #time.sleep(0.05)
+                
+                print(len(msg_octet))
         return gray
     
 
     def run(self):
         win_name = f"ArucoFinder - {self.name}"
+        frame_id = 0
         if self.display :
             cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
 
@@ -548,7 +607,8 @@ class ArucoFinder:
                 calibration_frame = self.get_camera_pose(frame)
 
             if self.camera_pose_in_W is not None:
-                processed = self.process(frame)
+                processed = self.process(frame,frame_id)
+                frame_id += 1
             # if self.display:
             #     self.send_processed_frame(processed)
 
