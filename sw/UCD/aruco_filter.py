@@ -80,7 +80,7 @@ class UniqueAruco:
         new_cos = math.cos(theta)
         new_sin = math.sin(theta)
 
-        alpha = 0.1
+        alpha = 0.2
 
         filt_cos = alpha * new_cos + (1 - alpha) * old_cos
         filt_sin = alpha * new_sin + (1 - alpha) * old_sin
@@ -139,9 +139,58 @@ class ArucoFilter:
         # Parameters
         # ====================================================
 
-        self.MAX_ASSOCIATION_DISTANCE = 125.0  # mm
+        #self.NORMAL_ASSOCIATION_DISTANCE = 50.0
+        #self.BORDER_ASSOCIATION_DISTANCE = 200.0
 
-        self.TIMEOUT = 15
+        self.TABLE_X = 3000.0
+        self.TABLE_Y = 2000.0
+
+        self.TABLE_MARGIN = 40.0
+
+        self.TIMEOUT = 11
+
+    def get_association_distance(self, x, y):
+
+        # ============================================
+        # Très mauvaise zone :
+        # bas de table + côtés
+        # ============================================
+
+        if y < 600 and (x < 500 or x > 2500):
+            return 187.0
+
+        # ============================================
+        # Zone bruitée proche du bord bas
+        # sauf les côtés déjà traités au-dessus
+        # ============================================
+
+        if y < 300:
+            return 138.0
+
+        # ============================================
+        # Zone centrale stable
+        # ============================================
+
+        if (
+            600 < x < 2400
+            and
+            600 < y < 2000
+        ):
+            return 50.0
+
+        # ============================================
+        # Zone intermédiaire
+        # ============================================
+
+        return 110.0
+        
+    def is_inside_table(self, x, y):
+
+        return (
+            -self.TABLE_MARGIN <= x <= self.TABLE_X + self.TABLE_MARGIN
+            and
+            -self.TABLE_MARGIN <= y <= self.TABLE_Y + self.TABLE_MARGIN
+        )
 
     # ========================================================
     # Main update
@@ -160,9 +209,17 @@ class ArucoFilter:
         # ========================================================
 
         for detection, aruco_id in zip(pos, ids_to_send):
+            if not self.is_inside_table(
+                detection.x,
+                detection.y
+            ):
+                continue
 
             best_track = None
-            best_distance = self.MAX_ASSOCIATION_DISTANCE
+            best_distance = best_distance = self.get_association_distance(
+                detection.x,
+                detection.y
+            )
 
             for track in self.tracks:
 
@@ -242,7 +299,14 @@ class ArucoFilter:
                     detection.y
                 )
 
-                if d < self.MAX_ASSOCIATION_DISTANCE * 0.5:
+                duplicate_distance = (
+                    self.get_association_distance(
+                        detection.x,
+                        detection.y
+                    ) * 0.5
+                )
+
+                if d < duplicate_distance:
 
                     duplicate = True
                     break
