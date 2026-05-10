@@ -92,7 +92,10 @@ class Recuperer(Action):
                 for wpt in POINT_RAMASSAGE.keys():
                     if POINT_RAMASSAGE[wpt].ramasse>0:
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
-                        val = POINT_RAMASSAGE[wpt].ramasse * (6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX)) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                        try :
+                            val = POINT_RAMASSAGE[wpt].ramasse * (6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX)) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                        except KeyError :
+                            val = - 10
                     else :
                         val = 0
                     if max_reward < val:
@@ -160,7 +163,10 @@ class Deposer(Action):
                 for wpt in POINT_DEPOT.keys():
                     if len(POINT_DEPOT[wpt].contient)<2:
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
-                        val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax) # AAAAAAAAAA
+                        try :
+                            val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
+                        except KeyError :
+                            val = - 10
                     else :
                         val = 0
                     if max_reward < val:
@@ -259,7 +265,10 @@ class Retourner(Action):
             for wpt in POINT_DEPOT.keys():
                 if len(POINT_DEPOT[wpt].contient)<2:
                     # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
-                    val = 6  - 3 * (robot.distance_from(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                    try :
+                        val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) #- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                    except KeyError :
+                        val = - 10
                 else :
                     val = 0
                 if max_reward < val:
@@ -404,44 +413,6 @@ class Match(Action):
 
 
 
-
-#######################################################################################################################################################################################  2025
-
-
-##########################
-###  Action Banderole  ###
-##########################
-
-# class BanderoleAction(Action):
-#     name = "Banderole"
-
-#     @staticmethod
-#     def create_bt(robot: Robot, world: World) -> Behaviour:
-#         poserBanderolle = py_trees.composites.Sequence("Poser la banderolle", True)
-#         poserBanderolle.add_children([
-#             # GoTo zone banderole
-#             WaitSeconds(0.5),
-#             Bouge(Speed.from_dir(-120,100), 2),
-#             LiftBanderole(False),
-#             Bouge(Speed.from_dir(-120,-100), 3),
-#             DeployMacon(),
-#         ])
-#         return poserBanderolle
-    
-#     @staticmethod
-#     def reward(robot: Robot, world: World) -> float:
-#         if world.thermo_positioned:
-#             return 0
-#         else:
-#             return 20
-    
-#     @staticmethod
-#     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
-#         if status == py_trees.common.Status.SUCCESS:
-#             world.thermo_positioned = True
-#             robot.updateScore(20)
-
-
 ##########################
 ###     Action End     ###
 ##########################
@@ -540,6 +511,7 @@ class GoHomeAction(Action):
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
+            print(world.time_left())
             world.backInZone = True
             robot.updateScore(10)
 
@@ -662,3 +634,41 @@ class GoHomeAction(Action):
 #             gradin = INTEREST[robot.color][robot.strat][0][0]
 #             world.Gradin[gradin] = True
 #             robot.updateScore(12)
+
+
+
+#######################################################################################################################################################################################  2025
+
+
+##########################
+###  Action Banderole  ###
+##########################
+
+# class BanderoleAction(Action):
+#     name = "Banderole"
+
+#     @staticmethod
+#     def create_bt(robot: Robot, world: World) -> Behaviour:
+#         poserBanderolle = py_trees.composites.Sequence("Poser la banderolle", True)
+#         poserBanderolle.add_children([
+#             # GoTo zone banderole
+#             WaitSeconds(0.5),
+#             Bouge(Speed.from_dir(-120,100), 2),
+#             LiftBanderole(False),
+#             Bouge(Speed.from_dir(-120,-100), 3),
+#             DeployMacon(),
+#         ])
+#         return poserBanderolle
+    
+#     @staticmethod
+#     def reward(robot: Robot, world: World) -> float:
+#         if world.thermo_positioned:
+#             return 0
+#         else:
+#             return 20
+    
+#     @staticmethod
+#     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+#         if status == py_trees.common.Status.SUCCESS:
+#             world.thermo_positioned = True
+#             robot.updateScore(20)

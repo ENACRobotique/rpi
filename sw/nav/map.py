@@ -42,6 +42,7 @@ class Graph(object):
         self.adj = {}
         self.coords = {}
         self.weights = {}
+        self.adj_removed = {}
 
     def __repr__(self):
         """Representation en chaine de caracteres d'un graphe"""
@@ -53,9 +54,94 @@ class Graph(object):
         self.coords[u] = [x,y]
 
     def add_edge(self, u, v):
-        """Ajoute l'arete (u, v) au graphe"""
-        self.adj.setdefault(u, []).append(v)
-        self.adj.setdefault(v, []).append(u)
+        """Ajoute l'arete (u, v) au graphe si elle n'est pas présente"""
+        if not (v in self.adj.get(u, [])):
+            self.adj.setdefault(u, []).append(v)
+        if not (u in self.adj.get(v, [])):
+            self.adj.setdefault(v, []).append(u)
+
+    def re_add_edge(self, u, v):
+        """Ajoute l'arete (u, v) au graphe uniquement si elle était dans les arretes supprimées"""
+        if v in self.adj_removed.get(u, []):
+            self.adj.setdefault(u, []).append(v)
+            self.adj_removed[u].remove(v)
+        if u in self.adj_removed.get(v, []):
+            self.adj.setdefault(v, []).append(u)
+            self.adj_removed[v].remove(u)
+
+
+    def remove_edge(self, u, v):
+        """Retire l'arete (u, v) au graphe si elle est présente"""
+        if v in self.adj.get(u, []):
+            self.adj[u].remove(v)
+            self.adj_removed.setdefault(u, []).append(v)
+        if u in self.adj.get(v, []):
+            self.adj[v].remove(u)
+            self.adj_removed.setdefault(v, []).append(u)
+
+
+    def arrete_proche_point(self, u, v, x0, y0, seuil, proche = True):
+        """ renvoie si l'arrete u,v est trop proche ou trop loin de x0,y0 
+            + proche = 
+                + True -> trop proche (< seuil)
+                + False -> loin (>= seuil)"""
+
+        xu, yu = self.coords[u]
+        xv, yv = self.coords[v]
+
+        uvx = xv - xu
+        uvy = yv - yu
+
+        acx = x0 - xu
+        acy = y0 - yu
+
+        uv2 = uvx * uvx + uvy * uvy
+
+        # segment réduit à un point
+        if uv2 == 0:
+            return False
+
+        t = (acx * uvx + acy * uvy) / uv2
+
+        # entre 0 et 1
+        t = max(0, min(1, t))
+
+        px = xu + t * uvx
+        py = yu + t * uvy
+
+        if proche:
+            return (x0 - px)**2 + (y0 - py)**2 < seuil**2
+        else :
+            return (x0 - px)**2 + (y0 - py)**2 >= seuil**2
+                
+
+    def calc_arretes_proche_point(self, arrete_list, x0, y0, seuil, proche = True):
+        """ Renvoie les arretes proche ou loin du point (x0, y0)
+            + proche = 
+                + True -> trop proche (< seuil)
+                + False -> loin (>= seuil)"""        
+        res = []
+        for u in arrete_list:
+            for v in arrete_list[u]:
+                #evite de traiter 2 fois la meme arrete
+                if u > v:
+                    continue
+
+                if self.arrete_proche_point(u,v,x0,y0, seuil, proche):
+                    res.extend([(u, v)])
+        return res
+
+              
+    def update_edge_pos(self, x0, y0, seuil):
+            arrete_adj_trop_proche_point = self.calc_arretes_proche_point(self.adj, x0, y0, seuil, True)
+            arrete_removed_trop_loin_point = self.calc_arretes_proche_point(self.adj_removed, x0, y0, seuil, False)
+            for u,v in arrete_adj_trop_proche_point:
+                self.remove_edge(u, v)
+            for u,v in arrete_removed_trop_loin_point:
+                self.re_add_edge(u,v)
+            
+
+
 
     def size(self):
         """Renvoie le nombre de noeuds du graphe"""
