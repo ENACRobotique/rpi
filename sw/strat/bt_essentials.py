@@ -34,12 +34,12 @@ START_POS = {
 }
 END_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NidJ',np.pi/2),
-        Strat.Audacieuse: ('NidJ',np.pi/2)
+        Strat.Basique: ('EntreeJ',-np.pi/2),
+        Strat.Audacieuse: ('EntreeJ',-np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NidB',np.pi/2),
-        Strat.Audacieuse: ('NidB',np.pi/2)
+        Strat.Basique: ('EntreeB',-np.pi/2),
+        Strat.Audacieuse: ('EntreeB',-np.pi/2)
     },
     Team.AUCUNE: {   
         Strat.Basique: ('FrigoMidS',0),
@@ -186,11 +186,14 @@ class EndStrat(py_trees.behaviour.Behaviour):
     def __init__(self):
         super().__init__(name=f"Force strat to end")
         self.bb, self.robot, self.world = get_bb_robot(self)
+        self.stopped = False
     
     def initialise(self):
         self.robot.set_speed(Speed(0, 0, 0))
-        self.robot.stop()
-        print("Strat terminée !")
+        if not self.stopped:
+            self.robot.stop()
+            self.stopped = True
+            print("Strat terminée !")
 
     def update(self): 
         # play tune ?

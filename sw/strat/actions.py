@@ -179,6 +179,8 @@ class RecupererGauche(Action):
             POINT_RAMASSAGE["NoixBWS"].ramasse = 0
         POINT_RAMASSAGE[RecupererGauche.nav_point].ramasse = 0
 
+
+
 class DeposerDroite(Action):
     name = "DeposerDroite"
     nav_point = "NAN"
@@ -212,7 +214,9 @@ class DeposerDroite(Action):
                     if len(POINT_DEPOT[wpt].contient)<2:
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                         try :
-                            val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta)/np.pi)#- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
+                            val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta)/np.pi) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
+                            if world.time_left() < 25:
+                                val += 1
                         except KeyError :
                             val = - 10
                     else :
@@ -296,6 +300,8 @@ class DeposerGauche(Action):
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                         try :
                             val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta + np.pi)/np.pi) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
+                            if world.time_left() < 25:
+                                val += 1
                         except KeyError :
                             val = - 10
                     else :
@@ -345,7 +351,7 @@ class DeposerGauche(Action):
                 robot.updateScore(6)
 
 class RetournerDroite(Action):
-    name = "Retourner"
+    name = "RetournerDroite"
     nav_point = "NAN"
 
     @staticmethod
@@ -355,7 +361,7 @@ class RetournerDroite(Action):
     
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        recup = py_trees.composites.Sequence("Retourner", True)
+        recup = py_trees.composites.Sequence("RetournerDroite", True)
 
         notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
         pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.BLEU # La color opposee
@@ -379,6 +385,8 @@ class RetournerDroite(Action):
                     # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                     try :
                         val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta)/np.pi)#- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                        if world.time_left() < 25:
+                                val += 1
                     except KeyError :
                         val = - 10
                 else :
@@ -424,7 +432,7 @@ class RetournerDroite(Action):
                 robot.updateScore(6)
 
 class RetournerGauche(Action):
-    name = "Retourner"
+    name = "RetournerGauche"
     nav_point = "NAN"
 
     @staticmethod
@@ -434,7 +442,7 @@ class RetournerGauche(Action):
     
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        recup = py_trees.composites.Sequence("Retourner", True)
+        recup = py_trees.composites.Sequence("RetournerGauche", True)
 
         notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
         pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.BLEU # La color opposee
@@ -458,6 +466,8 @@ class RetournerGauche(Action):
                     # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                     try :
                         val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta + np.pi)/np.pi)#- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
+                        if world.time_left() < 25:
+                            val += 1
                     except KeyError :
                         val = - 10
                 else :
@@ -477,29 +487,29 @@ class RetournerGauche(Action):
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         if status == py_trees.common.Status.SUCCESS:
                 notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
-                if RetournerDroite.nav_point == "FrigoJES":
+                if RetournerGauche.nav_point == "FrigoJES":
                     POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
                     POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
-                if RetournerDroite.nav_point == "FrigoJEN":
+                if RetournerGauche.nav_point == "FrigoJEN":
                     POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
                     POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
                         
-                if RetournerDroite.nav_point == "FrigoBWS":
+                if RetournerGauche.nav_point == "FrigoBWS":
                     POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
                     POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
-                if RetournerDroite.nav_point == "FrigoBWN":
+                if RetournerGauche.nav_point == "FrigoBWN":
                     POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
                     POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
 
-                if RetournerDroite.nav_point == "FrigoMidNS":
+                if RetournerGauche.nav_point == "FrigoMidNS":
                     POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
                     POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
-                if RetournerDroite.nav_point == "FrigoMidNN":
+                if RetournerGauche.nav_point == "FrigoMidNN":
                     POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
                     POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
 
-                POINT_DEPOT[RetournerDroite.nav_point].contient.append(notre_couleur)
-                POINT_DEPOT[RetournerDroite.nav_point].contient.append(notre_couleur)
+                POINT_DEPOT[RetournerGauche.nav_point].contient.append(notre_couleur)
+                POINT_DEPOT[RetournerGauche.nav_point].contient.append(notre_couleur)
                 robot.updateScore(6)
 
 #########################################
@@ -524,9 +534,10 @@ class Match(Action):
 
             Navigate(lambda _: CAISSE0_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(CAISSE0_POS[robot.color][robot.strat])),
             Aligner(coteThermo),
-            Attraper(coteThermo,notre_couleur),
+            Attraper(coteThermo),
             Navigate(lambda _: DEPOT0_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT0_POS[robot.color][robot.strat])),
             Relacher((coteThermo, notre_couleur)),
+            Revolutionner((coteThermo, pas_notre_couleur)),
 
             #Thermo Action
             Navigate(lambda _: CAISSETHERMO_POS[robot.color][robot.strat]),#MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
@@ -544,7 +555,7 @@ class Match(Action):
             Revolutionner((coteThermo,pas_notre_couleur)),
 
             #### Recup CAISSE 1
-            Move(0,np.pi),
+            # Move(0,np.pi),
             Navigate(lambda _: CAISSE1_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(CAISSE1_POS[robot.color][robot.strat])),
             Aligner(not coteThermo),
             Attraper(not coteThermo),
@@ -566,19 +577,15 @@ class Match(Action):
             Navigate(lambda _: DEPOT4_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT4_POS[robot.color][robot.strat])),
             Relacher((coteThermo, notre_couleur)),
 
-            ##
-            Navigate(lambda _: DEPOT0_POS[robot.color][robot.strat]), #MoveTo(robot.dest_to_pos(DEPOT0_POS[robot.color][robot.strat])),
-            Revolutionner((coteThermo, pas_notre_couleur)),
+            # Move(-200,np.pi),
 
-            Move(-200,np.pi),
+            # MoveBrasD(PosTentacle.BAS) if coteThermo == False else MoveBrasG(PosTentacle.BAS),
 
-            MoveBrasD(PosTentacle.BAS) if coteThermo == False else MoveBrasG(PosTentacle.BAS),
+            # Move(-800,0),
 
-            Move(-800,0),
+            # Relacher((not coteThermo, Caisse.TOUT)),
 
-            Relacher((not coteThermo, Caisse.TOUT)),
-
-            WaitUntil(94,world.matchStartTime)
+            # WaitUntil(94,world.matchStartTime)
             
         ])
         return match
@@ -594,6 +601,7 @@ class Match(Action):
     @staticmethod
     def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
         print("World time left : ",world.time_left())
+        world.thermo_positioned = True
         world.main_match_action_done = True
         return
 
@@ -669,9 +677,11 @@ class GoHomeAction(Action):
         terminate = py_trees.composites.Sequence("Go to the Nest", True)
         terminate.add_children([
             Navigate(nana),
-            WaitUntil(94,world.matchStartTime),
+            WaitUntil(92,world.matchStartTime),
+            Move(-200,0),
             Relacher((False,Caisse.TOUT)),
-            Relacher((True,Caisse.TOUT))
+            Relacher((True,Caisse.TOUT)),
+            WaitUntil(99,world.matchStartTime)
         ])
         return terminate
     
