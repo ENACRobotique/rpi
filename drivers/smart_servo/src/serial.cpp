@@ -9,7 +9,7 @@
 #include <linux/serial.h>
 #include <asm/termbits.h>
 
-#define RPI 0
+#define RPI 1
 #define ECHO_BUFFER_SIZE 100
 #if RPI
 #include <gpiod.h>

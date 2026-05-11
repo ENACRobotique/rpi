@@ -7,3 +7,5 @@ pygame
 pyserial
 numpy
 PyQt6
+gpiod
+

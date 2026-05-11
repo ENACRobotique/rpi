@@ -565,7 +565,7 @@ class ArucoFinder:
                     #     })
                 
             self.arucoFound = Arucos(arucos=arucos, cameraName=self.name)
-            self.aruco_pub.send(self.arucoFound)
+            #self.aruco_pub.send(self.arucoFound)
 
             self.tracker.update(pos, ids_to_send)
 
@@ -603,10 +603,10 @@ class ArucoFinder:
                 msg_octet = msg.SerializeToString()
 
                 # print(
-                #     f"Packet {i // MAX_ARUCOS_PER_PACKET} | "
-                #     f"tags={len(batch_ids)} | "
-                #     f"size={len(msg_octet)} bytes"
-                # )
+                #      f"Packet {i // MAX_ARUCOS_PER_PACKET} | "
+                #      f"tags={len(batch_ids)} | "
+                #      f"size={len(msg_octet)} bytes"
+                #  )
 
                 # Sécurité taille XBee
                 if len(msg_octet) > 99:

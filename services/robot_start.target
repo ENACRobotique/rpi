@@ -15,6 +15,7 @@ Wants=robot_joystick.service
 Wants=robot_ui.service
 Wants=robot_tirette.service
 Wants=robot_ekf.service
+Wants=robot_UCD.service
  
 [Install]
 WantedBy=default.target
