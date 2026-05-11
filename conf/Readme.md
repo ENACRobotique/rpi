@@ -4,7 +4,20 @@ Instructions for setting up a RaspberryPi for the robot.
 
 To begin, use the rpi imager to flash an SD card with Ubuntu 24.04 server.
 
-First, upgrade all packages, then reboot:
+## Upgrade packages
+
+Add `noble-updates` `noble-backports` suites to the ubuntu package sources:
+
+Edit `/etc/apt/sources.list.d/ubuntu.sources`, and replace this line:
+
+`Suites: noble`
+
+by:
+
+`Suites: noble noble-updates noble-backports`
+
+
+Upgrade all packages, then reboot:
 
 ```
 sudo apt update
