@@ -32,14 +32,31 @@ START_POS = {
     }
 
 }
-END_POS = {
+
+WAIT_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('EntreeJ',-np.pi/2),
-        Strat.Audacieuse: ('EntreeJ',-np.pi/2)
+        Strat.Basique: ('NoixJN',-np.pi/2),
+        Strat.Audacieuse: ('NoixJN',-np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('EntreeB',-np.pi/2),
-        Strat.Audacieuse: ('EntreeB',-np.pi/2)
+        Strat.Basique: ('NoixBN',-np.pi/2),
+        Strat.Audacieuse: ('NoixBN',-np.pi/2)
+    },
+    Team.AUCUNE: {   
+        Strat.Basique: ('FrigoMidS',0),
+        Strat.Audacieuse: ('FrigoMidS',0),
+        Strat.Homologation: ('FrigoMidS',0)
+    }
+}
+
+END_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('CentreNidJ',-np.pi/2),
+        Strat.Audacieuse: ('CentreNidJ',-np.pi/2)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('CentreNidB',-np.pi/2),
+        Strat.Audacieuse: ('CentreNidB',-np.pi/2)
     },
     Team.AUCUNE: {   
         Strat.Basique: ('FrigoMidS',0),
@@ -66,7 +83,7 @@ CAISSETHERMO_POS = {
     },
     Team.BLEU: {
         Strat.Basique: ('NoixBSE',np.pi/2),
-        Strat.Audacieuse: ('NoixJSW',np.pi/2)
+        Strat.Audacieuse: ('NoixBSE',np.pi/2)
     }
 }
 
@@ -358,6 +375,7 @@ class MoveTo(py_trees.behaviour.Behaviour):
             self.dernier_consigne_pos = self.position_target
         else :
              self.dernier_consigne_pos = self.position_target(self.robot)
+        print(f"[MoveTo] Going to {self.position_target}")
         self.robot.setTargetPos(self.dernier_consigne_pos)
 
     def update(self):

@@ -218,11 +218,11 @@ class Robot:
 
     def updateScore(self,points):
         # TODO
-        self.score += points
-        msg = robot_pb.Score()
+        # self.score += points
+        # msg = robot_pb.Score()
         self.logger.info(f"Score : {self.score}")
-        msg.score = self.score
-        self.score_pub.send(msg)
+        # msg.score = self.score
+        # self.score_pub.send(msg)
 
  
     # def set_strat(self, strat):
@@ -578,8 +578,8 @@ class Robot:
                 for j in range(i+1,nb_ar):
                     d =  np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0])* np.sin(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.cos(theta))**2) #np.sqrt(((arucosPosRobot[i].pos[0] - arucosPosRobot[j].pos[0]) * np.cos(mean_theta))**2 + ((arucosPosRobot[i].pos[1] - arucosPosRobot[j].pos[1]) * np.sin(mean_theta))**2)
                     eps = 15
-                    #si la distance x = 50 * k +/_ eps et x<200 
-                    if d < 200 + eps and (d%50 < eps or d%50 > 50 - eps):
+                    #si la distance x = 50 * k +/_ eps et x<150 
+                    if d < 150 + eps and (d%50 < eps or d%50 > 50 - eps):
                         aligned.append(arucosPosRobot[j]) 
                 #si on peut prendre plus de palet qu'avant
                 if len(aligned) > len(best_align):
@@ -606,7 +606,7 @@ class Robot:
             p0 = droite[0]
             for i, p in enumerate(droite[1:], start=1):
                 d = np.sqrt(((p[0] - p0[0])* np.sin(mean_theta))**2 + ((p[1] - p0[1]) * np.cos(theta))**2)
-                for k in range(5):
+                for k in range(1,4):
                     if abs(d - 50 * k) < eps:
                         ind_pos.append((p, k))
                         break

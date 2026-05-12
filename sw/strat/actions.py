@@ -8,7 +8,7 @@ sys.path.append("../..")
 from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
 from world import POINT_DEPOT, POINT_RAMASSAGE, World
-from bt_essentials import CAISSE0_POS, DEPOT0_POS, MatchTimer, Navigate, WaitMatchStart, WaitUntil
+from bt_essentials import CAISSE0_POS, DEPOT0_POS, WAIT_POS, MatchTimer, Navigate, WaitMatchStart, WaitUntil
 from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, MoveSpeed, START_POS, CAISSETHERMO_POS, DEPOT1_POS, CAISSE1_POS,DEPOT2_POS, DEPOT3_POS, DEPOT4_POS, CAISSE2_POS
 from typing import Callable
 from dataclasses import dataclass
@@ -217,7 +217,7 @@ class DeposerDroite(Action):
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                         try :
                             val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta)/np.pi) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
-                            if world.time_left() < 25:
+                            if world.time_left() < 40:
                                 val += 1
                         except KeyError :
                             val = - 10
@@ -302,7 +302,7 @@ class DeposerGauche(Action):
                         # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                         try :
                             val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta + np.pi)/np.pi) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
-                            if world.time_left() < 25:
+                            if world.time_left() < 40:
                                 val += 1
                         except KeyError :
                             val = - 10
@@ -366,7 +366,7 @@ class RetournerDroite(Action):
         recup = py_trees.composites.Sequence("RetournerDroite", True)
 
         notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
-        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.BLEU # La color opposee
+        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.JAUNE # La color opposee
 
 
         print(f"=========== Retourner: cote Droit {pas_notre_couleur} =============")
@@ -387,7 +387,7 @@ class RetournerDroite(Action):
                     # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                     try :
                         val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta)/np.pi)#- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
-                        if world.time_left() < 25:
+                        if world.time_left() < 40:
                                 val += 1
                     except KeyError :
                         val = - 10
@@ -447,7 +447,7 @@ class RetournerGauche(Action):
         recup = py_trees.composites.Sequence("RetournerGauche", True)
 
         notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
-        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.BLEU # La color opposee
+        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.JAUNE# La color opposee
 
 
         print(f"=========== Retourner: cote Gauche {pas_notre_couleur} =============")
@@ -468,7 +468,7 @@ class RetournerGauche(Action):
                     # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
                     try :
                         val = 6  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta + np.pi)/np.pi)#- SEUIL_AGRESSIVITE * (distance robot adverse/ distanceMax)
-                        if world.time_left() < 25:
+                        if world.time_left() < 40:
                             val += 1
                     except KeyError :
                         val = - 10
@@ -673,17 +673,18 @@ class GoHomeAction(Action):
 
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        nav_pt = END_POS[robot.color][robot.strat]
-        def nana(_):
+        nav_pt = WAIT_POS[robot.color][robot.strat]
+        def to_wait_pos(_):
             return nav_pt
+        final_nav = END_POS[robot.color][robot.strat]
         terminate = py_trees.composites.Sequence("Go to the Nest", True)
         terminate.add_children([
-            Navigate(nana),
+            Navigate(to_wait_pos),
             WaitUntil(92,world.matchStartTime),
-            Move(-200,0),
+            MoveTo(robot.dest_to_pos(final_nav)),
             Relacher((False,Caisse.TOUT)),
             Relacher((True,Caisse.TOUT)),
-            WaitUntil(99,world.matchStartTime)
+            WaitUntil(100,world.matchStartTime)
         ])
         return terminate
     
@@ -693,7 +694,7 @@ class GoHomeAction(Action):
             # match not started or already back home
             return 0
         
-        _nav_pt = END_POS[robot.color][robot.strat]
+        _nav_pt = WAIT_POS[robot.color][robot.strat]
         estimated_time = robot.pos.distance(robot.dest_to_pos(_nav_pt)) / Velocity.NORMAL.value.xy_norm() + 5
         if (world.time_left()-15) < estimated_time:
             # rush to home, high reward
