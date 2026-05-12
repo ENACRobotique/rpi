@@ -662,14 +662,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabStatus = TabStatus(self.robot,self.signal_emitter)
         self.tabService = TabServices(self.robot,self.signal_emitter)
         self.tabActionneurs = TabActionneurs(self.robot,self.signal_emitter)
-        self.tabRadar = TabRadar()
-        self.tabCameras = TabCameras()
+        #self.tabRadar = TabRadar()
+        #self.tabCameras = TabCameras()
 
         self.tabs.addTab(self.tabStatus, "Status")
         self.tabs.addTab(self.tabService, "Services")
         self.tabs.addTab(self.tabActionneurs, "Actionneurs")
-        self.tabs.addTab(self.tabRadar, "Radar")
-        self.tabs.addTab(self.tabCameras, "Cameras")
+        #self.tabs.addTab(self.tabRadar, "Radar")
+        #self.tabs.addTab(self.tabCameras, "Cameras")
 
         layout.addWidget(self.tabs)
 
