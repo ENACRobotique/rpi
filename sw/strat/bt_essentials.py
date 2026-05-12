@@ -262,10 +262,12 @@ class Navigate(py_trees.behaviour.Behaviour):
                 self.robot.pathFinder(self.dest, self.orientation)
                 self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
             except KeyError :
+                print("j'ai pas trouvé de chemin")
                 self.echec = True
 
     def update(self):
         if self.echec :
+            self.robot.folowingPath = False
             return py_trees.common.Status.FAILURE
         if self.robot.obstacle_in_way(self.robot.nav_pos[self.nav_id]):
             if not self.avoiding:
@@ -276,6 +278,7 @@ class Navigate(py_trees.behaviour.Behaviour):
             else :
                 if time.time() - self.time_avoiding > MAX_TIME_AVOIDING:
                     print("Je suis bloqué depuis longtemps dans le navigate, j'échoue")
+                    self.robot.folowingPath = False
                     return py_trees.common.Status.FAILURE
         else:   # pas d'obstacle
             if self.avoiding:
