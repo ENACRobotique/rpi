@@ -29,8 +29,8 @@ POINT_RAMASSAGE = {"NoixJN": RamassagePoint("NoixJN",-np.pi/2,Pos(175,1200,0)),
                      "NoixJES": RamassagePoint("NoixJES",np.pi,Pos(1150,800,0)),
                      "NoixJSE": RamassagePoint("NoixJSE",0,Pos(1100,175,0)),
                      "NoixJEN": RamassagePoint("NoixJEN",0,Pos(1150,800,0)),
-                     "NoixBN": RamassagePoint("NoixBN",-np.pi/2,Pos(3000-175,1200,0)),
-                     "NoixBSE": RamassagePoint("NoixBSE",-np.pi/2,Pos(3000-175,400,0)),
+                     "NoixBN": RamassagePoint("NoixBN",np.pi/2,Pos(3000-175,1200,0)),
+                     "NoixBSE": RamassagePoint("NoixBSE",np.pi/2,Pos(3000-175,400,0)),
                      "NoixBWS": RamassagePoint("NoixBWS",np.pi,Pos(3000-1150,800,0)),
                      "NoixBSW": RamassagePoint("NoixBSW",0,Pos(3000-1100,175,0)),
                      "NoixBWN": RamassagePoint("NoixBWN",0,Pos(3000-1150,800,0))}
@@ -44,12 +44,12 @@ POINT_DEPOT = {"FrigoJN": DepotPoint("FrigoJN",0,Pos(1250,1450,0)),
                            "FrigoMidNS": DepotPoint("FrigoMidNS",np.pi,Pos(1500,1000,0)),
                            "FrigoMidS": DepotPoint("FrigoMidS",0,Pos(1500,100,0)),
                            "FrigoBN":DepotPoint("FrigoBN",0,Pos(3000-1250,1450,0)),
-                           "FrigoBE":DepotPoint("FrigoBE",-np.pi/2,Pos(3000-100,800,0)),
+                           "FrigoBE":DepotPoint("FrigoBE",np.pi/2,Pos(3000-100,800,0)),
                            "FrigoBS":DepotPoint("FrigoBS",0,Pos(3000-700,100,0)),
                            "FrigoBWS":DepotPoint("FrigoBWS",np.pi,Pos(3000-800,800,0)),
-                           "FrigoBWN":DepotPoint("FrigoBWN",0,Pos(3000-800,800,0)),
-                           "NidJ":DepotPoint("NidJ",-np.pi/2,Pos(300,1750,0)),
-                           "NidB":DepotPoint("NidB",-np.pi/2,Pos(3000-300,1750,0))}
+                           "FrigoBWN":DepotPoint("FrigoBWN",0,Pos(3000-800,800,0))}
+                        #    "NidJ":DepotPoint("NidJ",-np.pi/2,Pos(300,1750,0)),
+                        #    "NidB":DepotPoint("NidB",-np.pi/2,Pos(3000-300,1750,0))}
 
 class World:
     def __init__(self, robot: Robot) -> None:
