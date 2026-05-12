@@ -8,7 +8,6 @@ import common as cm
 from world import World
 from math import radians
 from collections.abc import Callable
-import subprocess
 
 MAX_TIME_AVOIDING = 7
 
@@ -36,12 +35,12 @@ START_POS = {
 
 WAIT_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('FrigoJW',-np.pi/2),
-        Strat.Audacieuse: ('FrigoJW',-np.pi/2)
+        Strat.Basique: ('NoixJN',-np.pi/2),
+        Strat.Audacieuse: ('NoixJN',-np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('FrigoBE',-np.pi/2),
-        Strat.Audacieuse: ('FrigoBE',-np.pi/2)
+        Strat.Basique: ('NoixBN',-np.pi/2),
+        Strat.Audacieuse: ('NoixBN',-np.pi/2)
     },
     Team.AUCUNE: {   
         Strat.Basique: ('FrigoMidS',0),
@@ -213,8 +212,6 @@ class EndStrat(py_trees.behaviour.Behaviour):
             self.robot.stop()
             self.stopped = True
             print("Strat terminée !")
-        if self.robot.ecal_rec is not None:
-            self.robot.ecal_rec.terminate()
 
     def update(self): 
         # play tune ?
@@ -262,7 +259,6 @@ class Navigate(py_trees.behaviour.Behaviour):
         print("Navigation go !")
         if not self.robot.folowingPath:
             try :
-                print("dest pos, orientation visé : ", self.dest, self.orientation)
                 self.robot.pathFinder(self.dest, self.orientation)
                 self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
             except KeyError :
@@ -272,6 +268,10 @@ class Navigate(py_trees.behaviour.Behaviour):
     def update(self):
         if self.echec :
             self.robot.folowingPath = False
+            print("noeuds : pos",self.robot.nav.graph.coords)
+            print("noeuds : voisin",self.robot.nav.graph.adj)
+            print("noeuds : supprimé", self.robot.nav.graph.node_removed)
+            print("arrette retirée :", self.robot.nav.graph.adj_removed)
             return py_trees.common.Status.FAILURE
         if self.robot.obstacle_in_way(self.robot.nav_pos[self.nav_id]):
             if not self.avoiding:
@@ -420,7 +420,6 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
         self.last_time = time.time()
     
     def initialise(self):
-        self.robot.ecal_rec = subprocess.Popen(["ecal_rec", "-r", "--activate"])
         self.last_time = time.time()
 
     def update(self):
