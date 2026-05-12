@@ -36,12 +36,12 @@ START_POS = {
 
 WAIT_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NoixJN',-np.pi/2),
-        Strat.Audacieuse: ('NoixJN',-np.pi/2)
+        Strat.Basique: ('FrigoJW',-np.pi/2),
+        Strat.Audacieuse: ('FrigoJW',-np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NoixBN',-np.pi/2),
-        Strat.Audacieuse: ('NoixBN',-np.pi/2)
+        Strat.Basique: ('FrigoBE',-np.pi/2),
+        Strat.Audacieuse: ('FrigoBE',-np.pi/2)
     },
     Team.AUCUNE: {   
         Strat.Basique: ('FrigoMidS',0),
@@ -262,6 +262,7 @@ class Navigate(py_trees.behaviour.Behaviour):
         print("Navigation go !")
         if not self.robot.folowingPath:
             try :
+                print("dest pos, orientation visé : ", self.dest, self.orientation)
                 self.robot.pathFinder(self.dest, self.orientation)
                 self.robot.setTargetPos(self.robot.nav_pos[self.nav_id])
             except KeyError :

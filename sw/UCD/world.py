@@ -2,14 +2,20 @@
 import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..')) # Avoids ModuleNotFoundError when finding generated folder
+from UCD import aruco_UCD
 import ecal.nanobind_core as ecal_core
 from ecal.msg.proto.core import Subscriber as ProtoSubscriber
 from ecal.msg.proto.core import Publisher as ProtoPublisher
 from ecal.msg.common.core import ReceiveCallbackData
-from generated.robot_state_pb2 import Aruco, Arucos
+from generated.robot_state_pb2 import Aruco_UCD, Score
 import time
 from threading import Event
 
+class Aruco:
+    def __init__(self, id, x, y):
+        self.ArucoId = id
+        self.x = x
+        self.y = y
 
 
 class Zone:
@@ -87,7 +93,7 @@ class ZoneManager:
         return sum(zone["points"] for zone in analysis_results.values())
 
 
-class World:
+class WorldUCD:
     def __init__(self):
 
         if not ecal_core.is_initialized():
@@ -95,9 +101,10 @@ class World:
 
         self.arucos = []
 
-
-        self.arucosReportSub = ProtoSubscriber(Arucos, "Arucos_world")
+        self.arucosReportSub = ProtoSubscriber(Aruco_UCD, "aruco_ucd")
         self.arucosReportSub.set_receive_callback(self.onReceiveArucos)
+
+        self.score_pub = ProtoPublisher(Score, "score")
 
         #on prend en général 100 de marge sauf pour les N on prend que 50 (pour éviter de voir ceux de la scène)
         self.zone_rangement = ZoneManager({
@@ -133,9 +140,11 @@ class World:
         self.arucosReportSub.remove_receive_callback()
 
 
-    def onReceiveArucos (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[Arucos]):
+    def onReceiveArucos (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[Aruco_UCD]):
         """Callback d'un subscriber ecal. Actualise la position du robot"""
-        self.arucos  = [a for a in data.message.arucos if ((a.ArucoId == 36) or (a.ArucoId == 47))]
+        self.arucos = []
+        for (id,pos) in zip(data.message.ArucoId,data.message.pos):
+            self.arucos.append(Aruco(id,pos.x,pos.y))
 
     def run(self):
         while True:
@@ -153,6 +162,13 @@ class World:
 
                 for a in res["arucos"]:
                     print(f"  ID: {a.ArucoId} | x={a.x:.1f}, y={a.y:.1f}")
+            
+
+
+            msg = Score()
+            msg.score = total_points
+            self.score_pub.send(msg)
+
 
             print(f"\n=== TOTAL POINTS : {total_points} ===")
 
@@ -160,6 +176,6 @@ class World:
 
 
 if __name__ == "__main__":
-    with World() as af:
+    with WorldUCD() as af:
         af.run()#k
         time.sleep(2)

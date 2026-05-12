@@ -43,6 +43,7 @@ class Graph(object):
         self.coords = {}
         self.weights = {}
         self.adj_removed = {}
+        self.node_removed = {}
 
     def __repr__(self):
         """Representation en chaine de caracteres d'un graphe"""
@@ -52,6 +53,12 @@ class Graph(object):
         """Ajoute un noeud u au graphe"""
         self.adj[u] = []
         self.coords[u] = [x,y]
+
+    def remove_node(self, u):
+        self.node_removed.update({u,self.coords[u], self.adj[u]})
+        for v in self.adj[u]:
+            self.remove_edge(u,v)
+
 
     def add_edge(self, u, v):
         """Ajoute l'arete (u, v) au graphe si elle n'est pas présente"""
@@ -130,6 +137,23 @@ class Graph(object):
                 if self.arrete_proche_point(u,v,x0,y0, seuil, proche):
                     res.extend([(u, v)])
         return res
+
+    def node_proche_point(self, u, x0, y0, seuil, proche = True):
+        """ Renvoie si le noeud est proche ou loin du point (x0, y0)
+            + proche = 
+                + True -> trop proche (< seuil)
+                + False -> loin (>= seuil)"""        
+        x, y = self.coords[u]
+        if proche:
+            return (x - x0)**2 + (y - y0)**2 < seuil
+        else :
+            return (x - x0)**2 + (y - y0)**2 >= seuil
+
+    def calc_node_proche_point(self, node_list, x0, y0, seuil, proche = True):
+        for node in node_list:
+            if self.node_proche_point(node, x0, y0, seuil, proche):
+                pass
+
 
               
     def update_edge_pos(self, x0, y0, seuil):

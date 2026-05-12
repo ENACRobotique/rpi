@@ -8,7 +8,7 @@ from world import World
 from typing import Callable
 from dataclasses import dataclass
 
-DISTANCE_LIMITE_ARRETE_GRAPH = 300
+DISTANCE_LIMITE_ARRETE_GRAPH = 350
 
 class Action:
     name: str
