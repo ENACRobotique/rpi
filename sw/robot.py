@@ -710,7 +710,7 @@ class Robot:
         if coteDroit :
             self.actionneurs.moveD(act.PosTentacle.BAS)
             for (i,caisse) in enumerate(self.coteD) :
-                if caisse == couleur or couleur == Caisse.TOUT :
+                if caisse == couleur or (couleur == Caisse.TOUT and caisse != Caisse.RIEN) :
                     self.actionneurs.Grab(act.POMPES_DROITES[i],True)
                 else :
                     self.coteD[i] = Caisse.RIEN
@@ -720,7 +720,7 @@ class Robot:
         else :
             self.actionneurs.moveG(act.PosTentacle.BAS)
             for (i,caisse) in enumerate(self.coteG):
-                if caisse == couleur or couleur == Caisse.TOUT :
+                if caisse == couleur or (couleur == Caisse.TOUT and caisse != Caisse.RIEN) :
                     self.actionneurs.Grab(act.POMPES_GAUCHES[i],True)
                 else : 
                     self.coteG[i] = Caisse.RIEN
