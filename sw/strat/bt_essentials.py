@@ -175,12 +175,13 @@ class WaitSeconds(py_trees.behaviour.Behaviour):
     def __init__(self, delay:float|int):
         super().__init__(name=f"Waiting {delay} second")
         self.delay = delay
-        self.startingTime = -1
+        self.startingTime = 0
+    
+    def initialise(self) -> None:
+        print(f"Waiting {self.delay} seconds\n")
+        self.startingTime = time.time()
 
     def update(self):
-        if self.startingTime == -1:
-            print(f"Waiting {self.delay} second\n")
-            self.startingTime = time.time() # init timer
         if abs(time.time()-self.startingTime)>= self.delay :
             print("Finished waiting") 
             return py_trees.common.Status.SUCCESS
@@ -246,14 +247,14 @@ class Navigate(py_trees.behaviour.Behaviour):
         super().__init__(name=f"Navigating")
         self.bb, self.robot, self.world = get_bb_robot(self)  # ensure blackboard and robot are initialized
         self.nav_cb = nav_cb
-        self.nav_id = 0
-        self.avoiding = False
-        self.hasTurnedAtLast = False
-        self.echec = False
         # TODO ajouter un timeout pour l'évitement ?
 
     def initialise(self):
         self.dest, self.orientation = self.nav_cb(self.robot)
+        self.avoiding = False
+        self.hasTurnedAtLast = False
+        self.echec = False
+        self.nav_id = 0
         self.robot.resetPosOnEkf()
         print("Navigation go !")
         if not self.robot.folowingPath:
@@ -313,6 +314,7 @@ class Move(py_trees.behaviour.Behaviour):
         self.avoiding = False
 
     def initialise(self):
+        self.avoiding = False
         self.target = Pos(self.distance * np.cos(self.direction), self.distance * np.sin(self.direction), cm.normalize_angle(self.direction)).from_frame(self.robot.ekf_pos)
         print(f"move target: {self.target}")
         self.robot.move(self.distance, self.direction)
@@ -370,6 +372,8 @@ class MoveTo(py_trees.behaviour.Behaviour):
         self.avoiding = False
 
     def initialise(self):
+        self.dernier_consigne_pos = None
+        self.avoiding = False
         self.robot.resetPosOnEkf()
         if isinstance(self.position_target, Pos):
             self.dernier_consigne_pos = self.position_target
