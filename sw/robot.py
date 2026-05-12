@@ -23,6 +23,7 @@ from enum import Enum
 import numpy as np
 import sw.nav.nav as nav 
 
+import subprocess
 
 HEIGHT = 2000
 WIDTH = 3000
@@ -182,6 +183,7 @@ class Robot:
         self.nav.initialisation()
         self.folowingPath = False
         self.actionneurs.initActionneur()
+        self.ecal_rec = None # type: subprocess.Popen
 
     def __repr__(self) -> str:
         return "Robot Enac status storage structure"

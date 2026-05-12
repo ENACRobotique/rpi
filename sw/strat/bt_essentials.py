@@ -8,6 +8,7 @@ import common as cm
 from world import World
 from math import radians
 from collections.abc import Callable
+import subprocess
 
 MAX_TIME_AVOIDING = 7
 
@@ -212,6 +213,8 @@ class EndStrat(py_trees.behaviour.Behaviour):
             self.robot.stop()
             self.stopped = True
             print("Strat terminée !")
+        if self.robot.ecal_rec is not None:
+            self.robot.ecal_rec.terminate()
 
     def update(self): 
         # play tune ?
@@ -416,6 +419,7 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
         self.last_time = time.time()
     
     def initialise(self):
+        self.robot.ecal_rec = subprocess.Popen(["ecal_rec", "-r", "--activate"])
         self.last_time = time.time()
 
     def update(self):
