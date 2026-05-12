@@ -198,7 +198,6 @@ class Robot:
     def log(self, message:str):
         self.logger.info(message)
         self.logs_pub.send(message)
-        print(message)
 
         
 # ---------------------------- #
