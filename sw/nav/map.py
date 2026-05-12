@@ -54,10 +54,29 @@ class Graph(object):
         self.adj[u] = []
         self.coords[u] = [x,y]
 
+    def re_add_node(self, u):
+        """Ajoute le noeud u au graphe si il est dans les noeuds supprimés"""
+        if u in self.node_removed:
+            coords, voisins = self.node_removed[u]
+
+            self.coords[u] = coords
+            self.adj[u] = []
+
+            for v in voisins:
+                self.add_edge(u, v)
+
+            self.node_removed.pop(u)
+
     def remove_node(self, u):
-        self.node_removed.update({u,self.coords[u], self.adj[u]})
+        """Supprime le noeud u au graphe et le stock dans les noeuds supprimés"""
+        self.node_removed[u] = (self.coords[u], self.adj[u].copy() + self.adj_removed[u].copy())
         for v in self.adj[u]:
             self.remove_edge(u,v)
+        for v in self.adj_removed[u]:
+            self.remove_edge_from_removed_edge(u,v)
+        self.coords.pop(u)
+        self.adj.pop(u)
+        self.adj_removed.pop(u)
 
 
     def add_edge(self, u, v):
@@ -68,7 +87,7 @@ class Graph(object):
             self.adj.setdefault(v, []).append(u)
 
     def re_add_edge(self, u, v):
-        """Ajoute l'arete (u, v) au graphe uniquement si elle était dans les arretes supprimées"""
+        """Ajoute l'arete (u, v) au graphe uniquement si elle est dans les arretes supprimées"""
         if v in self.adj_removed.get(u, []):
             self.adj.setdefault(u, []).append(v)
             self.adj_removed[u].remove(v)
@@ -86,6 +105,12 @@ class Graph(object):
             self.adj[v].remove(u)
             self.adj_removed.setdefault(v, []).append(u)
 
+    def remove_edge_from_removed_edge(self, u, v):
+        if v in self.adj_removed.get(u, []):
+            self.adj_removed[u].remove(v)
+            self.adj_removed.setdefault(u, []).append(v)
+        if u in self.adj_removed.get(v, []):
+            self.adj_removed[v].remove(u)
 
     def arrete_proche_point(self, u, v, x0, y0, seuil, proche = True):
         """ renvoie si l'arrete u,v est trop proche ou trop loin de x0,y0 
@@ -150,19 +175,26 @@ class Graph(object):
             return (x - x0)**2 + (y - y0)**2 >= seuil
 
     def calc_node_proche_point(self, node_list, x0, y0, seuil, proche = True):
+        res = []
         for node in node_list:
             if self.node_proche_point(node, x0, y0, seuil, proche):
-                pass
-
-
+                res.append(node)
+        return res
               
     def update_edge_pos(self, x0, y0, seuil):
-            arrete_adj_trop_proche_point = self.calc_arretes_proche_point(self.adj, x0, y0, seuil, True)
             arrete_removed_trop_loin_point = self.calc_arretes_proche_point(self.adj_removed, x0, y0, seuil, False)
-            for u,v in arrete_adj_trop_proche_point:
-                self.remove_edge(u, v)
+            noeud_trop_loin_point = self.calc_node_proche_point(self.coords.keys(), x0, y0, seuil, False)
+            for u in noeud_trop_loin_point:
+                self.re_add_node(u)
             for u,v in arrete_removed_trop_loin_point:
                 self.re_add_edge(u,v)
+
+            arrete_adj_trop_proche_point = self.calc_arretes_proche_point(self.adj, x0, y0, seuil, True)
+            noeud_trop_proche_point = self.calc_node_proche_point(self.coords.keys(), x0, y0, seuil, True)
+            for u,v in arrete_adj_trop_proche_point:
+                self.remove_edge(u, v)
+            for u in noeud_trop_proche_point:
+                self.remove_node(u)
             
 
 
