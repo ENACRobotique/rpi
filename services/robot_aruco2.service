@@ -6,7 +6,7 @@ After=network.target network-online.target
 Type=simple
  
 WorkingDirectory=/home/robot/rpi/sw/camera/ArucoFinderCpp/build
-ExecStart=/home/robot/rpi/sw/camera/ArucoFinderCpp/build/arucoFinderCpp dipper -c /dev/cam_dipper -d -W 640 -H 480 --fourcc YUYV -f 15
+ExecStart=/home/robot/rpi/sw/camera/ArucoFinderCpp/build/arucoFinderCpp dipper -c /dev/cam_dipper -W 640 -H 480 --fourcc YUYV -f 15
 
 
  
