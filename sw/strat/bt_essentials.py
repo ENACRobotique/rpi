@@ -36,12 +36,12 @@ START_POS = {
 
 WAIT_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('NoixJN',-np.pi/2),
-        Strat.Audacieuse: ('NoixJN',-np.pi/2)
+        Strat.Basique: ('FrigoJW',-np.pi/2),
+        Strat.Audacieuse: ('FrigoJW',-np.pi/2)
     },
     Team.BLEU: {
-        Strat.Basique: ('NoixBN',-np.pi/2),
-        Strat.Audacieuse: ('NoixBN',-np.pi/2)
+        Strat.Basique: ('FrigoBE',-np.pi/2),
+        Strat.Audacieuse: ('FrigoBE',-np.pi/2)
     },
     Team.AUCUNE: {   
         Strat.Basique: ('FrigoMidS',0),
