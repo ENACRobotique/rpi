@@ -8,6 +8,8 @@ import sw.nav.map as map
 import sw.nav.dijkstra as dijkstra
 # import matplotlib.pyplot as plt
 from math import sqrt,pi, atan2,radians
+import copy
+
 
 class Nav(object):  
     def __init__(self):
@@ -17,6 +19,7 @@ class Nav(object):
         """
         self.entree : str
         self.sortie : str
+        self.graph_orig : map.Graph
         self.graph : map.Graph
         self.file = os.path.join(current_dir, "graph2026.txt")
         self.path : list
@@ -26,8 +29,9 @@ class Nav(object):
 
     def initialisation(self):
         """Initialise le graph et ses poids"""
-        self.graph = map.read_graph(self.file) 
-        self.graph.weight()
+        self.graph_orig = map.read_graph(self.file) 
+        self.graph_orig.weight()
+        self.graph = copy.deepcopy(self.graph_orig)
         ## On augmente les poids de la "croix" au milieu pour ne pas passer dans les plantes
         ## à changer si o sait qu'on a pris les plantes
         # self.graph.weights[('planteNW', 'mid')] += 10000
@@ -39,6 +43,10 @@ class Nav(object):
         # self.graph.weights[('navSE', 'mid')] += 10000
         # self.graph.weights[('mid', 'navSE')] += 10000
     
+    def update_graph(self, ennemie_pos, distance):
+        self.graph = copy.deepcopy(self.graph_orig)
+        self.graph.update_edge_pos(ennemie_pos.x, ennemie_pos.y, distance)
+
     def getCoords(self,waypoint):
         """Unité en milimètres !!!!"""
         x,y = self.graph.coords[waypoint]
