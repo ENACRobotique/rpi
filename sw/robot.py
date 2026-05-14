@@ -103,7 +103,7 @@ class Robot:
         
         self.color = Team.AUCUNE
         self.tirette = Tirette.OUT
-        self.strat = Strat.Basique
+        self.strat = Strat.Audacieuse
         self.score = 0
         self.obstacles = [] # obstacles in table frame
         self.ennemiePos = Pos(0,0,0)
@@ -335,16 +335,17 @@ class Robot:
         self.ekf_pos = Pos(ekf_pos.x,ekf_pos.y,ekf_pos.theta%(2*np.pi))
 
     def onStratChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Strat]):
+        self.strat = Strat.Audacieuse
         msg = data.message
         if msg is None:
             print("[Strat] None msg")
             return
-        if msg.strat == "Basique":
-            self.strat = Strat.Basique
-        elif msg.strat == "Adaptative":
-            self.strat = Strat.Audacieuse
-        else :
-            self.strat = Strat.Homologation
+        #if msg.strat == "Basique":
+        #    self.strat = Strat.Basique
+        #elif msg.strat == "Adaptative":
+        #    self.strat = Strat.Audacieuse
+        #else :
+        #    self.strat = Strat.Homologation
         
     def onColorChanged (self, pub_id: ecal_core.TopicId, data: ReceiveCallbackData[robot_pb.Side]):
         msg = data.message

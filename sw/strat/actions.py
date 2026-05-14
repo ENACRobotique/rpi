@@ -693,7 +693,7 @@ class GoHomeAction(Action):
         if not world.match_started() or world.backInZone:
             # match not started or already back home
             return 0
-        
+        print(f"STRAT: {robot.strat}")
         _nav_pt = WAIT_POS[robot.color][robot.strat]
         estimated_time = robot.pos.distance(robot.dest_to_pos(_nav_pt)) / Velocity.NORMAL.value.xy_norm() + 5
         if (world.time_left()-15) < estimated_time:

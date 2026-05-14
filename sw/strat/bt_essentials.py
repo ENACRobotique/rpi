@@ -421,6 +421,11 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
     
     def initialise(self):
         self.last_time = time.time()
+        self.firstIN = False
+        self.matchStarted = False
+        self.color = self.robot.color
+        self.strat = self.robot.strat
+        self.last_time = time.time()
 
     def update(self):
         if self.robot.color == Team.AUCUNE:
@@ -428,6 +433,7 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                 # Waiting for robot color to be set
                 self.last_time = time.time()
         if self.matchStarted:
+            print("Match strted ? yeeho !")
             # last check
             desired_pos = self.robot.dest_to_pos(START_POS[self.color][self.robot.strat])
             if self.robot.pos.distance(desired_pos) > 200:
@@ -438,15 +444,19 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
                 self.robot.log("Tirette in for first time")
             self.firstIN = True
         
-        if self.firstIN :
+        if self.firstIN:
             if not self.matchStarted:
                 if self.robot.ready_to_go(): 
                     self.robot.log("Match Started !")
                     self.world.matchStartTime = time.time()
                     self.matchStarted = True
+               # else:
+               #     print("robot NOT ready to go !")
         if self.color != self.robot.color or self.strat != self.robot.strat:
+
             self.color = self.robot.color
             self.strat = self.robot.strat
+            print(f"ROBOT STRAT: {self.robot.strat}")
             print("reset posssssssssss")
             self.robot.resetPos(self.robot.dest_to_pos(START_POS[self.color][self.robot.strat]))
         return py_trees.common.Status.RUNNING
