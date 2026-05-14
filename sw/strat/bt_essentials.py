@@ -451,6 +451,7 @@ class WaitMatchStart(py_trees.behaviour.Behaviour):
         if self.firstIN:
             if not self.matchStarted:
                 if self.robot.ready_to_go(): 
+                    self.robot.resetPos(self.robot.dest_to_pos(START_POS[self.color][self.robot.strat]))
                     self.robot.log("Match Started !")
                     self.world.matchStartTime = time.time()
                     self.matchStarted = True
