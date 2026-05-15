@@ -57,6 +57,8 @@ class Robot:
         self.couleur = "Jaune"
         self.num_strat = 0
         self.color_pub = ProtoPublisher(robot_pb.Side, "color")
+        self.color_sub = ProtoSubscriber(robot_pb.Side, "color")
+        
         self.strat_pub = ProtoPublisher(robot_pb.Strat, "strat")
         self.position_lidar = (0, 0, 0)
         self.position_odom = (0, 0, 0)
@@ -77,6 +79,7 @@ class Robot:
 ####################
 
 class SignalEmitter(QObject):
+    color_signal = pyqtSignal(robot_pb.Side)
     pos_lidar_signal = pyqtSignal(float, float, float)
     pos_odom_signal = pyqtSignal(float, float, float)
     pos_ekf_signal = pyqtSignal(float, float, float)
@@ -146,6 +149,14 @@ class TabStatus(QtWidgets.QWidget):
         self.b_status_color = QtWidgets.QPushButton(self.robot.name)
         self.b_status_color.setMinimumSize(300, 100); self.b_status_color.setStyleSheet("background-color: gray")
         self.b_status_color.clicked.connect(lambda:self.updateCouleur(False if self.robot.couleur=="Jaune" else True))
+        def onColorChanged( pub_id : ecal_core.TopicId, data : ReceiveCallbackData[robot_pb.Side]):
+            color = data.message.color
+            self.signal_emitter.pos_odom_signal.emit(data.message.color)
+        
+
+        self.robot.color_sub.set_receive_callback(onColorChanged)
+        self.signal_emitter.color_signal.connect(self.listenerColor)
+
         layout.addWidget(self.b_status_color, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter)
 
         ## Status du robot
@@ -284,13 +295,21 @@ class TabStatus(QtWidgets.QWidget):
         msg = robot_pb.Side()
         if jaune:
             self.robot.couleur = "Jaune"
-            self.b_status_color.setStyleSheet("background-color: yellow")
+            #self.b_status_color.setStyleSheet("background-color: yellow")
             msg.color = robot_pb.Side.Color.YELLOW
         else:
             self.robot.couleur = "Bleu"
-            self.b_status_color.setStyleSheet("background-color: blue")
+            #self.b_status_color.setStyleSheet("background-color: blue")
             msg.color = robot_pb.Side.Color.BLUE
         self.robot.color_pub.send(msg)
+
+    def listenerColor(self,color):
+            if color == robot_pb.Side.BLUE:
+                self.robot.couleur = "Bleu"
+                self.b_status_color.setStyleSheet("background-color: blue")
+            else :
+                self.robot.couleur = "Jaune"
+                self.b_status_color.setStyleSheet("background-color: yellow")
 
     def updateStrat(self, num_strat):
         # Envoie un message de changement de couleur, change la couleur du bouton
