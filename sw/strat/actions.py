@@ -35,7 +35,7 @@ class ThermometreAction(Action):
 
             #Thermo Action
             MoveTo(robot.dest_to_pos(CAISSETHERMO_POS[robot.color][robot.strat])),
-            #WaitSeconds(1),
+            WaitSeconds(1),
             Aligner(cote),
             Attraper(cote),
             MoveTo(robot.dest_to_pos(THERMO_POS[robot.color][robot.strat])),
@@ -61,7 +61,7 @@ class ThermometreAction(Action):
             robot.actionneurs.moveD(act.PosTentacle.HAUT)
         else :
             robot.actionneurs.moveG(act.PosTentacle.HAUT)
-        if status == py_trees.common.Status.SUCCESS:
+        if status == py_trees.cplanner.add_action(RecupererGauche)<<<<ommon.Status.SUCCESS:
             robot.updateScore(10)
 
 

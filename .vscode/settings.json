@@ -69,5 +69,6 @@
         "variant": "cpp"
     },
     "python-envs.defaultEnvManager": "ms-python.python:venv",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "cmake.sourceDirectory": "/home/robot/projets/rpi/drivers/smart_servo"
 }
