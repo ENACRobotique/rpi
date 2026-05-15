@@ -151,7 +151,7 @@ class TabStatus(QtWidgets.QWidget):
         self.b_status_color.clicked.connect(lambda:self.updateCouleur(False if self.robot.couleur=="Jaune" else True))
         def onColorChanged( pub_id : ecal_core.TopicId, data : ReceiveCallbackData[robot_pb.Side]):
             color = data.message.color
-            self.signal_emitter.pos_odom_signal.emit(data.message.color)
+            self.signal_emitter.color_signal.emit(data.message)
         
 
         self.robot.color_sub.set_receive_callback(onColorChanged)
@@ -304,10 +304,11 @@ class TabStatus(QtWidgets.QWidget):
         self.robot.color_pub.send(msg)
 
     def listenerColor(self,color):
-            if color == robot_pb.Side.BLUE:
+        print(color.color)    
+        if color.color == robot_pb.Side.BLUE:
                 self.robot.couleur = "Bleu"
                 self.b_status_color.setStyleSheet("background-color: blue")
-            else :
+        else :
                 self.robot.couleur = "Jaune"
                 self.b_status_color.setStyleSheet("background-color: yellow")
 

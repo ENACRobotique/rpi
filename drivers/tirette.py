@@ -10,7 +10,7 @@ import robot_state_pb2  as rpb
 LINE = 25
 TIMEOUT = 3
 
-LINE_COLOR = 24
+LINE_COLOR = 16
 
 
 if __name__ == "__main__":
@@ -43,10 +43,11 @@ if __name__ == "__main__":
             for event in tirette_request.read_edge_events():
                 pass
                 #print(event)
+        pass
         val = tirette_request.get_value(LINE)
         tirette_state = rpb.Tirette.IN if val == Value.INACTIVE else rpb.Tirette.OUT
         valColor = tirette_request.get_value(LINE_COLOR)
-        color_state = rpb.Side.BLUE if val == Value.INACTIVE else rpb.Side.YELLOW
+        color_state = rpb.Side.BLUE if valColor == Value.INACTIVE else rpb.Side.YELLOW
 
         msg = rpb.Tirette(tirette_state=tirette_state)
         tirette_pub.send(msg)
