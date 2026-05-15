@@ -61,7 +61,7 @@ class ThermometreAction(Action):
             robot.actionneurs.moveD(act.PosTentacle.HAUT)
         else :
             robot.actionneurs.moveG(act.PosTentacle.HAUT)
-        if status == py_trees.cplanner.add_action(RecupererGauche)<<<<ommon.Status.SUCCESS:
+        if status == py_trees.cplanner.add_action(RecupererGauche).common.Status.SUCCESS:
             robot.updateScore(10)
 
 
