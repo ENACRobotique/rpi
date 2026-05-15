@@ -202,7 +202,7 @@ class DeposerDroite(Action):
 
         recup.add_children([
             WaitSeconds(0.2),
-            Navigate(lambda x : DeposerDroite.recup_point(x)), 
+            Navigate(lambda x : DeposerDroite.recup_point(x)),
             Relacher((True,notre_couleur))
         ])
         return recup
@@ -351,6 +351,183 @@ class DeposerGauche(Action):
                 POINT_DEPOT[DeposerGauche.nav_point].contient.append(notre_couleur)
                 POINT_DEPOT[DeposerGauche.nav_point].contient.append(notre_couleur)
                 robot.updateScore(6)
+
+class VolerDroite(Action):
+    name = "VolerDroite"
+    nav_point = "NAN"
+
+
+    @staticmethod
+    def recup_point(_):
+        angle = POINT_DEPOT[VolerDroite.nav_point].angle
+        return (VolerDroite.nav_point,normalize_angle(angle))
+    
+    @staticmethod
+    def create_bt(robot: Robot, world: World) -> Behaviour:
+        recup = py_trees.composites.Sequence("VolerDroite", True)
+        notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.JAUNE # La color opposee
+
+
+        print(f"=========== Voler : Cote droit et {notre_couleur}=============")
+
+        recup.add_children([
+            WaitSeconds(0.2),
+            Navigate(lambda x : VolerDroite.recup_point(x)), 
+            Aligner(True),
+            Attraper(True),
+            Relacher((True,notre_couleur)),
+            Revolutionner((True,pas_notre_couleur))
+        ])
+        return recup
+    
+    @staticmethod
+    def reward(robot: Robot, world: World) -> float:
+        def mostRewardingDepotPoint():
+                max_reward = -1
+                max_wpt = "NAN"
+                for wpt in POINT_DEPOT.keys():
+                    if POINT_DEPOT[wpt].interest == 1:
+                        # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
+                        try :
+                            val = 5  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta)/np.pi) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
+                        except KeyError :
+                            val = - 10
+                    else :
+                        val = 0
+                    if max_reward < val:
+                        max_reward = val
+                        max_wpt = wpt
+                return max_wpt,max_reward
+        
+        if robot.cote_droit_vide():
+            VolerDroite.nav_point, max_reward = mostRewardingDepotPoint()
+            return max_reward
+        else :
+            return 0
+    
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        POINT_DEPOT[VolerDroite.nav_point].interest = 0
+        if status == py_trees.common.Status.SUCCESS:
+            if VolerDroite.nav_point == START_POS[robot.color][robot.strat][0]:
+                world.nid+=2
+                robot.updateScore(4)
+            else :
+                notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+                if VolerDroite.nav_point == "FrigoJES":
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                if VolerDroite.nav_point == "FrigoJEN":
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                        
+                if VolerDroite.nav_point == "FrigoBWS":
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                if VolerDroite.nav_point == "FrigoBWN":
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+
+                if VolerDroite.nav_point == "FrigoMidNS":
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                if VolerDroite.nav_point == "FrigoMidNN":
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+
+                POINT_DEPOT[VolerDroite.nav_point].contient.append(notre_couleur)
+                POINT_DEPOT[VolerDroite.nav_point].contient.append(notre_couleur)
+                robot.updateScore(6)
+
+class VolerGauche(Action):
+    name = "VolerGauche"
+    nav_point = "NAN"
+
+
+    @staticmethod
+    def recup_point(_):
+        angle = POINT_DEPOT[VolerGauche.nav_point].angle
+        return (VolerGauche.nav_point,normalize_angle(angle))
+    
+    @staticmethod
+    def create_bt(robot: Robot, world: World) -> Behaviour:
+        recup = py_trees.composites.Sequence("VolerGauche", True)
+        notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+        pas_notre_couleur = Caisse.BLEU if notre_couleur == Caisse.JAUNE else Caisse.JAUNE # La color opposee
+
+
+        print(f"=========== Voler : Cote gauche et {notre_couleur}=============")
+
+        recup.add_children([
+            WaitSeconds(0.2),
+            Navigate(lambda x : VolerGauche.recup_point(x)), 
+            Aligner(False),
+            Attraper(False),
+            Relacher((False,notre_couleur)),
+            Revolutionner((False,pas_notre_couleur))
+        ])
+        return recup
+    
+    @staticmethod
+    def reward(robot: Robot, world: World) -> float:
+        def mostRewardingDepotPoint():
+                max_reward = -1
+                max_wpt = "NAN"
+                for wpt in POINT_DEPOT.keys():
+                    if POINT_DEPOT[wpt].interest == 1:
+                        # On a des valeurs qui dependent de la distance, le gain minimal est 3 (a la distance max theorique) jusqu'a 6.
+                        try :
+                            val = 7  - 3 * (robot.distance_du_path(wpt)/DISTANCE_MAX) - 0.5 * abs(normalize_angle(POINT_DEPOT[wpt].angle - robot.pos.theta + np.pi)/np.pi) #- SEUIL_AGRESSIVITE * (self.robot.distance() / distanceMax)
+                        except KeyError :
+                            val = - 10
+                    else :
+                        val = 0
+                    if max_reward < val:
+                        max_reward = val
+                        max_wpt = wpt
+                return max_wpt,max_reward
+        
+        if robot.cote_gauche_vide():
+            VolerGauche.nav_point, max_reward = mostRewardingDepotPoint()
+            return max_reward
+        else :
+            return 0
+    
+    @staticmethod
+    def end_cb(robot: Robot, world: World, status: py_trees.common.Status) -> None:
+        POINT_DEPOT[VolerGauche.nav_point].interest = 0
+        if status == py_trees.common.Status.SUCCESS:
+            if VolerGauche.nav_point == START_POS[robot.color][robot.strat][0]:
+                world.nid+=2
+                robot.updateScore(4)
+            else :
+                notre_couleur = Caisse.BLEU if robot.color == Team.BLEU else Caisse.JAUNE # Notre couleur de caisse
+                if VolerGauche.nav_point == "FrigoJES":
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJEN"].contient.append(notre_couleur)
+                if VolerGauche.nav_point == "FrigoJEN":
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoJES"].contient.append(notre_couleur)
+                        
+                if VolerGauche.nav_point == "FrigoBWS":
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWN"].contient.append(notre_couleur)
+                if VolerGauche.nav_point == "FrigoBWN":
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoBWS"].contient.append(notre_couleur)
+
+                if VolerGauche.nav_point == "FrigoMidNS":
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNN"].contient.append(notre_couleur)
+                if VolerGauche.nav_point == "FrigoMidNN":
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+                    POINT_DEPOT["FrigoMidNS"].contient.append(notre_couleur)
+
+                POINT_DEPOT[VolerGauche.nav_point].contient.append(notre_couleur)
+                POINT_DEPOT[VolerGauche.nav_point].contient.append(notre_couleur)
+                robot.updateScore(6)
+
 
 class RetournerDroite(Action):
     name = "RetournerDroite"

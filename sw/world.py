@@ -1,6 +1,7 @@
 import time
+from UCD.world import WorldUCD
 import numpy as np
-from robot import Robot
+from robot import Caisse, Robot
 from common import Pos
 import threading
 
@@ -23,6 +24,14 @@ class DepotPoint :
         self.pos_milieu = pos_milieu
         self.contient = []
         self.temps_ennemie_passe = 0
+        self.interest = 0
+
+    def has(self,couleur):
+        c = 0
+        for caisse in self.contient :
+            if caisse == couleur or couleur == Caisse.TOUT:
+                c+=1
+        return c
 
 POINT_RAMASSAGE = {"NoixJN": RamassagePoint("NoixJN",-np.pi/2,Pos(175,1200,0)),
                      "NoixJSW": RamassagePoint("NoixJSW",-np.pi/2,Pos(175,400,0)),
@@ -62,6 +71,7 @@ class World:
         self.nid = 0
         self.main_match_action_done = False
         self.thread_track_ennemie = threading.Thread(target=self.track_ennemie,daemon=True)
+        self.thread_crate = threading.Thread(target=self.crate_thread,daemon=True)
         self.thread_track_ennemie.start()
 
     def time_left(self) -> float:
@@ -74,8 +84,7 @@ class World:
         return self.matchStartTime >= 0
 
     def track_ennemie(self):
-        print("[WORLD] Thread OPENING")
-        total_tick = 0
+        print("[WORLD] Thread 'track_enemie' OPENING")
         while True:
             time.sleep(0.1)
             ep = self.robot.ennemiePos
@@ -118,5 +127,14 @@ class World:
                             POINT_DEPOT["FrigoMidNS"].temps_ennemie_passe +=1
 
                         POINT_DEPOT[nav_point].temps_ennemie_passe +=1 # On augmente le temps passe dans le point interet
+                        if POINT_DEPOT[nav_point].temps_ennemie_passe > 50  and POINT_DEPOT[nav_point].interest > 0:
+                            POINT_DEPOT[nav_point].interest = 1
 
-                
+    def crate_thread(self):
+        print("[WORLD] Thread 'crate_thread' OPENING")
+        
+        w = WorldUCD()
+        
+        while True :
+            time.sleep(1)
+            w.run()
