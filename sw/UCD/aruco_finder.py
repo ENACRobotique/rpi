@@ -16,8 +16,10 @@ from scipy.spatial.transform import Rotation
 from threading import Event
 from xbee import Xbee
 from common_pb2 import Position
-import time
+import traceback
+import signal
 from aruco_filter import ArucoFilter
+
 
 MAX_ARUCOS_PER_PACKET = 4
 NB_CALIB_IMG = 10
@@ -81,9 +83,19 @@ class ArucoFinder:
         return self
     
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
-    #     if src_type == Source.ECAL:
-    #         self.sub.remove_receive_callback()
+        print("Cleaning resources...")
+        try:
+            if hasattr(self, "cap"):
+                self.cap.release()
+
+            cv2.destroyAllWindows()
+
+            if hasattr(self, "xbee"):
+                self.xbee.stop()
+
+        except Exception as e:
+            print("Cleanup error:", e)
+
 
     def cb(sender, data):
         print(f"msg from {sender}: {data.decode()}")
@@ -628,36 +640,44 @@ class ArucoFinder:
             cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
 
         while True:
-            if self.src_type == Source.CAM or self.src_type == Source.VIDEO:
-                ret, frame = self.cap.read()
-            else:
-                self.event.wait()
-                frame = self.img.copy()
-            
-            if self.camera_matrix is None:
-                h, w, _ = frame.shape
-                self.getCalibration(w, h)
-            
-            if self.camera_pose_in_W is None:
-                calibration_frame = self.get_camera_pose(frame)
+            try:
+                if self.src_type == Source.CAM or self.src_type == Source.VIDEO:
+                    ret, frame = self.cap.read()
+                else:
+                    self.event.wait()
+                    frame = self.img.copy()
+                
+                if self.camera_matrix is None:
+                    h, w, _ = frame.shape
+                    self.getCalibration(w, h)
+                
+                if self.camera_pose_in_W is None:
+                    calibration_frame = self.get_camera_pose(frame)
 
-            if self.camera_pose_in_W is not None:
-                processed = self.process(frame,frame_id)
-                frame_id += 1
-            # if self.display:
-            #     self.send_processed_frame(processed)
-
-                if self.display :
-                    self.draw_world_map()
-
-            if self. display:
                 if self.camera_pose_in_W is not None:
-                    cv2.imshow(f"ArucoFinder - {self.name}", processed)
-                else :
-                    cv2.imshow(f"ArucoFinder - {self.name}", frame)
+                    processed = self.process(frame,frame_id)
+                    frame_id += 1
+                # if self.display:
+                #     self.send_processed_frame(processed)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                    if self.display :
+                        self.draw_world_map()
+
+                if self. display:
+                    if self.camera_pose_in_W is not None:
+                        cv2.imshow(f"ArucoFinder - {self.name}", processed)
+                    else :
+                        cv2.imshow(f"ArucoFinder - {self.name}", frame)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            except Exception as e:
+
+                print("Crash inside main loop")
+                traceback.print_exc()
+
+                # arrêt total
+                os._exit(1)
 
 
 if __name__ == "__main__":
@@ -673,25 +693,34 @@ if __name__ == "__main__":
     parser.add_argument('--fourcc', type=str, help='fourcc type (MJPG, H264, ...)', default=None)
     args = parser.parse_args()
 
+    try:
+        if args.cam is not None:
+            src_type = Source.CAM
+            src = args.cam
+        elif args.video is not None:
+            src_type = Source.VIDEO
+            src = args.video
 
-    if args.cam is not None:
-        src_type = Source.CAM
-        src = args.cam
-    elif args.video is not None:
-        src_type = Source.VIDEO
-        src = args.video
+        else:
+            print("Please specify the source: cam, video or ecal topic.")
+        
+        arucos = {20:100, 21:100, 22:100, 23:100, 6:70, 47:30, 13:30, 36:30, 1:70,2:70,3:70,4:70,5:70,6:70,7:70,8:70,9:70,10:70}
 
-    else:
-        print("Please specify the source: cam, video or ecal topic.")
-    
-    arucos = {20:100, 21:100, 22:100, 23:100, 6:70, 47:30, 13:30, 36:30, 1:70,2:70,3:70,4:70,5:70,6:70,7:70,8:70,9:70,10:70}
+        known_markers = {
+            20: np.array([600, 1400, 0]),   # x=600, y=1400, z=0
+            21: np.array([2400, 1400, 0]),  # x=2400, y=1400, z=0
+            22: np.array([600, 600, 0]),    # x=600, y=600, z=0
+            23: np.array([2400, 600, 0])    # x=2400, y=600, z=0
+        }
 
-    known_markers = {
-        20: np.array([600, 1400, 0]),   # x=600, y=1400, z=0
-        21: np.array([2400, 1400, 0]),  # x=2400, y=1400, z=0
-        22: np.array([600, 600, 0]),    # x=600, y=600, z=0
-        23: np.array([2400, 600, 0])    # x=2400, y=600, z=0
-    }
+        with ArucoFinder(args.name, src_type, src, arucos, args.display) as af:
+            af.run()#k
 
-    with ArucoFinder(args.name, src_type, src, arucos, args.display) as af:
-        af.run()#k
+    except Exception as e:
+
+        print("\n========== FATAL ERROR ==========")
+        traceback.print_exc()
+        print("=================================\n")
+
+        # Tue immédiatement le programme
+        os._exit(1)
