@@ -1,5 +1,5 @@
 import time
-from UCD.world import WorldUCD
+#from UCD.world import WorldUCD
 import numpy as np
 from robot import Caisse, Robot
 from common import Pos
@@ -57,7 +57,7 @@ POINT_DEPOT = {"FrigoJN": DepotPoint("FrigoJN",0,Pos(1250,1450,0)),
                            "FrigoBS":DepotPoint("FrigoBS",0,Pos(3000-700,100,0)),
                            "FrigoBWS":DepotPoint("FrigoBWS",np.pi,Pos(3000-800,800,0)),
                            "FrigoBWN":DepotPoint("FrigoBWN",0,Pos(3000-800,800,0))}
-                        #    "NidJ":DepotPoint("NidJ",-np.pi/2,Pos(300,1750,0)),
+                       #    "NidJ":DepotPoint("NidJ",-np.pi/2,Pos(300,1750,0)),
                         #    "NidB":DepotPoint("NidB",-np.pi/2,Pos(3000-300,1750,0))}
 
 class World:
