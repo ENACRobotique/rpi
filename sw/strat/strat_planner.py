@@ -32,6 +32,8 @@ if __name__ == "__main__":
         planner.add_action(ThermometreAction)
         planner.add_action(RecupererDroite)
         planner.add_action(RecupererGauche)
+        planner.add_action(VolerDroite)
+        planner.add_action(VolerGauche)
         planner.add_action(DeposerDroite)
         planner.add_action(DeposerGauche)
         planner.add_action(RetournerDroite)
