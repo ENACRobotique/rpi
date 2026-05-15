@@ -34,14 +34,30 @@ START_POS = {
 
 }
 
-WAIT_POS = {
+ENTREE_ZONE_DEPART_POS = {
     Team.JAUNE: {
-        Strat.Basique: ('FrigoJW',-np.pi/2),
-        Strat.Audacieuse: ('FrigoJW',-np.pi/2)
+        Strat.Basique: ('EntreeJ',0),
+        Strat.Audacieuse: ('EntreeJ',0)
     },
     Team.BLEU: {
-        Strat.Basique: ('FrigoBE',-np.pi/2),
-        Strat.Audacieuse: ('FrigoBE',-np.pi/2)
+        Strat.Basique: ('EntreeB',np.pi),
+        Strat.Audacieuse: ('EntreeB',np.pi)
+    },
+    Team.AUCUNE: {   
+        Strat.Basique: ('FrigoMidS',0),
+        Strat.Audacieuse: ('FrigoMidS',0),
+        Strat.Homologation: ('FrigoMidS',0)
+    }
+}
+
+POUSSAGE_RAYOU_POS = {
+    Team.JAUNE: {
+        Strat.Basique: ('FrigoJN',0),
+        Strat.Audacieuse: ('FrigoJN',0)
+    },
+    Team.BLEU: {
+        Strat.Basique: ('FrigoBN',np.pi),
+        Strat.Audacieuse: ('FrigoBN',np.pi)
     },
     Team.AUCUNE: {   
         Strat.Basique: ('FrigoMidS',0),

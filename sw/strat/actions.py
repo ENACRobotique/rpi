@@ -8,7 +8,7 @@ sys.path.append("../..")
 from robot import Robot, COTE_DROIT, COTE_GAUCHE, Velocity
 from common import Speed
 from world import POINT_DEPOT, POINT_RAMASSAGE, World
-from bt_essentials import CAISSE0_POS, DEPOT0_POS, WAIT_POS, MatchTimer, Navigate, WaitMatchStart, WaitUntil
+from bt_essentials import CAISSE0_POS, DEPOT0_POS, ENTREE_ZONE_DEPART_POS, POUSSAGE_RAYOU_POS, MatchTimer, Navigate, WaitMatchStart, WaitUntil
 from bt_essentials import EndStrat, END_POS, WaitSeconds, THERMO_POS, MoveTo, Move, MoveSpeed, START_POS, CAISSETHERMO_POS, DEPOT1_POS, CAISSE1_POS,DEPOT2_POS, DEPOT3_POS, DEPOT4_POS, CAISSE2_POS
 from typing import Callable
 from dataclasses import dataclass
@@ -850,15 +850,18 @@ class GoHomeAction(Action):
 
     @staticmethod
     def create_bt(robot: Robot, world: World) -> Behaviour:
-        nav_pt = WAIT_POS[robot.color][robot.strat]
-        def to_wait_pos(_):
-            return nav_pt
-        final_nav = END_POS[robot.color][robot.strat]
+        
+        def entree_pos(_):
+            return ENTREE_ZONE_DEPART_POS[robot.color][robot.strat]
+        
+        def final_pos(_):
+            return END_POS[robot.color][robot.strat]
+        
         terminate = py_trees.composites.Sequence("Go to the Nest", True)
         terminate.add_children([
-            Navigate(to_wait_pos),
-            WaitUntil(92,world.matchStartTime),
-            MoveTo(robot.dest_to_pos(final_nav)),
+            Navigate(entree_pos),
+            MoveTo(robot.dest_to_pos(POUSSAGE_RAYOU_POS[robot.color][robot.strat])),
+            Navigate(final_pos),
             Relacher((False,Caisse.TOUT)),
             Relacher((True,Caisse.TOUT)),
             WaitUntil(100,world.matchStartTime)
@@ -871,7 +874,7 @@ class GoHomeAction(Action):
             # match not started or already back home
             return 0
         print(f"STRAT: {robot.strat}")
-        _nav_pt = WAIT_POS[robot.color][robot.strat]
+        _nav_pt = ENTREE_ZONE_DEPART_POS[robot.color][robot.strat]
         estimated_time = robot.pos.distance(robot.dest_to_pos(_nav_pt)) / Velocity.NORMAL.value.xy_norm() + 5
         if (world.time_left()-15) < estimated_time:
             # rush to home, high reward
