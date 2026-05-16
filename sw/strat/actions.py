@@ -876,7 +876,7 @@ class GoHomeAction(Action):
         print(f"STRAT: {robot.strat}")
         _nav_pt = ENTREE_ZONE_DEPART_POS[robot.color][robot.strat]
         estimated_time = robot.pos.distance(robot.dest_to_pos(_nav_pt)) / Velocity.NORMAL.value.xy_norm() + 5
-        if (world.time_left()-15) < estimated_time:
+        if (world.time_left()-25) < estimated_time:
             # rush to home, high reward
             return 1000
         else:
