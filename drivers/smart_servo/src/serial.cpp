@@ -9,14 +9,30 @@
 #include <linux/serial.h>
 #include <asm/termbits.h>
 
-#define RPI 1
 #define ECHO_BUFFER_SIZE 100
-#if RPI
-#include <gpiod.h>
-#define GPIO_CHIP "gpiochip4"
+#include <gpiod.h> // Used only to detect the API version.
+#include <gpiod.hpp>
+#include <exception>
+#include <optional>
 #define	CONSUMER "smartServo_driver"
-struct gpiod_line* line;
+
+// libgpiod has no compile-time version macro. This public bulk API macro
+// exists in 1.x and was removed together with the old line API in 2.x.
+#ifdef GPIOD_LINE_BULK_MAX_LINES
+#define SMART_SERVO_GPIOD_V1 1
+#else
+#define SMART_SERVO_GPIOD_V1 0
 #endif
+
+namespace {
+bool useRpi = true;
+#if SMART_SERVO_GPIOD_V1
+std::optional<gpiod::line> driverGPIO;
+#else
+std::optional<gpiod::line_request> driverGPIO;
+unsigned int driverOffset = 0;
+#endif
+}
 
 
 
@@ -70,36 +86,53 @@ int init_serial(int fd, speed_t speed) {
 }
 
 
-void initDriver(int gpio){
-    #if RPI
-    struct gpiod_chip *chip = gpiod_chip_open_by_name(GPIO_CHIP);
-    if (!chip) {
-        printf("Open chip failed\n");
-        return ;
+void initDriver(const char *chip_path, int gpio, bool rpi){
+    driverGPIO.reset();
+    useRpi = rpi;
+    if (!useRpi) return;
+    if (gpio < 0) {
+        fprintf(stderr, "Invalid GPIO offset %d\n", gpio);
+        return;
     }
-
-    line = gpiod_chip_get_line(chip, gpio);
-
-    if(gpiod_line_request_output(line, CONSUMER, 0)) {
-       printf("Error requesting line %d", gpio);
-       return;
+    try {
+        // The driver is active-low: start disabled (physical high).
+        #if SMART_SERVO_GPIOD_V1
+        auto line = gpiod::chip(chip_path, gpiod::chip::OPEN_BY_PATH).get_line(gpio);
+        line.request({CONSUMER, gpiod::line_request::DIRECTION_OUTPUT, {}}, 1);
+        driverGPIO = line;
+        #else
+        driverOffset = static_cast<unsigned int>(gpio);
+        driverGPIO = gpiod::chip(chip_path)
+            .prepare_request()
+            .set_consumer(CONSUMER)
+            .add_line_settings(driverOffset, gpiod::line_settings()
+                .set_direction(gpiod::line::direction::OUTPUT)
+                .set_output_value(gpiod::line::value::ACTIVE))
+            .do_request();
+        #endif
+    } catch (const std::exception &error) {
+        fprintf(stderr, "Error initializing driver GPIO %s line %d: %s\n", chip_path, gpio, error.what());
     }
-    gpiod_line_set_value(line, 1);
-    #endif
 }
 
 void enableDriver(int fd, bool enable){
-    #if RPI
-    gpiod_line_set_value(line,not enable);
-    #else
-    int rts = TIOCM_RTS;
-    if (enable){
-        ioctl(fd,TIOCMBIS, &rts);
+    if (!useRpi) {
+        int rts = TIOCM_RTS;
+        ioctl(fd, enable ? TIOCMBIS : TIOCMBIC, &rts);
+        return;
     }
-    else{
-        ioctl(fd,TIOCMBIC, &rts);
+    if (!driverGPIO) return;
+    try {
+        #if SMART_SERVO_GPIOD_V1
+        driverGPIO->set_value(!enable);
+        #else
+        driverGPIO->set_value(driverOffset,
+            enable ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
+        #endif
+    } catch (const std::exception &error) {
+        fprintf(stderr, "Error setting driver GPIO: %s\n", error.what());
     }
-    #endif
+
 }
 
 int writeData(int fd, uint8_t* data, size_t len, bool echo) {
@@ -143,4 +176,3 @@ int writeData(int fd, uint8_t* data, size_t len, bool echo) {
 
     return 0;
 }
-

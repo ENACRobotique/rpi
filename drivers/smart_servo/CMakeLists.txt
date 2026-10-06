@@ -3,7 +3,7 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 project(smartServoDriver)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -15,6 +15,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
 find_package(eCAL REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(CLI11 REQUIRED)
 
 set(source_files
   src/main.cpp
@@ -36,5 +37,6 @@ PROTOBUF_TARGET_CPP(${PROJECT_NAME} ${PROTO_DIR} ${protobuf_files})
 target_link_libraries(${PROJECT_NAME}
   eCAL::core
   protobuf::libprotobuf
-  gpiod
+  CLI11::CLI11
+  gpiodcxx
 )

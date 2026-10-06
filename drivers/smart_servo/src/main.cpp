@@ -1,3 +1,4 @@
+#include <CLI/CLI.hpp>
 #include <ecal/ecal.h>
 #include <ecal/msg/protobuf/publisher.h>
 #include <ecal/msg/protobuf/subscriber.h>
@@ -92,26 +93,32 @@ int ping(const eCAL::SServiceMethodInformation& method_info_,
 
 int main(int argc, char** argv){
 
-  if(argc < 2) {
-    std::cout << "Please specify serial port" << std::endl;
-    return -1;
-  }
-
+  CLI::App app{"Smart servo driver"};
+  std::string serial_device;
   int baudrate = 500000;
-  if(argc == 3) {
-    baudrate = atoi(argv[2]);
-    if(baudrate == 0) {
-      baudrate = 500000;
-    }
-  }
+  std::string gpio_chip = "/dev/gpiochip4";
+  int gpio_line = 19;
+  bool rpi = true;
+  app.add_option("-p,--port,port", serial_device, "Serial port device")->required();
+  app.add_option("-b,--baudrate,baudrate", baudrate, "Serial baud rate")
+      ->check(CLI::PositiveNumber)
+      ->capture_default_str();
+  app.add_option("--gpio-chip", gpio_chip, "GPIO chip device path")
+      ->capture_default_str();
+  app.add_option("--gpio-line", gpio_line, "Driver enable GPIO line offset")
+      ->check(CLI::NonNegativeNumber)
+      ->capture_default_str();
+  app.add_flag("--rpi", rpi, "Use GPIO driver control; --rpi=false selects serial RTS")
+      ->capture_default_str();
+  CLI11_PARSE(app, argc, argv);
   
-  int serial_port = open(argv[1], O_RDWR);
+  int serial_port = open(serial_device.c_str(), O_RDWR);
 
   if(init_serial(serial_port, baudrate)) {
     std::cout << "Error configuring serial port!" << std::endl;
   }
   
-  initDriver(19);
+  initDriver(gpio_chip.c_str(), gpio_line, rpi);
   
   SmartServo sap_controller(serial_port);
 
